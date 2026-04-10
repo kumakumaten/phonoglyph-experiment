@@ -46,7 +46,6 @@ def load_database():
 @st.cache_data
 def get_all_books():
     files = []
-    # books, books-a などをすべて読み込み [cite: 241, 251]
     for d in glob.glob(f"{BOOKS_DIR}*"):
         if os.path.isdir(d):
             files.extend(glob.glob(os.path.join(d, "*.txt")))
@@ -54,11 +53,10 @@ def get_all_books():
 
 @st.cache_data
 def get_book_preview(book_name):
-    """試し読み用にテキストを読み込む（文字化け・全文対応） [cite: 209, 213]"""
+    """試し読み用にテキストを読み込む（文字化け・全文対応）"""
     for d in glob.glob(f"{BOOKS_DIR}*"):
         path = os.path.join(d, f"{book_name}.txt")
         if os.path.exists(path):
-            # 日本語特有の文字コードを自動判定
             for enc in ['shift_jis', 'utf-8', 'cp932']:
                 try:
                     with open(path, 'r', encoding=enc, errors='replace') as f:
@@ -68,7 +66,6 @@ def get_book_preview(book_name):
     return "テキストが見つかりません。"
 
 def get_image_path(book_name):
-    """分割された画像フォルダから探索 [cite: 241]"""
     for d in glob.glob(f"{IMAGE_DIR}*"):
         path = os.path.join(d, f"{book_name}_v19.png")
         if os.path.exists(path):
@@ -89,14 +86,15 @@ if 'current_q_index' not in st.session_state: st.session_state.current_q_index =
 if 'results' not in st.session_state: st.session_state.results = []
 if 'current_options' not in st.session_state: st.session_state.current_options = []
 if 'data_saved' not in st.session_state: st.session_state.data_saved = False
+# 管理者フラグの永続化
+if 'is_admin' not in st.session_state: st.session_state.is_admin = False
 
 # ==========================================
-# 4. 実験用ロジック（円形度に基づくダミー抽出） [cite: 301, 303, 309]
+# 4. 実験用ロジック
 # ==========================================
 def get_dummies_bouba_kiki(target_book):
     pool = [b for b in ALL_BOOKS if b not in st.session_state.selected_books and b != target_book and b in DB_DATA]
     if len(pool) < 4: return random.sample(pool, len(pool))
-    # インデックス7（円形度）でソートし、コントラストを強調 [cite: 301, 309]
     pool_sorted = sorted(pool, key=lambda b: DB_DATA[b][7])
     layer_size = max(2, len(pool_sorted) // 5)
     return random.sample(pool_sorted[:layer_size], 2) + random.sample(pool_sorted[-layer_size:], 2)
@@ -106,8 +104,8 @@ def get_dummies_bouba_kiki(target_book):
 # ==========================================
 def render_step1():
     st.markdown("<h2 class='step-header'>Step 1: 実験への同意と基本情報</h2>", unsafe_allow_html=True)
-    st.info("【実験協力のお願い】 本実験は「音象徴と幾何学図形の認知」に関する学術調査です。 [cite: 108, 120]")
-    consent = st.checkbox("上記の内容を理解し、実験への参加に同意する [cite: 114]")
+    st.info("【実験協力のお願い】 本実験は「音象徴と幾何学図形の認知」に関する学術調査です。")
+    consent = st.checkbox("上記の内容を理解し、実験への参加に同意する")
     col1, col2 = st.columns(2)
     with col1:
         name = st.text_input("氏名（漢字またはカタカナ）*", placeholder="例：山田 太郎")
@@ -119,7 +117,7 @@ def render_step1():
     genres = st.multiselect("よく読むジャンル", ["純文学", "大衆文学", "SF", "ラノベ", "実用書", "その他"])
     synesthesia = st.slider("言葉の響きに色や形を感じるか", 1, 5, 3)
 
-    if st.button("次へ進む", type="primary"):
+    if st.button("次へ進む", key="s1_next", type="primary"):
         if not consent or not name.strip():
             st.error("⚠️ 同意チェックと氏名入力は必須です。")
         else:
@@ -130,7 +128,7 @@ def render_step1():
 
 def render_step2():
     st.markdown("<h2 class='step-header'>Step 2: 既読作品の選択</h2>", unsafe_allow_html=True)
-    st.write("内容を知っている作品を選択してください。📖ボタンで内容を全文確認できます。 [cite: 115]")
+    st.write("内容を知っている作品を選択してください。📖ボタンで内容を全文確認できます。")
     search_query = st.text_input("🔍 検索", placeholder="例：人間")
     filtered_books = [book for book in ALL_BOOKS if search_query.lower() in book.lower()]
 
@@ -145,20 +143,18 @@ def render_step2():
                 else:
                     if book in st.session_state.selected_books: st.session_state.selected_books.remove(book)
             with col_btn:
-                # 文字化け・全文対応の試し読みポップオーバー
-                with st.popover("📖"):
+                with st.popover("📖", key=f"pop_{book}"):
                     st.markdown(f"### {book}")
                     content = get_book_preview(book)
-                    # スクロール可能なエリアで全文を表示
-                    st.text_area("本文データ（全文）", value=content, height=400)
+                    st.text_area("本文データ（全文）", value=content, height=400, key=f"area_{book}")
 
     st.write("---")
     st.success(f"現在の選択数: **{len(st.session_state.selected_books)} 冊**")
     col_back, col_next = st.columns(2)
     with col_back:
-        if st.button("戻る"): st.session_state.step = 1; st.rerun()
+        if st.button("戻る", key="s2_back"): st.session_state.step = 1; st.rerun()
     with col_next:
-        if st.button("実験開始", type="primary"):
+        if st.button("実験開始", key="s2_start", type="primary"):
             if len(st.session_state.selected_books) == 0:
                 st.error("⚠️ 最低1冊は選択してください。")
             else:
@@ -168,7 +164,6 @@ def render_step2():
                 st.rerun()
 
 def render_step3():
-    """マッチングタスク画面 [cite: 120, 309]"""
     if st.session_state.current_q_index >= len(st.session_state.task_queue):
         st.session_state.step = 4
         st.rerun()
@@ -196,16 +191,16 @@ def render_step3():
                 st.error("画像なし")
 
     st.write("---")
-    answer_label = st.radio("正解を選択：", display_labels, horizontal=True)
-    if st.button("次へ", type="primary"):
-        is_correct = (options[display_labels.index(answer_label)] == target_book)
-        st.session_state.results.append({"出題書籍": target_book, "被験者回答": options[display_labels.index(answer_label)], "正誤": "正解" if is_correct else "不正解"})
+    answer_label = st.radio("正解を選択：", display_labels, horizontal=True, key=f"q_{st.session_state.current_q_index}")
+    if st.button("次へ", key=f"btn_next_{st.session_state.current_q_index}", type="primary"):
+        selected_book = options[display_labels.index(answer_label)]
+        is_correct = (selected_book == target_book)
+        st.session_state.results.append({"出題書籍": target_book, "被験者回答": selected_book, "正誤": "正解" if is_correct else "不正解"})
         st.session_state.current_q_index += 1
         st.session_state.current_options = []
         st.rerun()
 
 def render_step4():
-    """実験完了画面：スコア表示とGCP連携 [cite: 293, 311, 319]"""
     st.balloons()
     st.markdown("<h2 class='step-header'>実験完了！</h2>", unsafe_allow_html=True)
     total = len(st.session_state.results)
@@ -213,7 +208,6 @@ def render_step4():
     accuracy = (correct / total) * 100 if total > 0 else 0
     st.markdown(f"<h1 style='text-align:center; color:#4CAF50; font-size:60px;'>{accuracy:.1f} %</h1>", unsafe_allow_html=True)
 
-    # リアルタイムGCP連携ロジック [cite: 311, 319]
     if not st.session_state.data_saved:
         u_data = st.session_state.user_data
         JST = timezone(timedelta(hours=+9), 'JST')
@@ -236,11 +230,10 @@ def render_step4():
     st.image(f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={urllib.parse.quote(DEPLOY_URL)}")
 
 # ==========================================
-# 6. プレゼン用デモ・シミュレーター [cite: 166, 171, 176]
+# 6. プレゼン用デモ・シミュレーター
 # ==========================================
 def render_simulator():
     st.markdown("<h2 class='step-header'>🧬 PhonoGlyph モデル・シミュレーター</h2>", unsafe_allow_html=True)
-    st.write("音素の含有率を操作し、図形がどのように分岐するかをシミュレーションします。 [cite: 176]")
     col_params, col_plot = st.columns([1, 1.5])
     with col_params:
         vf = st.slider("前舌母音 (VF) [鋭さ]", 0.0, 50.0, 16.6)
@@ -257,7 +250,6 @@ def render_simulator():
         asymmetry = max(0, (vf - 16.6) / 20.0)
         line_weight = max(0.5, 2.0 + ((vd - 5.3) / 5.0))
 
-        # 非線形偏差増幅に基づく波形合成 [cite: 227, 238]
         r = np.ones_like(theta) * radius_base
         r += spikiness * np.abs(np.sin(17 * theta / 2))
         r += roundness * np.sin(2 * theta)
@@ -270,24 +262,34 @@ def render_simulator():
         st.pyplot(fig)
 
 # ==========================================
-# 7. メインルーチン（隠しコマンド式ナビゲーション） [cite: 288]
+# 7. メインルーチン（隠しコマンド式・サイドバー永続化版）
 # ==========================================
 def main():
-    # 最新のURLパラメータ判定
-    is_admin = False
-    if "mode" in st.query_params:
-        if st.query_params["mode"] == "admin":
-            is_admin = True
+    # 1. URLパラメータから管理者権限をチェックし、セッションに永続化
+    if "mode" in st.query_params and st.query_params["mode"] == "admin":
+        st.session_state.is_admin = True
 
+    # 2. 初期モード設定
     mode = "実験タスク (被験者用)"
 
-    # ?mode=admin の時だけサイドバーを表示 [cite: 288]
-    if is_admin:
+    # 3. 管理者フラグが立っている時だけサイドバーを稼働
+    if st.session_state.is_admin:
         st.sidebar.title("🌘 管理者モード")
-        mode = st.sidebar.radio("機能を選択", ["実験タスク (被験者用)", "モデル・シミュレーター (教授陣デモ用)"])
+        # ユーザーが選択した値をセッションに保存（リロード対策）
+        if 'admin_mode' not in st.session_state:
+            st.session_state.admin_mode = "実験タスク (被験者用)"
+        
+        selected_mode = st.sidebar.radio(
+            "機能を選択", 
+            ["実験タスク (被験者用)", "モデル・シミュレーター (教授陣デモ用)"],
+            index=0 if st.session_state.admin_mode == "実験タスク (被験者用)" else 1
+        )
+        st.session_state.admin_mode = selected_mode
+        mode = selected_mode
         st.sidebar.write("---")
-        st.sidebar.caption("※URLに ?mode=admin がある時のみ有効")
+        st.sidebar.caption("管理者として認証されています。")
 
+    # 4. 画面描画
     if mode == "実験タスク (被験者用)":
         if st.session_state.step == 1: render_step1()
         elif st.session_state.step == 2: render_step2()
