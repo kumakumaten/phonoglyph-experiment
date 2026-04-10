@@ -46,6 +46,7 @@ def load_database():
 @st.cache_data
 def get_all_books():
     files = []
+    # books, books-a などをすべて読み込み [cite: 241, 251]
     for d in glob.glob(f"{BOOKS_DIR}*"):
         if os.path.isdir(d):
             files.extend(glob.glob(os.path.join(d, "*.txt")))
@@ -53,10 +54,11 @@ def get_all_books():
 
 @st.cache_data
 def get_book_preview(book_name):
-    """試し読み用にテキストを読み込む（文字化け・全文対応版）"""
+    """試し読み用にテキストを読み込む（文字化け・全文対応） [cite: 209, 213]"""
     for d in glob.glob(f"{BOOKS_DIR}*"):
         path = os.path.join(d, f"{book_name}.txt")
         if os.path.exists(path):
+            # 日本語特有の文字コードを自動判定
             for enc in ['shift_jis', 'utf-8', 'cp932']:
                 try:
                     with open(path, 'r', encoding=enc, errors='replace') as f:
@@ -66,6 +68,7 @@ def get_book_preview(book_name):
     return "テキストが見つかりません。"
 
 def get_image_path(book_name):
+    """分割された画像フォルダから探索 [cite: 241]"""
     for d in glob.glob(f"{IMAGE_DIR}*"):
         path = os.path.join(d, f"{book_name}_v19.png")
         if os.path.exists(path):
@@ -88,11 +91,12 @@ if 'current_options' not in st.session_state: st.session_state.current_options =
 if 'data_saved' not in st.session_state: st.session_state.data_saved = False
 
 # ==========================================
-# 4. 実験用ロジック（ダミー抽出）
+# 4. 実験用ロジック（円形度に基づくダミー抽出） [cite: 301, 303, 309]
 # ==========================================
 def get_dummies_bouba_kiki(target_book):
     pool = [b for b in ALL_BOOKS if b not in st.session_state.selected_books and b != target_book and b in DB_DATA]
     if len(pool) < 4: return random.sample(pool, len(pool))
+    # インデックス7（円形度）でソートし、コントラストを強調 [cite: 301, 309]
     pool_sorted = sorted(pool, key=lambda b: DB_DATA[b][7])
     layer_size = max(2, len(pool_sorted) // 5)
     return random.sample(pool_sorted[:layer_size], 2) + random.sample(pool_sorted[-layer_size:], 2)
@@ -102,8 +106,8 @@ def get_dummies_bouba_kiki(target_book):
 # ==========================================
 def render_step1():
     st.markdown("<h2 class='step-header'>Step 1: 実験への同意と基本情報</h2>", unsafe_allow_html=True)
-    st.info("【実験協力のお願い】\n本実験は「音象徴と幾何学図形の認知」に関する学術調査です。")
-    consent = st.checkbox("上記の内容を理解し、実験への参加に同意する")
+    st.info("【実験協力のお願い】 本実験は「音象徴と幾何学図形の認知」に関する学術調査です。 [cite: 108, 120]")
+    consent = st.checkbox("上記の内容を理解し、実験への参加に同意する [cite: 114]")
     col1, col2 = st.columns(2)
     with col1:
         name = st.text_input("氏名（漢字またはカタカナ）*", placeholder="例：山田 太郎")
@@ -126,7 +130,7 @@ def render_step1():
 
 def render_step2():
     st.markdown("<h2 class='step-header'>Step 2: 既読作品の選択</h2>", unsafe_allow_html=True)
-    st.write("内容を知っている作品を選択してください。📖ボタンで内容を全文確認できます。")
+    st.write("内容を知っている作品を選択してください。📖ボタンで内容を全文確認できます。 [cite: 115]")
     search_query = st.text_input("🔍 検索", placeholder="例：人間")
     filtered_books = [book for book in ALL_BOOKS if search_query.lower() in book.lower()]
 
@@ -141,10 +145,12 @@ def render_step2():
                 else:
                     if book in st.session_state.selected_books: st.session_state.selected_books.remove(book)
             with col_btn:
+                # 文字化け・全文対応の試し読みポップオーバー
                 with st.popover("📖"):
                     st.markdown(f"### {book}")
                     content = get_book_preview(book)
-                    st.text_area("本文データ", value=content, height=400)
+                    # スクロール可能なエリアで全文を表示
+                    st.text_area("本文データ（全文）", value=content, height=400)
 
     st.write("---")
     st.success(f"現在の選択数: **{len(st.session_state.selected_books)} 冊**")
@@ -162,6 +168,7 @@ def render_step2():
                 st.rerun()
 
 def render_step3():
+    """マッチングタスク画面 [cite: 120, 309]"""
     if st.session_state.current_q_index >= len(st.session_state.task_queue):
         st.session_state.step = 4
         st.rerun()
@@ -183,7 +190,7 @@ def render_step3():
         with cols[i]:
             st.markdown(f"<div style='text-align:center; font-weight:bold;'>{display_labels[i]}</div>", unsafe_allow_html=True)
             img_path = get_image_path(option_book)
-            if img_path and os.path.exists(img_path):
+            if img_path:
                 st.image(Image.open(img_path), use_container_width=True)
             else:
                 st.error("画像なし")
@@ -198,6 +205,7 @@ def render_step3():
         st.rerun()
 
 def render_step4():
+    """実験完了画面：スコア表示とGCP連携 [cite: 293, 311, 319]"""
     st.balloons()
     st.markdown("<h2 class='step-header'>実験完了！</h2>", unsafe_allow_html=True)
     total = len(st.session_state.results)
@@ -205,6 +213,7 @@ def render_step4():
     accuracy = (correct / total) * 100 if total > 0 else 0
     st.markdown(f"<h1 style='text-align:center; color:#4CAF50; font-size:60px;'>{accuracy:.1f} %</h1>", unsafe_allow_html=True)
 
+    # リアルタイムGCP連携ロジック [cite: 311, 319]
     if not st.session_state.data_saved:
         u_data = st.session_state.user_data
         JST = timezone(timedelta(hours=+9), 'JST')
@@ -227,17 +236,18 @@ def render_step4():
     st.image(f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={urllib.parse.quote(DEPLOY_URL)}")
 
 # ==========================================
-# 6. プレゼン用デモ・シミュレーター
+# 6. プレゼン用デモ・シミュレーター [cite: 166, 171, 176]
 # ==========================================
 def render_simulator():
     st.markdown("<h2 class='step-header'>🧬 PhonoGlyph モデル・シミュレーター</h2>", unsafe_allow_html=True)
+    st.write("音素の含有率を操作し、図形がどのように分岐するかをシミュレーションします。 [cite: 176]")
     col_params, col_plot = st.columns([1, 1.5])
     with col_params:
-        vf = st.slider("前舌母音 (VF) [鋭さ・高音]", 0.0, 50.0, 16.6)
-        vb = st.slider("後舌母音 (VB) [大きさ・暗さ]", 0.0, 50.0, 34.3)
-        obs = st.slider("阻害音 (OBS) [トゲ・攻撃性]", 0.0, 50.0, 24.7)
-        son = st.slider("共鳴音 (SON) [丸み・滑らかさ]", 0.0, 50.0, 19.0)
-        vd = st.slider("有声音 (VD) [線の太さ]", 0.0, 20.0, 5.3)
+        vf = st.slider("前舌母音 (VF) [鋭さ]", 0.0, 50.0, 16.6)
+        vb = st.slider("後舌母音 (VB) [大きさ]", 0.0, 50.0, 34.3)
+        obs = st.slider("阻害音 (OBS) [トゲ]", 0.0, 50.0, 24.7)
+        son = st.slider("共鳴音 (SON) [丸み]", 0.0, 50.0, 19.0)
+        vd = st.slider("有声音 (VD) [太さ]", 0.0, 20.0, 5.3)
 
     with col_plot:
         theta = np.linspace(0, 2 * np.pi, 1000)
@@ -247,6 +257,7 @@ def render_simulator():
         asymmetry = max(0, (vf - 16.6) / 20.0)
         line_weight = max(0.5, 2.0 + ((vd - 5.3) / 5.0))
 
+        # 非線形偏差増幅に基づく波形合成 [cite: 227, 238]
         r = np.ones_like(theta) * radius_base
         r += spikiness * np.abs(np.sin(17 * theta / 2))
         r += roundness * np.sin(2 * theta)
@@ -259,9 +270,10 @@ def render_simulator():
         st.pyplot(fig)
 
 # ==========================================
-# 7. メインルーチン（隠しコマンド式）
+# 7. メインルーチン（隠しコマンド式ナビゲーション） [cite: 288]
 # ==========================================
 def main():
+    # 最新のURLパラメータ判定
     is_admin = False
     if "mode" in st.query_params:
         if st.query_params["mode"] == "admin":
@@ -269,6 +281,7 @@ def main():
 
     mode = "実験タスク (被験者用)"
 
+    # ?mode=admin の時だけサイドバーを表示 [cite: 288]
     if is_admin:
         st.sidebar.title("🌘 管理者モード")
         mode = st.sidebar.radio("機能を選択", ["実験タスク (被験者用)", "モデル・シミュレーター (教授陣デモ用)"])
