@@ -236,35 +236,58 @@ def render_step4():
     st.image(f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={urllib.parse.quote(DEPLOY_URL)}")
 
 # ==========================================
-# 6. プレゼン用デモ・シミュレーター
+# 6. プレゼン用デモ・シミュレーター（本番ロジック完全再現版）
 # ==========================================
 def render_simulator():
     st.markdown("<h2 class='step-header'>🧬 PhonoGlyph モデル・シミュレーター</h2>", unsafe_allow_html=True)
+    st.write("音素の含有率を操作し、図形がどのように分岐するかをシミュレーションします。")
     col_params, col_plot = st.columns([1, 1.5])
+    
+    # 日本語の統計的平均値（ベースライン）
+    BASELINE = {'vf': 16.6, 'vb': 34.3, 'obs': 24.7, 'son': 19.0, 'vd': 5.3}
+    
     with col_params:
-        vf = st.slider("前舌母音 (VF) [鋭さ]", 0.0, 50.0, 16.6)
-        vb = st.slider("後舌母音 (VB) [大きさ]", 0.0, 50.0, 34.3)
-        obs = st.slider("阻害音 (OBS) [トゲ]", 0.0, 50.0, 24.7)
-        son = st.slider("共鳴音 (SON) [丸み]", 0.0, 50.0, 19.0)
-        vd = st.slider("有声音 (VD) [太さ]", 0.0, 20.0, 5.3)
+        vf = st.slider("前舌母音 (VF) [鋭さ]", 0.0, 50.0, BASELINE['vf'])
+        vb = st.slider("後舌母音 (VB) [大きさ]", 0.0, 50.0, BASELINE['vb'])
+        obs = st.slider("阻害音 (OBS) [トゲ]", 0.0, 50.0, BASELINE['obs'])
+        son = st.slider("共鳴音 (SON) [丸み]", 0.0, 50.0, BASELINE['son'])
+        vd = st.slider("有声音 (VD) [太さ]", 0.0, 20.0, BASELINE['vd'])
 
     with col_plot:
-        theta = np.linspace(0, 2 * np.pi, 1000)
-        radius_base = 1.0 + ((vb - 34.3) / 50.0)
-        spikiness = max(0, (obs - 24.7) / 20.0)
-        roundness = max(0, (son - 19.0) / 20.0)
-        asymmetry = max(0, (vf - 16.6) / 20.0)
-        line_weight = max(0.5, 2.0 + ((vd - 5.3) / 5.0))
+        # 特徴爆発マッピング（非線形増幅）
+        def get_amp(val, baseline_key):
+            diff = val - BASELINE[baseline_key]
+            return np.sign(diff) * (abs(diff) ** 0.8) * 1.2
 
-        r = np.ones_like(theta) * radius_base
-        r += spikiness * np.abs(np.sin(17 * theta / 2))
-        r += roundness * np.sin(2 * theta)
-        r += asymmetry * np.cos(3 * theta)
+        d_vf  = get_amp(vf, 'vf')
+        d_vb  = get_amp(vb, 'vb')
+        d_obs = get_amp(obs, 'obs')
+        d_son = get_amp(son, 'son')
+        d_vd  = get_amp(vd, 'vd')
+
+        theta = np.linspace(0, 2 * np.pi, 3000)
+
+        # 有機的形態の生成（v19.1ロジック完全準拠）
+        r = 0.3 + (d_vb * 0.1)
+        r += (0.4 + d_son) * np.cos(2 * theta)
+        r += (0.3 + d_vf) * np.cos(3 * theta)
         
-        fig, ax = plt.subplots(subplot_kw={'projection': 'polar'})
-        ax.plot(theta, r, color='black', linewidth=line_weight)
-        ax.set_rticks([]); ax.set_yticklabels([]); ax.set_xticklabels([])
-        ax.grid(False); ax.spines['polar'].set_visible(False)
+        spike_amp = max(0, 0.1 + d_obs * 0.5)
+        r += spike_amp * np.cos(17 * theta)
+
+        # 直交座標への変換（極座標プロットのバグ回避）
+        x = r * np.cos(theta)
+        y = r * np.sin(theta)
+
+        fig, ax = plt.subplots(figsize=(6, 6), facecolor='white')
+        line_w = max(0.5, 1.5 + d_vd * 2.0)
+        
+        ax.plot(x, y, color='black', linewidth=line_w, solid_joinstyle='round')
+        ax.fill(x, y, color='black', alpha=0.05)
+        
+        ax.set_aspect('equal')
+        ax.axis('off')
+        
         st.pyplot(fig)
 
 # ==========================================
