@@ -279,12 +279,25 @@ def render_simulator():
 # ==========================================
 # メインルーチン（サイドバーナビゲーション）
 # ==========================================
+# ==========================================
+# メインルーチン（隠しコマンド式ナビゲーション）
+# ==========================================
 def main():
-    st.sidebar.title("🌘 モード選択")
-    mode = st.sidebar.radio("機能", ["実験タスク (被験者用)", "モデル・シミュレーター (教授陣デモ用)"])
-    st.sidebar.write("---")
-    st.sidebar.caption("※本番運用時はこのサイドバーを非表示にできます。")
+    # URLパラメータを取得（例: ?mode=admin）
+    query_params = st.query_params
+    is_admin = query_params.get("mode") == "admin"
 
+    # デフォルトのモード
+    mode = "実験タスク (被験者用)"
+
+    # ?mode=admin がついている時だけ、サイドバーを表示して切り替え可能にする
+    if is_admin:
+        st.sidebar.title("🌘 管理者モード")
+        mode = st.sidebar.radio("機能", ["実験タスク (被験者用)", "モデル・シミュレーター (教授陣デモ用)"])
+        st.sidebar.write("---")
+        st.sidebar.caption("※一般ユーザーにはこのサイドバーは見えません。")
+
+    # 選択されたモードの画面を描画
     if mode == "実験タスク (被験者用)":
         if st.session_state.step == 1: render_step1()
         elif st.session_state.step == 2: render_step2()
