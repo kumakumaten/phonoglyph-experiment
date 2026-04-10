@@ -15,7 +15,12 @@ import matplotlib.pyplot as plt
 # ==========================================
 # 1. ページ設定とカスタムCSS
 # ==========================================
-st.set_page_config(page_title="Phonoglyph 感性評価実験", page_icon="🌒", layout="centered")
+st.set_page_config(
+    page_title="Phonoglyph 感性評価実験", 
+    page_icon="🌒", 
+    layout="centered",
+    initial_sidebar_state="expanded" # 追加：画面幅に関わらずサイドバーを開く
+)
 
 st.markdown("""
     <style>
@@ -23,7 +28,8 @@ st.markdown("""
     .step-header { border-bottom: 3px solid #4CAF50; padding-bottom: 10px; margin-bottom: 25px; font-weight: 700; }
     .stButton>button { border-radius: 8px; font-weight: bold; transition: all 0.3s ease; }
     .stButton>button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    #MainMenu {visibility: hidden;} footer {visibility: hidden;} header {visibility: hidden;}
+    #MainMenu {visibility: hidden;} footer {visibility: hidden;} 
+    /* header {visibility: hidden;} は削除（サイドバーを開閉するボタンまで消えるため） */
     .option-img-container { display: flex; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 """, unsafe_allow_html=True)
@@ -265,17 +271,24 @@ def render_simulator():
 # 7. メインルーチン（隠しコマンド式・サイドバー永続化版）
 # ==========================================
 def main():
-    # 1. URLパラメータから管理者権限をチェックし、セッションに永続化
-    if "mode" in st.query_params and st.query_params["mode"] == "admin":
+    # URLパラメータを堅牢に取得（新旧バージョン対応）
+    query_params = st.query_params
+    mode_val = query_params.get("mode")
+    
+    # リストで返ってきた場合（旧仕様のフェイルセーフ）
+    if isinstance(mode_val, list) and len(mode_val) > 0:
+        mode_val = mode_val[0]
+        
+    if mode_val == "admin":
         st.session_state.is_admin = True
 
-    # 2. 初期モード設定
+    # 初期モード設定
     mode = "実験タスク (被験者用)"
 
-    # 3. 管理者フラグが立っている時だけサイドバーを稼働
+    # 管理者フラグが立っている時だけサイドバーを稼働
     if st.session_state.is_admin:
         st.sidebar.title("🌘 管理者モード")
-        # ユーザーが選択した値をセッションに保存（リロード対策）
+        
         if 'admin_mode' not in st.session_state:
             st.session_state.admin_mode = "実験タスク (被験者用)"
         
@@ -289,7 +302,7 @@ def main():
         st.sidebar.write("---")
         st.sidebar.caption("管理者として認証されています。")
 
-    # 4. 画面描画
+    # 画面描画
     if mode == "実験タスク (被験者用)":
         if st.session_state.step == 1: render_step1()
         elif st.session_state.step == 2: render_step2()
