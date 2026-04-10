@@ -6,7 +6,7 @@ import pickle
 import numpy as np
 from PIL import Image
 import csv
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 import urllib.parse
 import gspread
 from google.oauth2.service_account import Credentials
@@ -217,7 +217,9 @@ def render_step4():
     # ＝＝＝＝ 【完全版】Googleスプレッドシート連携ロジック ＝＝＝＝
     if not st.session_state.data_saved:
         u_data = st.session_state.user_data
-        timestamp = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
+        # 強制的に日本標準時（JST: UTC+9）を設定
+        JST = timezone(timedelta(hours=+9), 'JST')
+        timestamp = datetime.now(JST).strftime("%Y/%m/%d %H:%M:%S")
         
         combined_rows = []
         for r in st.session_state.results:
