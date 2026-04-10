@@ -52,7 +52,7 @@ def get_all_books():
 
 DB_DATA = load_database()
 ALL_BOOKS = get_all_books()
-DEPLOY_URL = "https://phonoglyph-experiment.streamlit.app"
+DEPLOY_URL = "https://phonoglyph-task.streamlit.app/"
 
 # ==========================================
 # 3. セッションステートの初期化
