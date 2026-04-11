@@ -91,6 +91,7 @@ if 'results' not in st.session_state: st.session_state.results = []
 if 'current_options' not in st.session_state: st.session_state.current_options = []
 if 'data_saved' not in st.session_state: st.session_state.data_saved = False
 if 'is_admin' not in st.session_state: st.session_state.is_admin = False
+if 'admin_mode' not in st.session_state: st.session_state.admin_mode = "実験タスク (被験者用)"
 
 # ==========================================
 # 4. 実験用ロジック
@@ -165,7 +166,7 @@ def render_step2():
             else:
                 st.session_state.task_queue = st.session_state.selected_books.copy()
                 random.shuffle(st.session_state.task_queue)
-                st.session_state.step = 3
+                st.session_state.step = 3  # ここでStep 3（アンケート）へ遷移
                 st.rerun()
 
 def render_step3():
@@ -200,12 +201,12 @@ def render_step3():
             st.session_state.user_data["q1"] = q1
             st.session_state.user_data["q2"] = q2
             st.session_state.user_data["q3"] = q3
-            st.session_state.step = 4
+            st.session_state.step = 4  # ここでStep 4（タスク）へ遷移
             st.rerun()
 
 def render_step4():
     if st.session_state.current_q_index >= len(st.session_state.task_queue):
-        st.session_state.step = 5
+        st.session_state.step = 5  # ここでStep 5（完了画面）へ遷移
         st.rerun()
 
     target_book = st.session_state.task_queue[st.session_state.current_q_index]
@@ -339,30 +340,30 @@ def main():
     if mode_val == "admin":
         st.session_state.is_admin = True
 
-    mode = "実験タスク (被験者用)"
-
+    # サイドバーのモード選択（管理者のみ）
     if st.session_state.is_admin:
         st.sidebar.title("🌘 管理者モード")
-        
-        if 'admin_mode' not in st.session_state:
-            st.session_state.admin_mode = "実験タスク (被験者用)"
-        
         selected_mode = st.sidebar.radio(
             "機能を選択", 
             ["実験タスク (被験者用)", "モデル・シミュレーター (教授陣デモ用)"],
             index=0 if st.session_state.admin_mode == "実験タスク (被験者用)" else 1
         )
         st.session_state.admin_mode = selected_mode
-        mode = selected_mode
         st.sidebar.write("---")
         st.sidebar.caption("管理者として認証されています。")
 
-    if mode == "実験タスク (被験者用)":
-        if st.session_state.step == 1: render_step1()
-        elif st.session_state.step == 2: render_step2()
-        elif st.session_state.step == 3: render_step3()
-        elif st.session_state.step == 4: render_step4()
-        elif st.session_state.step == 5: render_step5()
+    # 描画の振り分け（シミュレーター or 実験ステップ）
+    if st.session_state.admin_mode == "実験タスク (被験者用)":
+        if st.session_state.step == 1:
+            render_step1()
+        elif st.session_state.step == 2:
+            render_step2()
+        elif st.session_state.step == 3:
+            render_step3()
+        elif st.session_state.step == 4:
+            render_step4()
+        elif st.session_state.step == 5:
+            render_step5()
     else:
         render_simulator()
 
