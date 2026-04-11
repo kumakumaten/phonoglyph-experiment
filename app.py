@@ -19,7 +19,7 @@ st.set_page_config(
     page_title="Phonoglyph 感性評価実験", 
     page_icon="🌒", 
     layout="centered",
-    initial_sidebar_state="expanded" # 追加：画面幅に関わらずサイドバーを開く
+    initial_sidebar_state="expanded"
 )
 
 st.markdown("""
@@ -29,13 +29,12 @@ st.markdown("""
     .stButton>button { border-radius: 8px; font-weight: bold; transition: all 0.3s ease; }
     .stButton>button:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
     #MainMenu {visibility: hidden;} footer {visibility: hidden;} 
-    /* header {visibility: hidden;} は削除（サイドバーを開閉するボタンまで消えるため） */
     .option-img-container { display: flex; flex-direction: column; align-items: center; justify-content: center; }
     </style>
 """, unsafe_allow_html=True)
 
 # ==========================================
-# 2. 定数とデータロード（マルチフォルダ・文字化け対応）
+# 2. 定数とデータロード
 # ==========================================
 BOOKS_DIR = "books"
 IMAGE_DIR = "phonoglyphs_v19"
@@ -59,7 +58,6 @@ def get_all_books():
 
 @st.cache_data
 def get_book_preview(book_name):
-    """試し読み用にテキストを読み込む（文字化け・全文対応）"""
     for d in glob.glob(f"{BOOKS_DIR}*"):
         path = os.path.join(d, f"{book_name}.txt")
         if os.path.exists(path):
@@ -92,7 +90,6 @@ if 'current_q_index' not in st.session_state: st.session_state.current_q_index =
 if 'results' not in st.session_state: st.session_state.results = []
 if 'current_options' not in st.session_state: st.session_state.current_options = []
 if 'data_saved' not in st.session_state: st.session_state.data_saved = False
-# 管理者フラグの永続化
 if 'is_admin' not in st.session_state: st.session_state.is_admin = False
 
 # ==========================================
@@ -127,8 +124,10 @@ def render_step1():
         if not consent or not name.strip():
             st.error("⚠️ 同意チェックと氏名入力は必須です。")
         else:
-            st.session_state.user_data = {"name": name.strip(), "age": age, "gender": gender, "major": major, 
-                                          "reading_freq": reading_freq, "genres": ", ".join(genres), "synesthesia_score": synesthesia}
+            st.session_state.user_data = {
+                "name": name.strip(), "age": age, "gender": gender, "major": major, 
+                "reading_freq": reading_freq, "genres": ", ".join(genres), "synesthesia_score": synesthesia
+            }
             st.session_state.step = 2
             st.rerun()
 
@@ -160,7 +159,7 @@ def render_step2():
     with col_back:
         if st.button("戻る", key="s2_back"): st.session_state.step = 1; st.rerun()
     with col_next:
-        if st.button("実験開始", key="s2_start", type="primary"):
+        if st.button("次へ進む", key="s2_next", type="primary"):
             if len(st.session_state.selected_books) == 0:
                 st.error("⚠️ 最低1冊は選択してください。")
             else:
@@ -170,8 +169,43 @@ def render_step2():
                 st.rerun()
 
 def render_step3():
+    st.markdown("<h2 class='step-header'>Step 3: 読書体験に関する事前アンケート</h2>", unsafe_allow_html=True)
+    st.write("マッチングタスクを開始する前に、普段の読書体験について以下の3つの質問にお答えください。")
+
+    st.write("---")
+    q1 = st.radio(
+        "**Q1. 表紙のデザインやイラストに惹かれて本を買ったこと（ジャケ買い）はありますか？**",
+        ["はい", "いいえ"],
+        horizontal=True
+    )
+    
+    q2 = st.radio(
+        "**Q2. ジャケ買いをした結果、中身の文章の雰囲気や読みやすさが表紙の印象と違って、読むのをやめたりガッカリした経験はありますか？**",
+        ["よくある", "たまにある", "あまりない", "全くない"],
+        horizontal=True
+    )
+    
+    q3 = st.radio(
+        "**Q3. あらすじや表紙だけでなく、事前に「文章の響きやリズム（文体）」が直感的に分かる指標があれば、本選びの参考にしたいと思いますか？**",
+        ["思う", "やや思う", "あまり思わない", "思わない"],
+        horizontal=True
+    )
+
+    st.write("---")
+    col_back, col_next = st.columns(2)
+    with col_back:
+        if st.button("戻る", key="s3_back"): st.session_state.step = 2; st.rerun()
+    with col_next:
+        if st.button("タスクを開始する", key="s3_start", type="primary"):
+            st.session_state.user_data["q1"] = q1
+            st.session_state.user_data["q2"] = q2
+            st.session_state.user_data["q3"] = q3
+            st.session_state.step = 4
+            st.rerun()
+
+def render_step4():
     if st.session_state.current_q_index >= len(st.session_state.task_queue):
-        st.session_state.step = 4
+        st.session_state.step = 5
         st.rerun()
 
     target_book = st.session_state.task_queue[st.session_state.current_q_index]
@@ -206,7 +240,7 @@ def render_step3():
         st.session_state.current_options = []
         st.rerun()
 
-def render_step4():
+def render_step5():
     st.balloons()
     st.markdown("<h2 class='step-header'>実験完了！</h2>", unsafe_allow_html=True)
     total = len(st.session_state.results)
@@ -220,7 +254,14 @@ def render_step4():
         timestamp = datetime.now(JST).strftime("%Y/%m/%d %H:%M:%S")
         combined_rows = []
         for r in st.session_state.results:
-            combined_rows.append([timestamp, u_data.get("name", "unknown"), u_data.get("age", ""), u_data.get("gender", ""), u_data.get("major", ""), u_data.get("reading_freq", ""), u_data.get("genres", ""), u_data.get("synesthesia_score", ""), round(accuracy, 1), r["出題書籍"], r["被験者回答"], r["正誤"]])
+            combined_rows.append([
+                timestamp, u_data.get("name", "unknown"), u_data.get("age", ""), 
+                u_data.get("gender", ""), u_data.get("major", ""), 
+                u_data.get("reading_freq", ""), u_data.get("genres", ""), 
+                u_data.get("synesthesia_score", ""),
+                u_data.get("q1", ""), u_data.get("q2", ""), u_data.get("q3", ""),
+                round(accuracy, 1), r["出題書籍"], r["被験者回答"], r["正誤"]
+            ])
         try:
             if "gcp_service_account" in st.secrets:
                 scopes = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
@@ -236,14 +277,12 @@ def render_step4():
     st.image(f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={urllib.parse.quote(DEPLOY_URL)}")
 
 # ==========================================
-# 6. プレゼン用デモ・シミュレーター（本番ロジック完全再現版）
+# 6. プレゼン用デモ・シミュレーター
 # ==========================================
 def render_simulator():
     st.markdown("<h2 class='step-header'>🧬 PhonoGlyph モデル・シミュレーター</h2>", unsafe_allow_html=True)
-    st.write("音素の含有率を操作し、図形がどのように分岐するかをシミュレーションします。")
     col_params, col_plot = st.columns([1, 1.5])
     
-    # 日本語の統計的平均値（ベースライン）
     BASELINE = {'vf': 16.6, 'vb': 34.3, 'obs': 24.7, 'son': 19.0, 'vd': 5.3}
     
     with col_params:
@@ -254,7 +293,6 @@ def render_simulator():
         vd = st.slider("有声音 (VD) [太さ]", 0.0, 20.0, BASELINE['vd'])
 
     with col_plot:
-        # 特徴爆発マッピング（非線形増幅）
         def get_amp(val, baseline_key):
             diff = val - BASELINE[baseline_key]
             return np.sign(diff) * (abs(diff) ** 0.8) * 1.2
@@ -267,7 +305,6 @@ def render_simulator():
 
         theta = np.linspace(0, 2 * np.pi, 3000)
 
-        # 有機的形態の生成（v19.1ロジック完全準拠）
         r = 0.3 + (d_vb * 0.1)
         r += (0.4 + d_son) * np.cos(2 * theta)
         r += (0.3 + d_vf) * np.cos(3 * theta)
@@ -275,7 +312,6 @@ def render_simulator():
         spike_amp = max(0, 0.1 + d_obs * 0.5)
         r += spike_amp * np.cos(17 * theta)
 
-        # 直交座標への変換（極座標プロットのバグ回避）
         x = r * np.cos(theta)
         y = r * np.sin(theta)
 
@@ -291,24 +327,20 @@ def render_simulator():
         st.pyplot(fig)
 
 # ==========================================
-# 7. メインルーチン（隠しコマンド式・サイドバー永続化版）
+# 7. メインルーチン
 # ==========================================
 def main():
-    # URLパラメータを堅牢に取得（新旧バージョン対応）
     query_params = st.query_params
     mode_val = query_params.get("mode")
     
-    # リストで返ってきた場合（旧仕様のフェイルセーフ）
     if isinstance(mode_val, list) and len(mode_val) > 0:
         mode_val = mode_val[0]
         
     if mode_val == "admin":
         st.session_state.is_admin = True
 
-    # 初期モード設定
     mode = "実験タスク (被験者用)"
 
-    # 管理者フラグが立っている時だけサイドバーを稼働
     if st.session_state.is_admin:
         st.sidebar.title("🌘 管理者モード")
         
@@ -325,12 +357,12 @@ def main():
         st.sidebar.write("---")
         st.sidebar.caption("管理者として認証されています。")
 
-    # 画面描画
     if mode == "実験タスク (被験者用)":
         if st.session_state.step == 1: render_step1()
         elif st.session_state.step == 2: render_step2()
         elif st.session_state.step == 3: render_step3()
         elif st.session_state.step == 4: render_step4()
+        elif st.session_state.step == 5: render_step5()
     else:
         render_simulator()
 
