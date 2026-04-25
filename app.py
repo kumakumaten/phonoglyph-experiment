@@ -11,6 +11,9 @@ import urllib.parse
 import gspread
 from google.oauth2.service_account import Credentials
 import matplotlib.pyplot as plt
+import hashlib
+import uuid
+import time
 
 # ==========================================
 # 1. ページ設定とカスタムCSS
@@ -82,6 +85,9 @@ ALL_BOOKS = get_all_books()
 # ==========================================
 # 3. セッションステート初期化
 # ==========================================
+# 衝突検知用のユニークなセッションIDを発行
+if 'session_id' not in st.session_state: st.session_state.session_id = str(uuid.uuid4())
+
 if 'step' not in st.session_state: st.session_state.step = 1
 if 'user_data' not in st.session_state: st.session_state.user_data = {}
 if 'selected_books' not in st.session_state: st.session_state.selected_books = []
@@ -108,7 +114,7 @@ def get_dummies_bouba_kiki(target_book):
 # ==========================================
 def render_step1():
     st.markdown("<h2 class='step-header'>Step 1: 実験への同意と基本情報</h2>", unsafe_allow_html=True)
-    st.info("【実験協力のお願い】 本実験は「音象徴と幾何学図形の認知」に関する学術調査です。")
+    st.info("【実験協力のお願い】 本実験は「音象徴と幾何学図形の認知」に関する学術調査です。取得したデータは匿名化され、研究以外の目的には使用されません。")
     consent = st.checkbox("上記の内容を理解し、実験への参加に同意する")
     col1, col2 = st.columns(2)
     with col1:
@@ -166,7 +172,7 @@ def render_step2():
             else:
                 st.session_state.task_queue = st.session_state.selected_books.copy()
                 random.shuffle(st.session_state.task_queue)
-                st.session_state.step = 3  # ここでStep 3（アンケート）へ遷移
+                st.session_state.step = 3
                 st.rerun()
 
 def render_step3():
@@ -201,12 +207,12 @@ def render_step3():
             st.session_state.user_data["q1"] = q1
             st.session_state.user_data["q2"] = q2
             st.session_state.user_data["q3"] = q3
-            st.session_state.step = 4  # ここでStep 4（タスク）へ遷移
+            st.session_state.step = 4
             st.rerun()
 
 def render_step4():
     if st.session_state.current_q_index >= len(st.session_state.task_queue):
-        st.session_state.step = 5  # ここでStep 5（完了画面）へ遷移
+        st.session_state.step = 5
         st.rerun()
 
     target_book = st.session_state.task_queue[st.session_state.current_q_index]
@@ -253,25 +259,55 @@ def render_step5():
         u_data = st.session_state.user_data
         JST = timezone(timedelta(hours=+9), 'JST')
         timestamp = datetime.now(JST).strftime("%Y/%m/%d %H:%M:%S")
+        
+        # 氏名のハッシュ化（匿名化処理）
+        raw_name = u_data.get("name", "unknown")
+        hashed_name = hashlib.sha256(raw_name.encode('utf-8')).hexdigest()[:16] if raw_name != "unknown" else "unknown"
+
         combined_rows = []
         for r in st.session_state.results:
             combined_rows.append([
-                timestamp, u_data.get("name", "unknown"), u_data.get("age", ""), 
-                u_data.get("gender", ""), u_data.get("major", ""), 
-                u_data.get("reading_freq", ""), u_data.get("genres", ""), 
+                timestamp, 
+                st.session_state.session_id,  # [NEW] 回答ID（重複排除用）
+                hashed_name,                  # [UPDATED] ハッシュ化された氏名
+                u_data.get("age", ""), 
+                u_data.get("gender", ""), 
+                u_data.get("major", ""), 
+                u_data.get("reading_freq", ""), 
+                u_data.get("genres", ""), 
                 u_data.get("synesthesia_score", ""),
-                u_data.get("q1", ""), u_data.get("q2", ""), u_data.get("q3", ""),
-                round(accuracy, 1), r["出題書籍"], r["被験者回答"], r["正誤"]
+                u_data.get("q1", ""), 
+                u_data.get("q2", ""), 
+                u_data.get("q3", ""),
+                round(accuracy, 1), 
+                r["出題書籍"], 
+                r["被験者回答"], 
+                r["正誤"]
             ])
+
+        # GCP送信処理（指数的バックオフによるリトライ実装）
         try:
             if "gcp_service_account" in st.secrets:
                 scopes = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
                 creds = Credentials.from_service_account_info(dict(st.secrets["gcp_service_account"]), scopes=scopes)
                 client = gspread.authorize(creds)
-                client.open_by_url(st.secrets["private_gsheets_url"]).sheet1.append_rows(combined_rows)
+                sheet = client.open_by_url(st.secrets["private_gsheets_url"]).sheet1
+                
+                max_retries = 3
+                for attempt in range(max_retries):
+                    try:
+                        sheet.append_rows(combined_rows)
+                        st.session_state.data_saved = True
+                        break # 成功したらループを抜ける
+                    except Exception as api_err:
+                        if attempt < max_retries - 1:
+                            time.sleep(2 ** attempt + random.uniform(0, 1)) # ジッター付き指数バックオフ
+                        else:
+                            st.error(f"GCP書き込みエラー（リトライ上限超過）: {api_err}")
+            else:
+                st.warning("GCPシークレットが設定されていません。")
         except Exception as e:
-            st.error(f"DB通信エラー: {e}")
-        st.session_state.data_saved = True
+            st.error(f"認証エラー: {e}")
 
     st.write("---")
     st.code(DEPLOY_URL, language="text")
@@ -340,30 +376,30 @@ def main():
     if mode_val == "admin":
         st.session_state.is_admin = True
 
-    # サイドバーのモード選択（管理者のみ）
+    mode = "実験タスク (被験者用)"
+
     if st.session_state.is_admin:
         st.sidebar.title("🌘 管理者モード")
+        
+        if 'admin_mode' not in st.session_state:
+            st.session_state.admin_mode = "実験タスク (被験者用)"
+        
         selected_mode = st.sidebar.radio(
             "機能を選択", 
             ["実験タスク (被験者用)", "モデル・シミュレーター (教授陣デモ用)"],
             index=0 if st.session_state.admin_mode == "実験タスク (被験者用)" else 1
         )
         st.session_state.admin_mode = selected_mode
+        mode = selected_mode
         st.sidebar.write("---")
         st.sidebar.caption("管理者として認証されています。")
 
-    # 描画の振り分け（シミュレーター or 実験ステップ）
-    if st.session_state.admin_mode == "実験タスク (被験者用)":
-        if st.session_state.step == 1:
-            render_step1()
-        elif st.session_state.step == 2:
-            render_step2()
-        elif st.session_state.step == 3:
-            render_step3()
-        elif st.session_state.step == 4:
-            render_step4()
-        elif st.session_state.step == 5:
-            render_step5()
+    if mode == "実験タスク (被験者用)":
+        if st.session_state.step == 1: render_step1()
+        elif st.session_state.step == 2: render_step2()
+        elif st.session_state.step == 3: render_step3()
+        elif st.session_state.step == 4: render_step4()
+        elif st.session_state.step == 5: render_step5()
     else:
         render_simulator()
 
