@@ -301,9 +301,6 @@ def render_step5():
     st.code(DEPLOY_URL, language="text")
     st.image(f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={urllib.parse.quote(DEPLOY_URL)}")
 
-# ==========================================
-# 6. プレゼン用デモ・シミュレーター
-# ==========================================
 def render_simulator():
     st.markdown("<h2 class='step-header'>🧬 PhonoGlyph モデル・シミュレーター</h2>", unsafe_allow_html=True)
     col_params, col_plot = st.columns([1, 1.5])
@@ -312,15 +309,22 @@ def render_simulator():
     
     with col_params:
         vf = st.slider("前舌母音 (VF) [鋭さ]", 0.0, 50.0, BASELINE['vf'])
-        vb = st.slider("後舌母音 (VB) [大きさ]", 0.0, 50.0, BASELINE['vb'])
+        
+        # [変更点1] 絶対的なサイズは正規化されているため、ラベルの表現を正確にする
+        vb = st.slider("後舌母音 (VB) [芯の膨らみ]", 0.0, 50.0, BASELINE['vb'])
+        
         obs = st.slider("阻害音 (OBS) [トゲ]", 0.0, 50.0, BASELINE['obs'])
         son = st.slider("共鳴音 (SON) [丸み]", 0.0, 50.0, BASELINE['son'])
         
-        # [CRITICAL FIX] 教授の指摘を反映し、UI上でも無効化されていることを明示
-        vd = st.slider("有声音 (VD) [太さ・※主観排除のため現在無効化]", 0.0, 20.0, BASELINE['vd'], disabled=True)
+        st.write("---")
+        st.caption("🛡️ 学術的統制（交絡変数排除）のため無効化中")
+        # [変更点2] スライダーを disabled=True にして物理的に動かせなくし、意図を明示する
+        vd = st.slider("有声音 (VD) [線の太さ]", 0.0, 20.0, BASELINE['vd'], disabled=True)
 
     with col_plot:
         amp = st.session_state.amp_power
+        
+        # モジュールから取得
         x, y, line_w = phonoglyph_math.calculate_phonoglyph_coordinates(vf, vb, obs, son, vd, amp_power=amp)
 
         fig, ax = plt.subplots(figsize=(6, 6), facecolor='white')
@@ -330,9 +334,6 @@ def render_simulator():
         ax.axis('off')
         st.pyplot(fig)
 
-# ==========================================
-# 7. メインルーチン
-# ==========================================
 def main():
     query_params = st.query_params
     mode_val = query_params.get("mode")
@@ -355,7 +356,7 @@ def main():
         
         st.sidebar.write("---")
         st.sidebar.caption("🔬 アルゴリズム検証用")
-        st.session_state.amp_power = st.sidebar.slider("非線形増幅係数 (デフォルト 0.8)", 0.1, 2.0, st.session_state.amp_power, 0.1)
+        st.session_state.amp_power = st.sidebar.slider("非線形増幅係数", 0.1, 2.0, st.session_state.amp_power, 0.1)
         
         st.sidebar.write("---")
         st.sidebar.caption("管理者として認証されています。")
