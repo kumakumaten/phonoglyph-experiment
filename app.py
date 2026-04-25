@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import hashlib
 import uuid
 import time
+import phonoglyph_math  # [NEW] 共通数理モジュールをインポート
 
 # ==========================================
 # 1. ページ設定とカスタムCSS
@@ -85,9 +86,7 @@ ALL_BOOKS = get_all_books()
 # ==========================================
 # 3. セッションステート初期化
 # ==========================================
-# 衝突検知用のユニークなセッションIDを発行
 if 'session_id' not in st.session_state: st.session_state.session_id = str(uuid.uuid4())
-
 if 'step' not in st.session_state: st.session_state.step = 1
 if 'user_data' not in st.session_state: st.session_state.user_data = {}
 if 'selected_books' not in st.session_state: st.session_state.selected_books = []
@@ -98,6 +97,7 @@ if 'current_options' not in st.session_state: st.session_state.current_options =
 if 'data_saved' not in st.session_state: st.session_state.data_saved = False
 if 'is_admin' not in st.session_state: st.session_state.is_admin = False
 if 'admin_mode' not in st.session_state: st.session_state.admin_mode = "実験タスク (被験者用)"
+if 'amp_power' not in st.session_state: st.session_state.amp_power = 0.8  # デフォルト係数
 
 # ==========================================
 # 4. 実験用ロジック
@@ -180,23 +180,9 @@ def render_step3():
     st.write("マッチングタスクを開始する前に、普段の読書体験について以下の3つの質問にお答えください。")
 
     st.write("---")
-    q1 = st.radio(
-        "**Q1. 表紙のデザインやイラストに惹かれて本を買ったこと（ジャケ買い）はありますか？**",
-        ["はい", "いいえ"],
-        horizontal=True
-    )
-    
-    q2 = st.radio(
-        "**Q2. ジャケ買いをした結果、中身の文章の雰囲気や読みやすさが表紙の印象と違って、読むのをやめたりガッカリした経験はありますか？**",
-        ["よくある", "たまにある", "あまりない", "全くない"],
-        horizontal=True
-    )
-    
-    q3 = st.radio(
-        "**Q3. あらすじや表紙だけでなく、事前に「文章の響きやリズム（文体）」が直感的に分かる指標があれば、本選びの参考にしたいと思いますか？**",
-        ["思う", "やや思う", "あまり思わない", "思わない"],
-        horizontal=True
-    )
+    q1 = st.radio("**Q1. 表紙のデザインやイラストに惹かれて本を買ったこと（ジャケ買い）はありますか？**", ["はい", "いいえ"], horizontal=True)
+    q2 = st.radio("**Q2. ジャケ買いをした結果、中身の文章の雰囲気や読みやすさが表紙の印象と違って、読むのをやめたりガッカリした経験はありますか？**", ["よくある", "たまにある", "あまりない", "全くない"], horizontal=True)
+    q3 = st.radio("**Q3. あらすじや表紙だけでなく、事前に「文章の響きやリズム（文体）」が直感的に分かる指標があれば、本選びの参考にしたいと思いますか？**", ["思う", "やや思う", "あまり思わない", "思わない"], horizontal=True)
 
     st.write("---")
     col_back, col_next = st.columns(2)
@@ -260,32 +246,19 @@ def render_step5():
         JST = timezone(timedelta(hours=+9), 'JST')
         timestamp = datetime.now(JST).strftime("%Y/%m/%d %H:%M:%S")
         
-        # 氏名のハッシュ化（匿名化処理）
         raw_name = u_data.get("name", "unknown")
         hashed_name = hashlib.sha256(raw_name.encode('utf-8')).hexdigest()[:16] if raw_name != "unknown" else "unknown"
 
         combined_rows = []
         for r in st.session_state.results:
             combined_rows.append([
-                timestamp, 
-                st.session_state.session_id,  # [NEW] 回答ID（重複排除用）
-                hashed_name,                  # [UPDATED] ハッシュ化された氏名
-                u_data.get("age", ""), 
-                u_data.get("gender", ""), 
-                u_data.get("major", ""), 
-                u_data.get("reading_freq", ""), 
-                u_data.get("genres", ""), 
-                u_data.get("synesthesia_score", ""),
-                u_data.get("q1", ""), 
-                u_data.get("q2", ""), 
-                u_data.get("q3", ""),
-                round(accuracy, 1), 
-                r["出題書籍"], 
-                r["被験者回答"], 
-                r["正誤"]
+                timestamp, st.session_state.session_id, hashed_name, 
+                u_data.get("age", ""), u_data.get("gender", ""), u_data.get("major", ""), 
+                u_data.get("reading_freq", ""), u_data.get("genres", ""), u_data.get("synesthesia_score", ""),
+                u_data.get("q1", ""), u_data.get("q2", ""), u_data.get("q3", ""),
+                round(accuracy, 1), r["出題書籍"], r["被験者回答"], r["正誤"]
             ])
 
-        # GCP送信処理（指数的バックオフによるリトライ実装）
         try:
             if "gcp_service_account" in st.secrets:
                 scopes = ['https://www.googleapis.com/auth/spreadsheets', 'https://www.googleapis.com/auth/drive']
@@ -298,10 +271,10 @@ def render_step5():
                     try:
                         sheet.append_rows(combined_rows)
                         st.session_state.data_saved = True
-                        break # 成功したらループを抜ける
+                        break
                     except Exception as api_err:
                         if attempt < max_retries - 1:
-                            time.sleep(2 ** attempt + random.uniform(0, 1)) # ジッター付き指数バックオフ
+                            time.sleep(2 ** attempt + random.uniform(0, 1))
                         else:
                             st.error(f"GCP書き込みエラー（リトライ上限超過）: {api_err}")
             else:
@@ -314,13 +287,14 @@ def render_step5():
     st.image(f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={urllib.parse.quote(DEPLOY_URL)}")
 
 # ==========================================
-# 6. プレゼン用デモ・シミュレーター
+# 6. プレゼン用デモ・シミュレーター（リファクタリング済）
 # ==========================================
 def render_simulator():
     st.markdown("<h2 class='step-header'>🧬 PhonoGlyph モデル・シミュレーター</h2>", unsafe_allow_html=True)
     col_params, col_plot = st.columns([1, 1.5])
     
-    BASELINE = {'vf': 16.6, 'vb': 34.3, 'obs': 24.7, 'son': 19.0, 'vd': 5.3}
+    # phonoglyph_mathのベースライン値を参照
+    BASELINE = phonoglyph_math.BASELINE
     
     with col_params:
         vf = st.slider("前舌母音 (VF) [鋭さ]", 0.0, 50.0, BASELINE['vf'])
@@ -330,37 +304,15 @@ def render_simulator():
         vd = st.slider("有声音 (VD) [太さ]", 0.0, 20.0, BASELINE['vd'])
 
     with col_plot:
-        def get_amp(val, baseline_key):
-            diff = val - BASELINE[baseline_key]
-            return np.sign(diff) * (abs(diff) ** 0.8) * 1.2
-
-        d_vf  = get_amp(vf, 'vf')
-        d_vb  = get_amp(vb, 'vb')
-        d_obs = get_amp(obs, 'obs')
-        d_son = get_amp(son, 'son')
-        d_vd  = get_amp(vd, 'vd')
-
-        theta = np.linspace(0, 2 * np.pi, 3000)
-
-        r = 0.3 + (d_vb * 0.1)
-        r += (0.4 + d_son) * np.cos(2 * theta)
-        r += (0.3 + d_vf) * np.cos(3 * theta)
-        
-        spike_amp = max(0, 0.1 + d_obs * 0.5)
-        r += spike_amp * np.cos(17 * theta)
-
-        x = r * np.cos(theta)
-        y = r * np.sin(theta)
+        # [UPDATED] ハードコードされた数式を削除し、共通モジュールから取得
+        amp = st.session_state.amp_power
+        x, y, line_w = phonoglyph_math.calculate_phonoglyph_coordinates(vf, vb, obs, son, vd, amp_power=amp)
 
         fig, ax = plt.subplots(figsize=(6, 6), facecolor='white')
-        line_w = max(0.5, 1.5 + d_vd * 2.0)
-        
         ax.plot(x, y, color='black', linewidth=line_w, solid_joinstyle='round')
         ax.fill(x, y, color='black', alpha=0.05)
-        
         ax.set_aspect('equal')
         ax.axis('off')
-        
         st.pyplot(fig)
 
 # ==========================================
@@ -381,20 +333,22 @@ def main():
     if st.session_state.is_admin:
         st.sidebar.title("🌘 管理者モード")
         
-        if 'admin_mode' not in st.session_state:
-            st.session_state.admin_mode = "実験タスク (被験者用)"
-        
         selected_mode = st.sidebar.radio(
             "機能を選択", 
             ["実験タスク (被験者用)", "モデル・シミュレーター (教授陣デモ用)"],
             index=0 if st.session_state.admin_mode == "実験タスク (被験者用)" else 1
         )
         st.session_state.admin_mode = selected_mode
-        mode = selected_mode
+        
+        # [NEW] 管理者のみ操作可能なアブレーション（非線形増幅）パラメータ
+        st.sidebar.write("---")
+        st.sidebar.caption("🔬 アルゴリズム検証用")
+        st.session_state.amp_power = st.sidebar.slider("非線形増幅係数 (デフォルト 0.8)", 0.1, 2.0, st.session_state.amp_power, 0.1)
+        
         st.sidebar.write("---")
         st.sidebar.caption("管理者として認証されています。")
 
-    if mode == "実験タスク (被験者用)":
+    if st.session_state.admin_mode == "実験タスク (被験者用)":
         if st.session_state.step == 1: render_step1()
         elif st.session_state.step == 2: render_step2()
         elif st.session_state.step == 3: render_step3()
