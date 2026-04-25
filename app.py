@@ -296,7 +296,7 @@ def render_step5():
                 max_retries = 3
                 for attempt in range(max_retries):
                     try:
-                        sheet.append_rows(combined_rows)
+                        sheet.append_rows(combined_rows
                         st.session_state.data_saved = True
                         break # 成功したらループを抜ける
                     except Exception as api_err:
