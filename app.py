@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 import hashlib
 import uuid
 import time
-import phonoglyph_math  # [NEW] 共通数理モジュールをインポート
+import phonoglyph_math
 
 # ==========================================
 # 1. ページ設定とカスタムCSS
@@ -97,7 +97,7 @@ if 'current_options' not in st.session_state: st.session_state.current_options =
 if 'data_saved' not in st.session_state: st.session_state.data_saved = False
 if 'is_admin' not in st.session_state: st.session_state.is_admin = False
 if 'admin_mode' not in st.session_state: st.session_state.admin_mode = "実験タスク (被験者用)"
-if 'amp_power' not in st.session_state: st.session_state.amp_power = 0.8  # デフォルト係数
+if 'amp_power' not in st.session_state: st.session_state.amp_power = 0.8 
 
 # ==========================================
 # 4. 実験用ロジック
@@ -267,16 +267,31 @@ def render_step5():
                 sheet = client.open_by_url(st.secrets["private_gsheets_url"]).sheet1
                 
                 max_retries = 3
+                success = False
                 for attempt in range(max_retries):
                     try:
                         sheet.append_rows(combined_rows)
                         st.session_state.data_saved = True
+                        success = True
                         break
                     except Exception as api_err:
                         if attempt < max_retries - 1:
                             time.sleep(2 ** attempt + random.uniform(0, 1))
                         else:
                             st.error(f"GCP書き込みエラー（リトライ上限超過）: {api_err}")
+                
+                if not success:
+                    st.warning("⚠️ サーバーへのデータ保存に失敗しました。以下のボタンからバックアップをダウンロードしてください。")
+                    csv_header = "Timestamp,SessionID,HashedName,Age,Gender,Major,ReadingFreq,Genres,Synesthesia,Q1,Q2,Q3,Accuracy,Target,Answer,Correctness\n"
+                    csv_body = "\n".join([",".join(map(str, row)) for row in combined_rows])
+                    st.download_button(
+                        label="📥 リカバリデータをダウンロード",
+                        data=csv_header + csv_body,
+                        file_name=f"recovery_{st.session_state.session_id}.csv",
+                        mime="text/csv",
+                        type="primary"
+                    )
+
             else:
                 st.warning("GCPシークレットが設定されていません。")
         except Exception as e:
@@ -287,13 +302,12 @@ def render_step5():
     st.image(f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data={urllib.parse.quote(DEPLOY_URL)}")
 
 # ==========================================
-# 6. プレゼン用デモ・シミュレーター（リファクタリング済）
+# 6. プレゼン用デモ・シミュレーター
 # ==========================================
 def render_simulator():
     st.markdown("<h2 class='step-header'>🧬 PhonoGlyph モデル・シミュレーター</h2>", unsafe_allow_html=True)
     col_params, col_plot = st.columns([1, 1.5])
     
-    # phonoglyph_mathのベースライン値を参照
     BASELINE = phonoglyph_math.BASELINE
     
     with col_params:
@@ -301,10 +315,11 @@ def render_simulator():
         vb = st.slider("後舌母音 (VB) [大きさ]", 0.0, 50.0, BASELINE['vb'])
         obs = st.slider("阻害音 (OBS) [トゲ]", 0.0, 50.0, BASELINE['obs'])
         son = st.slider("共鳴音 (SON) [丸み]", 0.0, 50.0, BASELINE['son'])
-        vd = st.slider("有声音 (VD) [太さ]", 0.0, 20.0, BASELINE['vd'])
+        
+        # [CRITICAL FIX] 教授の指摘を反映し、UI上でも無効化されていることを明示
+        vd = st.slider("有声音 (VD) [太さ・※主観排除のため現在無効化]", 0.0, 20.0, BASELINE['vd'], disabled=True)
 
     with col_plot:
-        # [UPDATED] ハードコードされた数式を削除し、共通モジュールから取得
         amp = st.session_state.amp_power
         x, y, line_w = phonoglyph_math.calculate_phonoglyph_coordinates(vf, vb, obs, son, vd, amp_power=amp)
 
@@ -328,8 +343,6 @@ def main():
     if mode_val == "admin":
         st.session_state.is_admin = True
 
-    mode = "実験タスク (被験者用)"
-
     if st.session_state.is_admin:
         st.sidebar.title("🌘 管理者モード")
         
@@ -340,7 +353,6 @@ def main():
         )
         st.session_state.admin_mode = selected_mode
         
-        # [NEW] 管理者のみ操作可能なアブレーション（非線形増幅）パラメータ
         st.sidebar.write("---")
         st.sidebar.caption("🔬 アルゴリズム検証用")
         st.session_state.amp_power = st.sidebar.slider("非線形増幅係数 (デフォルト 0.8)", 0.1, 2.0, st.session_state.amp_power, 0.1)
