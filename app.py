@@ -53,19 +53,42 @@ def load_database():
     return {}
 
 # [修正1] @st.cache_data を削除。常に最新のExcelを直接読み込み、古いキャッシュの呪縛を断ち切る。
+@st.cache_data
 def load_book_metadata(all_books_list):
-    file_path = 'book_mapping.xlsx'
+    import glob
+    import os
+    
+    # 1. フォルダ内のすべての book_mapping 系Excelを検索
+    possible_files = glob.glob('book_mapping*.xlsx')
+    
     all_books_df = pd.DataFrame({'ローマ字ファイル名': all_books_list})
+    # [防弾化] 結合ミスを防ぐため空白を削除
+    all_books_df['ローマ字ファイル名'] = all_books_df['ローマ字ファイル名'].astype(str).str.strip()
+    
+    if not possible_files:
+        # [BU] エラーを握りつぶさず、UI上に明確に警告を出す
+        st.error("🚨 致命的エラー: 'book_mapping.xlsx' が見つかりません。プロジェクトのフォルダに配置してください。")
+        all_books_df['日本語書籍名'] = all_books_df['ローマ字ファイル名']
+        all_books_df['著者名'] = '不明'
+        all_books_df['知名度スコア'] = 0
+        all_books_df['発表年'] = 9999
+        all_books_df['ジャンル'] = '不明'
+        all_books_df['あらすじ'] = 'あらすじ情報なし'
+        return all_books_df
+
+    # 2. 更新日時が一番新しいファイルを自動選択
+    possible_files.sort(key=os.path.getmtime)
+    file_path = possible_files[-1]
     
     try:
         meta_df = pd.read_excel(file_path)
+        meta_df['ローマ字ファイル名'] = meta_df['ローマ字ファイル名'].astype(str).str.strip()
+        
         merged_df = pd.merge(all_books_df, meta_df, on='ローマ字ファイル名', how='left')
         merged_df['日本語書籍名'] = merged_df['日本語書籍名'].fillna(merged_df['ローマ字ファイル名'])
         merged_df['著者名'] = merged_df['著者名'].fillna('不明')
         merged_df['知名度スコア'] = pd.to_numeric(merged_df['知名度スコア'], errors='coerce').fillna(0)
         merged_df['発表年'] = pd.to_numeric(merged_df['発表年'], errors='coerce').fillna(9999)
-        
-        # [修正2] 見えない空白文字を .str.strip() で強制排除。これで完全一致検索が機能する。
         merged_df['ジャンル'] = merged_df['ジャンル'].fillna('不明').astype(str).str.strip()
         
         if 'あらすじ' in merged_df.columns:
@@ -74,7 +97,10 @@ def load_book_metadata(all_books_list):
             merged_df['あらすじ'] = 'あらすじ情報なし'
             
         return merged_df
+        
     except Exception as e:
+        # [BU] エラー発生時はログだけでなくUIにも露出させる
+        st.error(f"🚨 メタデータ読み込みエラー: {e}")
         all_books_df['日本語書籍名'] = all_books_df['ローマ字ファイル名']
         all_books_df['著者名'] = '不明'
         all_books_df['知名度スコア'] = 0
