@@ -52,50 +52,59 @@ def load_database():
             return pickle.load(f)
     return {}
 
+def _get_fallback_df(base_df):
+    df = base_df.copy()
+    df['日本語書籍名'] = df['ローマ字ファイル名']
+    df['著者名'] = '不明'
+    df['知名度スコア'] = 0
+    df['発表年'] = 9999
+    df['ジャンル'] = '不明'
+    df['あらすじ'] = 'あらすじ情報なし'
+    return df
+
 def load_book_metadata(all_books_list):
     import glob
     import os
     import pandas as pd
     
-    # 結合用のベースDF（大文字小文字・空白を無視する MatchKey を作成）
     all_books_df = pd.DataFrame({'ローマ字ファイル名': all_books_list})
+    # 余計な空白・大文字小文字を排除した絶対結合キー
     all_books_df['MatchKey'] = all_books_df['ローマ字ファイル名'].astype(str).str.strip().str.lower()
     
-    # フォルダ内の全Excelを検索
     possible_files = glob.glob('*book_mapping*.xlsx')
-    
     if not possible_files:
-        st.error("🚨 エラー: 'book_mapping' を含むExcelファイルが見つかりません。")
-        all_books_df['日本語書籍名'] = all_books_df['ローマ字ファイル名']
-        all_books_df['著者名'] = '不明'
-        all_books_df['知名度スコア'] = 0
-        all_books_df['発表年'] = 9999
-        all_books_df['ジャンル'] = '不明'
-        all_books_df['あらすじ'] = 'あらすじ情報なし'
-        return all_books_df
+        st.session_state.debug_error = "ファイルが見つかりません"
+        return _get_fallback_df(all_books_df)
 
-    # 「あらすじ」カラムを持つファイルを最優先で探す（防弾ロジック）
+    # 最新のファイルを取得
     possible_files.sort(key=os.path.getmtime, reverse=True)
     target_file = possible_files[0]
-    for f in possible_files:
-        try:
-            temp = pd.read_excel(f, nrows=1)
-            if 'あらすじ' in temp.columns:
-                target_file = f
-                break
-        except:
-            pass
-
-    st.sidebar.caption(f"🔧 メタデータ読込中: {target_file}")
     
     try:
         meta_df = pd.read_excel(target_file)
-        # Excel側も MatchKey を作成して確実な結合を保証
+        
+        # カラム名のBOMや見えない空白を完全除去
+        meta_df.columns = [str(c).strip().replace('\ufeff', '') for c in meta_df.columns]
+        
+        # カラム欠損対策：一番左の列をローマ字ファイル名とみなす
+        if 'ローマ字ファイル名' not in meta_df.columns:
+            meta_df.rename(columns={meta_df.columns[0]: 'ローマ字ファイル名'}, inplace=True)
+            
+        # Excel側にも絶対結合キーを作成
         meta_df['MatchKey'] = meta_df['ローマ字ファイル名'].astype(str).str.strip().str.lower()
+        
+        # デバッグ情報の格納
+        st.session_state.debug_target_file = target_file
+        st.session_state.debug_columns = list(meta_df.columns)
+        st.session_state.debug_all_books = list(all_books_df['MatchKey'])[:5]
+        st.session_state.debug_meta_keys = list(meta_df['MatchKey'])[:5]
         
         merged_df = pd.merge(all_books_df, meta_df, on='MatchKey', how='left')
         
-        # 欠損値の補完と型変換
+        # 結合成功数のカウント
+        st.session_state.debug_match_count = int(merged_df['著者名'].notna().sum())
+        
+        # 欠損値の補完
         merged_df['日本語書籍名'] = merged_df['日本語書籍名'].fillna(merged_df['ローマ字ファイル名_x'])
         merged_df['著者名'] = merged_df['著者名'].fillna('不明')
         merged_df['知名度スコア'] = pd.to_numeric(merged_df['知名度スコア'], errors='coerce').fillna(0)
@@ -111,14 +120,8 @@ def load_book_metadata(all_books_list):
         return merged_df
         
     except Exception as e:
-        st.error(f"🚨 読込エラー: {e}")
-        all_books_df['日本語書籍名'] = all_books_df['ローマ字ファイル名']
-        all_books_df['著者名'] = '不明'
-        all_books_df['知名度スコア'] = 0
-        all_books_df['発表年'] = 9999
-        all_books_df['ジャンル'] = '不明'
-        all_books_df['あらすじ'] = 'あらすじ情報なし'
-        return all_books_df
+        st.session_state.debug_error = str(e)
+        return _get_fallback_df(all_books_df)
 
 def get_image_path(book_name):
     for d in glob.glob(f"{IMAGE_DIR}*"):
@@ -265,6 +268,17 @@ def render_step2():
                                 st.caption("詳細情報なし")
 
     st.write("---")
+    
+    # 診断パネル（エラー原因の可視化）
+    with st.expander("🛠️ システム診断（結合ステータス）", expanded=False):
+        st.write(f"**読込ファイル:** {st.session_state.get('debug_target_file', '不明')}")
+        st.write(f"**認識されたカラム:** {st.session_state.get('debug_columns', '不明')}")
+        st.write(f"**システム側のキー例:** {st.session_state.get('debug_all_books', '不明')}")
+        st.write(f"**Excel側のキー例:** {st.session_state.get('debug_meta_keys', '不明')}")
+        st.write(f"**結合成功数:** {st.session_state.get('debug_match_count', 0)} / {len(ALL_BOOKS)}")
+        if 'debug_error' in st.session_state:
+            st.error(st.session_state.debug_error)
+
     st.success(f"現在の選択数: **{len(st.session_state.selected_books)} 冊**")
     col_back, col_next = st.columns(2)
     with col_back:
