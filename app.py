@@ -57,7 +57,7 @@ def load_book_metadata(all_books_list):
     import pandas as pd
     
     # 1. フォルダ内のすべての book_mapping 系Excelを検索
-    possible_files = glob.glob('book_mapping*.xlsx')
+    possible_files = glob.glob('book_mapping*.csv')
     
     all_books_df = pd.DataFrame({'ローマ字ファイル名': all_books_list})
     all_books_df['ローマ字ファイル名'] = all_books_df['ローマ字ファイル名'].astype(str).str.strip()
