@@ -41,7 +41,6 @@ st.markdown("""
 # ==========================================
 # 2. 定数とデータロード
 # ==========================================
-BOOKS_DIR = "books"
 IMAGE_DIR = "phonoglyphs_v19"
 DB_PATH = "features_db.pkl"
 DEPLOY_URL = "https://phonoglyph-task.streamlit.app/"
@@ -54,54 +53,34 @@ def load_database():
     return {}
 
 @st.cache_data
-def get_all_books():
-    files = []
-    for d in glob.glob(f"{BOOKS_DIR}*"):
-        if os.path.isdir(d):
-            files.extend(glob.glob(os.path.join(d, "*.txt")))
-    return sorted([os.path.basename(f).replace(".txt", "") for f in files])
-
-@st.cache_data
 def load_book_metadata(all_books_list):
-    """Excelからメタデータを読み込み、実際のファイルリストと安全に結合する"""
-    file_path = 'book_mapping.xlsx'
-    if not os.path.exists(file_path):
-        file_path = 'book_mapping.xlsx' # 念のためのフォールバック
-        
+    # 弦が生成した最新のExcelファイルを読み込む
+    file_path = 'book_mapping (2).xlsx'
     all_books_df = pd.DataFrame({'ローマ字ファイル名': all_books_list})
     
-    if os.path.exists(file_path):
+    try:
         meta_df = pd.read_excel(file_path)
-        # 実在するファイルベースで結合 (メタデータ漏れを防ぐ)
         merged_df = pd.merge(all_books_df, meta_df, on='ローマ字ファイル名', how='left')
         merged_df['日本語書籍名'] = merged_df['日本語書籍名'].fillna(merged_df['ローマ字ファイル名'])
         merged_df['著者名'] = merged_df['著者名'].fillna('不明')
         merged_df['知名度スコア'] = pd.to_numeric(merged_df['知名度スコア'], errors='coerce').fillna(0)
         merged_df['発表年'] = pd.to_numeric(merged_df['発表年'], errors='coerce').fillna(9999)
         merged_df['ジャンル'] = merged_df['ジャンル'].fillna('不明')
-    else:
-        # メタデータファイルがない場合のフォールバック
-        merged_df = all_books_df.copy()
-        merged_df['日本語書籍名'] = merged_df['ローマ字ファイル名']
-        merged_df['著者名'] = '不明'
-        merged_df['知名度スコア'] = 0
-        merged_df['発表年'] = 9999
-        merged_df['ジャンル'] = '不明'
-        
-    return merged_df
-
-@st.cache_data
-def get_book_preview(book_name):
-    for d in glob.glob(f"{BOOKS_DIR}*"):
-        path = os.path.join(d, f"{book_name}.txt")
-        if os.path.exists(path):
-            for enc in ['shift_jis', 'utf-8', 'cp932']:
-                try:
-                    with open(path, 'r', encoding=enc, errors='replace') as f:
-                        return f.read()
-                except UnicodeDecodeError:
-                    continue
-    return "テキストが見つかりません。"
+        # [追加] あらすじの欠損値処理
+        if 'あらすじ' in merged_df.columns:
+            merged_df['あらすじ'] = merged_df['あらすじ'].fillna('あらすじ情報なし')
+        else:
+            merged_df['あらすじ'] = 'あらすじ情報なし'
+            
+        return merged_df
+    except Exception as e:
+        all_books_df['日本語書籍名'] = all_books_df['ローマ字ファイル名']
+        all_books_df['著者名'] = '不明'
+        all_books_df['知名度スコア'] = 0
+        all_books_df['発表年'] = 9999
+        all_books_df['ジャンル'] = '不明'
+        all_books_df['あらすじ'] = 'あらすじ情報なし'
+        return all_books_df
 
 def get_image_path(book_name):
     for d in glob.glob(f"{IMAGE_DIR}*"):
@@ -111,13 +90,12 @@ def get_image_path(book_name):
     return None
 
 DB_DATA = load_database()
-ALL_BOOKS = get_all_books()
+ALL_BOOKS = sorted(list(DB_DATA.keys()))
 BOOK_META_DF = load_book_metadata(ALL_BOOKS)
 
-# ヘルパー: ローマ字から日本語名を取得
 def get_display_name(roman_name):
     row = BOOK_META_DF[BOOK_META_DF['ローマ字ファイル名'] == roman_name]
-    if not row.empty:
+    if not row.empty and row.iloc[0]['著者名'] != '不明':
         return f"『{row.iloc[0]['日本語書籍名']}』"
     return f"『{roman_name}』"
 
@@ -178,19 +156,17 @@ def render_step1():
 
 def render_step2():
     st.markdown("<h2 class='step-header'>Step 2: 既読作品の選択</h2>", unsafe_allow_html=True)
-    st.write("内容を知っている作品を選択してください。📖ボタンで内容を全文確認できます。")
+    st.write("内容を知っている作品を選択してください。📖ボタンであらすじ等を確認できます。")
     
-    # --- UI: コントロールパネル ---
     col_search, col_sort, col_genre = st.columns([2, 1.5, 1.5])
     with col_search:
-        search_query = st.text_input("🔍 検索 (作品名・著者名)", placeholder="例：人間失格、太宰治")
+        search_query = st.text_input("🔍 検索 (作品名・著者名)", placeholder="例：人間失格")
     with col_sort:
-        sort_by = st.selectbox("並び替え", ["人気・知名度順", "発表年が新しい順", "発表年が古い順", "五十音順 (作品名)", "五十音順 (著者名)"])
+        sort_by = st.selectbox("並び替え", ["人気・知名度順", "五十音順 (作品名)", "五十音順 (著者名)", "発表年が新しい順", "発表年が古い順"])
     with col_genre:
         unique_genres = ["すべて"] + [g for g in BOOK_META_DF['ジャンル'].unique() if g != '不明']
         genre_filter = st.selectbox("ジャンル絞り込み", unique_genres)
 
-    # --- データフィルタリング ---
     df = BOOK_META_DF.copy()
     
     if search_query:
@@ -202,27 +178,29 @@ def render_step2():
     if genre_filter != "すべて":
         df = df[df['ジャンル'] == genre_filter]
 
-    # --- データソート ---
     if sort_by == "人気・知名度順":
         df = df.sort_values(by='知名度スコア', ascending=False)
-    elif sort_by == "発表年が新しい順":
-        df = df.sort_values(by='発表年', ascending=False)
-    elif sort_by == "発表年が古い順":
-        df = df.sort_values(by='発表年', ascending=True)
     elif sort_by == "五十音順 (作品名)":
         df = df.sort_values(by='日本語書籍名', ascending=True)
     elif sort_by == "五十音順 (著者名)":
         df = df.sort_values(by='著者名', ascending=True)
+    elif sort_by == "発表年が新しい順":
+        df = df.sort_values(by='発表年', ascending=False)
+    elif sort_by == "発表年が古い順":
+        df = df.sort_values(by='発表年', ascending=True)
 
     display_records = df.to_dict('records')
 
-    # --- 作品リストレンダリング ---
     cols = st.columns(3)
     for i, row in enumerate(display_records):
         roman_name = row['ローマ字ファイル名']
         jp_name = row['日本語書籍名']
         author = row['著者名']
-        display_label = f"『{jp_name}』\n({author})"
+        
+        if author != '不明':
+            display_label = f"『{jp_name}』\n({author})"
+        else:
+            display_label = jp_name
 
         with cols[i % 3]:
             col_chk, col_btn = st.columns([4, 1])
@@ -237,9 +215,13 @@ def render_step2():
             with col_btn:
                 with st.popover("📖", key=f"pop_{roman_name}"):
                     st.markdown(f"### {jp_name}")
-                    st.caption(f"著者: {author} | ジャンル: {row['ジャンル']} | 発表: {row['発表年']}年")
-                    content = get_book_preview(roman_name)
-                    st.text_area("本文データ（冒頭）", value=content, height=400, key=f"area_{roman_name}")
+                    if author != '不明':
+                        st.markdown(f"**著者:** {author}  \n**ジャンル:** {row['ジャンル']}  \n**発表年:** {row['発表年']}年")
+                        st.write("---")
+                        # [変更点] st.text_area を廃止し、st.info であらすじをハイライト表示
+                        st.info(row['あらすじ'])
+                    else:
+                        st.caption("詳細情報なし")
 
     st.write("---")
     st.success(f"現在の選択数: **{len(st.session_state.selected_books)} 冊**")
@@ -402,8 +384,6 @@ def render_simulator():
 
     with col_plot:
         amp = st.session_state.amp_power
-        
-        # モジュールから取得
         x, y, line_w = phonoglyph_math.calculate_phonoglyph_coordinates(vf, vb, obs, son, vd, amp_power=amp)
 
         fig, ax = plt.subplots(figsize=(6, 6), facecolor='white')
