@@ -52,9 +52,8 @@ def load_database():
             return pickle.load(f)
     return {}
 
-@st.cache_data
+# [修正1] @st.cache_data を削除。常に最新のExcelを直接読み込み、古いキャッシュの呪縛を断ち切る。
 def load_book_metadata(all_books_list):
-    # 弦が生成した最新のExcelファイルを読み込む
     file_path = 'book_mapping (2).xlsx'
     all_books_df = pd.DataFrame({'ローマ字ファイル名': all_books_list})
     
@@ -65,8 +64,10 @@ def load_book_metadata(all_books_list):
         merged_df['著者名'] = merged_df['著者名'].fillna('不明')
         merged_df['知名度スコア'] = pd.to_numeric(merged_df['知名度スコア'], errors='coerce').fillna(0)
         merged_df['発表年'] = pd.to_numeric(merged_df['発表年'], errors='coerce').fillna(9999)
-        merged_df['ジャンル'] = merged_df['ジャンル'].fillna('不明')
-        # [追加] あらすじの欠損値処理
+        
+        # [修正2] 見えない空白文字を .str.strip() で強制排除。これで完全一致検索が機能する。
+        merged_df['ジャンル'] = merged_df['ジャンル'].fillna('不明').astype(str).str.strip()
+        
         if 'あらすじ' in merged_df.columns:
             merged_df['あらすじ'] = merged_df['あらすじ'].fillna('あらすじ情報なし')
         else:
@@ -176,52 +177,58 @@ def render_step2():
         ]
     
     if genre_filter != "すべて":
-        df = df[df['ジャンル'] == genre_filter]
+        # .str.strip() を使って安全に一致を判定
+        df = df[df['ジャンル'].astype(str).str.strip() == genre_filter.strip()]
 
+    # サブソート（日本語書籍名）を追加し、同スコア時の順番ブレを固定（安定ソート）
     if sort_by == "人気・知名度順":
-        df = df.sort_values(by='知名度スコア', ascending=False)
+        df = df.sort_values(by=['知名度スコア', '日本語書籍名'], ascending=[False, True])
     elif sort_by == "五十音順 (作品名)":
         df = df.sort_values(by='日本語書籍名', ascending=True)
     elif sort_by == "五十音順 (著者名)":
-        df = df.sort_values(by='著者名', ascending=True)
+        df = df.sort_values(by=['著者名', '日本語書籍名'], ascending=[True, True])
     elif sort_by == "発表年が新しい順":
-        df = df.sort_values(by='発表年', ascending=False)
+        df = df.sort_values(by=['発表年', '日本語書籍名'], ascending=[False, True])
     elif sort_by == "発表年が古い順":
-        df = df.sort_values(by='発表年', ascending=True)
+        df = df.sort_values(by=['発表年', '日本語書籍名'], ascending=[True, True])
 
     display_records = df.to_dict('records')
+    st.caption(f"現在の表示件数: {len(display_records)} 件")
 
-    cols = st.columns(3)
-    for i, row in enumerate(display_records):
-        roman_name = row['ローマ字ファイル名']
-        jp_name = row['日本語書籍名']
-        author = row['著者名']
-        
-        if author != '不明':
-            display_label = f"『{jp_name}』\n({author})"
-        else:
-            display_label = jp_name
-
-        with cols[i % 3]:
-            col_chk, col_btn = st.columns([4, 1])
-            with col_chk:
-                is_checked = roman_name in st.session_state.selected_books
-                if st.checkbox(display_label, value=is_checked, key=f"chk_{roman_name}"):
-                    if roman_name not in st.session_state.selected_books: 
-                        st.session_state.selected_books.append(roman_name)
+    # [修正3] DOM描画バグ対策：全体で一度 st.columns(3) を作るのではなく、「1行（3要素）ごとに」カラムを作り直す。
+    for i in range(0, len(display_records), 3):
+        cols = st.columns(3)
+        for j in range(3):
+            if i + j < len(display_records):
+                row = display_records[i + j]
+                roman_name = row['ローマ字ファイル名']
+                jp_name = row['日本語書籍名']
+                author = row['著者名']
+                
+                if author != '不明':
+                    display_label = f"『{jp_name}』\n({author})"
                 else:
-                    if roman_name in st.session_state.selected_books: 
-                        st.session_state.selected_books.remove(roman_name)
-            with col_btn:
-                with st.popover("📖", key=f"pop_{roman_name}"):
-                    st.markdown(f"### {jp_name}")
-                    if author != '不明':
-                        st.markdown(f"**著者:** {author}  \n**ジャンル:** {row['ジャンル']}  \n**発表年:** {row['発表年']}年")
-                        st.write("---")
-                        # [変更点] st.text_area を廃止し、st.info であらすじをハイライト表示
-                        st.info(row['あらすじ'])
-                    else:
-                        st.caption("詳細情報なし")
+                    display_label = jp_name
+
+                with cols[j]:
+                    col_chk, col_btn = st.columns([4, 1])
+                    with col_chk:
+                        is_checked = roman_name in st.session_state.selected_books
+                        if st.checkbox(display_label, value=is_checked, key=f"chk_{roman_name}"):
+                            if roman_name not in st.session_state.selected_books: 
+                                st.session_state.selected_books.append(roman_name)
+                        else:
+                            if roman_name in st.session_state.selected_books: 
+                                st.session_state.selected_books.remove(roman_name)
+                    with col_btn:
+                        with st.popover("📖", key=f"pop_{roman_name}"):
+                            st.markdown(f"### {jp_name}")
+                            if author != '不明':
+                                st.markdown(f"**著者:** {author}  \n**ジャンル:** {row['ジャンル']}  \n**発表年:** {row['発表年']}年")
+                                st.write("---")
+                                st.info(row['あらすじ'])
+                            else:
+                                st.caption("詳細情報なし")
 
     st.write("---")
     st.success(f"現在の選択数: **{len(st.session_state.selected_books)} 冊**")
