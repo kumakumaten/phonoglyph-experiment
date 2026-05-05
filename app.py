@@ -54,7 +54,8 @@ def load_database():
 
 def _get_fallback_df(base_df):
     df = base_df.copy()
-    df['日本語書籍名'] = df['ローマ字ファイル名']
+    df['ローマ字ファイル名'] = df['SystemKey']
+    df['日本語書籍名'] = df['SystemKey'].apply(lambda x: str(x).split('_')[0])
     df['著者名'] = '不明'
     df['知名度スコア'] = 0
     df['発表年'] = 9999
@@ -67,56 +68,80 @@ def load_book_metadata(all_books_list):
     import os
     import pandas as pd
     
-    all_books_df = pd.DataFrame({'ローマ字ファイル名': all_books_list})
-    # 余計な空白・大文字小文字を排除した絶対結合キー
-    all_books_df['MatchKey'] = all_books_df['ローマ字ファイル名'].astype(str).str.strip().str.lower()
+    all_books_df = pd.DataFrame({'SystemKey': all_books_list})
     
     possible_files = glob.glob('*book_mapping*.xlsx')
     if not possible_files:
-        st.session_state.debug_error = "ファイルが見つかりません"
+        st.session_state.debug_error = "Excelファイルが見つかりません"
         return _get_fallback_df(all_books_df)
 
-    # 最新のファイルを取得
     possible_files.sort(key=os.path.getmtime, reverse=True)
     target_file = possible_files[0]
+    for f in possible_files:
+        try:
+            temp = pd.read_excel(f, nrows=1)
+            if 'あらすじ' in temp.columns:
+                target_file = f
+                break
+        except:
+            pass
+
+    st.sidebar.caption(f"🔧 メタデータ読込中: {target_file}")
     
     try:
         meta_df = pd.read_excel(target_file)
-        
-        # カラム名のBOMや見えない空白を完全除去
         meta_df.columns = [str(c).strip().replace('\ufeff', '') for c in meta_df.columns]
-        
-        # カラム欠損対策：一番左の列をローマ字ファイル名とみなす
         if 'ローマ字ファイル名' not in meta_df.columns:
             meta_df.rename(columns={meta_df.columns[0]: 'ローマ字ファイル名'}, inplace=True)
             
-        # Excel側にも絶対結合キーを作成
-        meta_df['MatchKey'] = meta_df['ローマ字ファイル名'].astype(str).str.strip().str.lower()
+        # 多段マッチングロジック
+        matched_rows = []
         
-        # デバッグ情報の格納
+        # 検索用にあらかじめ小文字化・空白除去したSeriesを用意
+        romaji_series = meta_df['ローマ字ファイル名'].astype(str).str.lower().str.replace(' ', '').str.replace('　', '')
+        title_author_series = (meta_df.get('日本語書籍名', '') + '_' + meta_df.get('著者名', '')).astype(str).str.lower().str.replace(' ', '').str.replace('　', '')
+        title_only_series = meta_df.get('日本語書籍名', '').astype(str).str.lower().str.replace(' ', '').str.replace('　', '')
+
+        for sys_key in all_books_list:
+            sys_key_clean = str(sys_key).lower().replace(' ', '').replace('　', '')
+            sys_title_only = sys_key_clean.split('_')[0]
+            
+            # 1. ローマ字で一致するか
+            m1 = meta_df[romaji_series == sys_key_clean]
+            # 2. 「タイトル_著者」で一致するか（例: d坂の殺人事件_江戸川乱歩）
+            m2 = meta_df[title_author_series == sys_key_clean]
+            # 3. 「タイトルのみ」で一致するか（例: d坂の殺人事件）
+            m3 = meta_df[title_only_series == sys_title_only]
+            
+            if not m1.empty:
+                matched_rows.append(m1.iloc[0].to_dict())
+            elif not m2.empty:
+                matched_rows.append(m2.iloc[0].to_dict())
+            elif not m3.empty:
+                matched_rows.append(m3.iloc[0].to_dict())
+            else:
+                matched_rows.append({}) # 一致なし
+                
+        # 結合
+        matched_df = pd.DataFrame(matched_rows)
+        merged_df = pd.concat([all_books_df, matched_df], axis=1)
+        
+        # 値の補完
+        merged_df['ローマ字ファイル名'] = merged_df['SystemKey']
+        merged_df['日本語書籍名'] = merged_df.get('日本語書籍名', merged_df['SystemKey']).fillna(merged_df['SystemKey'].apply(lambda x: str(x).split('_')[0]))
+        merged_df['著者名'] = merged_df.get('著者名', '不明').fillna('不明')
+        merged_df['知名度スコア'] = pd.to_numeric(merged_df.get('知名度スコア', 0), errors='coerce').fillna(0)
+        merged_df['発表年'] = pd.to_numeric(merged_df.get('発表年', 9999), errors='coerce').fillna(9999)
+        merged_df['ジャンル'] = merged_df.get('ジャンル', '不明').fillna('不明').astype(str).str.strip()
+        merged_df['あらすじ'] = merged_df.get('あらすじ', 'あらすじ情報なし').fillna('あらすじ情報なし')
+        
+        # デバッグパネル更新
         st.session_state.debug_target_file = target_file
         st.session_state.debug_columns = list(meta_df.columns)
-        st.session_state.debug_all_books = list(all_books_df['MatchKey'])[:5]
-        st.session_state.debug_meta_keys = list(meta_df['MatchKey'])[:5]
+        st.session_state.debug_all_books = all_books_list[:5]
+        st.session_state.debug_meta_keys = meta_df['ローマ字ファイル名'].tolist()[:5]
+        st.session_state.debug_match_count = sum(1 for d in matched_rows if d) # 中身がある辞書の数
         
-        merged_df = pd.merge(all_books_df, meta_df, on='MatchKey', how='left')
-        
-        # 結合成功数のカウント
-        st.session_state.debug_match_count = int(merged_df['著者名'].notna().sum())
-        
-        # 欠損値の補完
-        merged_df['日本語書籍名'] = merged_df['日本語書籍名'].fillna(merged_df['ローマ字ファイル名_x'])
-        merged_df['著者名'] = merged_df['著者名'].fillna('不明')
-        merged_df['知名度スコア'] = pd.to_numeric(merged_df['知名度スコア'], errors='coerce').fillna(0)
-        merged_df['発表年'] = pd.to_numeric(merged_df['発表年'], errors='coerce').fillna(9999)
-        merged_df['ジャンル'] = merged_df['ジャンル'].fillna('不明').astype(str).str.strip()
-        
-        if 'あらすじ' in merged_df.columns:
-            merged_df['あらすじ'] = merged_df['あらすじ'].fillna('あらすじ情報なし')
-        else:
-            merged_df['あらすじ'] = 'あらすじ情報なし'
-            
-        merged_df['ローマ字ファイル名'] = merged_df['ローマ字ファイル名_x']
         return merged_df
         
     except Exception as e:
@@ -138,7 +163,8 @@ def get_display_name(roman_name):
     row = BOOK_META_DF[BOOK_META_DF['ローマ字ファイル名'] == roman_name]
     if not row.empty and row.iloc[0]['著者名'] != '不明':
         return f"『{row.iloc[0]['日本語書籍名']}』"
-    return f"『{roman_name}』"
+    # 作者が不明の場合はタイトル（SystemKeyの_より前）のみ表示
+    return f"『{str(roman_name).split('_')[0]}』"
 
 # ==========================================
 # 3. セッションステート初期化
@@ -238,14 +264,14 @@ def render_step2():
         for j in range(3):
             if i + j < len(display_records):
                 row = display_records[i + j]
-                roman_name = row['ローマ字ファイル名']
+                roman_name = row['ローマ字ファイル名'] # これがシステムキー
                 jp_name = row['日本語書籍名']
                 author = row['著者名']
                 
                 if author != '不明':
                     display_label = f"『{jp_name}』\n({author})"
                 else:
-                    display_label = jp_name
+                    display_label = f"『{jp_name}』"
 
                 with cols[j]:
                     col_chk, col_btn = st.columns([4, 1])
@@ -269,7 +295,6 @@ def render_step2():
 
     st.write("---")
     
-    # 診断パネル（エラー原因の可視化）
     with st.expander("🛠️ システム診断（結合ステータス）", expanded=False):
         st.write(f"**読込ファイル:** {st.session_state.get('debug_target_file', '不明')}")
         st.write(f"**認識されたカラム:** {st.session_state.get('debug_columns', '不明')}")
