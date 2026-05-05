@@ -54,16 +54,18 @@ def load_database():
 
 def load_book_metadata(all_books_list):
     import glob
+    import os
     import pandas as pd
     
-    # 1. フォルダ内のすべての book_mapping 系Excelを検索
-    possible_files = glob.glob('book_mapping.xlsx')
-    
+    # 結合用のベースDF（大文字小文字・空白を無視する MatchKey を作成）
     all_books_df = pd.DataFrame({'ローマ字ファイル名': all_books_list})
-    all_books_df['ローマ字ファイル名'] = all_books_df['ローマ字ファイル名'].astype(str).str.strip()
+    all_books_df['MatchKey'] = all_books_df['ローマ字ファイル名'].astype(str).str.strip().str.lower()
+    
+    # フォルダ内の全Excelを検索
+    possible_files = glob.glob('*book_mapping*.xlsx')
     
     if not possible_files:
-        st.error("🚨 エラー: 'book_mapping' で始まるExcelファイルが見つかりません。")
+        st.error("🚨 エラー: 'book_mapping' を含むExcelファイルが見つかりません。")
         all_books_df['日本語書籍名'] = all_books_df['ローマ字ファイル名']
         all_books_df['著者名'] = '不明'
         all_books_df['知名度スコア'] = 0
@@ -72,18 +74,29 @@ def load_book_metadata(all_books_list):
         all_books_df['あらすじ'] = 'あらすじ情報なし'
         return all_books_df
 
-    # 2. 文字列ソート（'book_mapping (2).xlsx' のような名前の末尾の数字を基準に一番新しいものを取得）
-    possible_files.sort() 
-    file_path = possible_files[-1] 
-    
-    st.sidebar.caption(f"🔧 現在読み込んでいるメタデータ: {file_path}")
+    # 「あらすじ」カラムを持つファイルを最優先で探す（防弾ロジック）
+    possible_files.sort(key=os.path.getmtime, reverse=True)
+    target_file = possible_files[0]
+    for f in possible_files:
+        try:
+            temp = pd.read_excel(f, nrows=1)
+            if 'あらすじ' in temp.columns:
+                target_file = f
+                break
+        except:
+            pass
+
+    st.sidebar.caption(f"🔧 メタデータ読込中: {target_file}")
     
     try:
-        meta_df = pd.read_excel(file_path)
-        meta_df['ローマ字ファイル名'] = meta_df['ローマ字ファイル名'].astype(str).str.strip()
+        meta_df = pd.read_excel(target_file)
+        # Excel側も MatchKey を作成して確実な結合を保証
+        meta_df['MatchKey'] = meta_df['ローマ字ファイル名'].astype(str).str.strip().str.lower()
         
-        merged_df = pd.merge(all_books_df, meta_df, on='ローマ字ファイル名', how='left')
-        merged_df['日本語書籍名'] = merged_df['日本語書籍名'].fillna(merged_df['ローマ字ファイル名'])
+        merged_df = pd.merge(all_books_df, meta_df, on='MatchKey', how='left')
+        
+        # 欠損値の補完と型変換
+        merged_df['日本語書籍名'] = merged_df['日本語書籍名'].fillna(merged_df['ローマ字ファイル名_x'])
         merged_df['著者名'] = merged_df['著者名'].fillna('不明')
         merged_df['知名度スコア'] = pd.to_numeric(merged_df['知名度スコア'], errors='coerce').fillna(0)
         merged_df['発表年'] = pd.to_numeric(merged_df['発表年'], errors='coerce').fillna(9999)
@@ -94,10 +107,11 @@ def load_book_metadata(all_books_list):
         else:
             merged_df['あらすじ'] = 'あらすじ情報なし'
             
+        merged_df['ローマ字ファイル名'] = merged_df['ローマ字ファイル名_x']
         return merged_df
         
     except Exception as e:
-        st.error(f"🚨 メタデータ読み込みエラー: {e}")
+        st.error(f"🚨 読込エラー: {e}")
         all_books_df['日本語書籍名'] = all_books_df['ローマ字ファイル名']
         all_books_df['著者名'] = '不明'
         all_books_df['知名度スコア'] = 0
