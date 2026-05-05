@@ -4,3 +4,5 @@ Pillow
 gspread
 google-auth
 matplotlib
+pandas
+openpyxl

@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import hashlib
 import uuid
 import time
+import pandas as pd
 import phonoglyph_math
 
 # ==========================================
@@ -61,6 +62,35 @@ def get_all_books():
     return sorted([os.path.basename(f).replace(".txt", "") for f in files])
 
 @st.cache_data
+def load_book_metadata(all_books_list):
+    """Excelからメタデータを読み込み、実際のファイルリストと安全に結合する"""
+    file_path = 'book_mapping.xlsx'
+    if not os.path.exists(file_path):
+        file_path = 'book_mapping.xlsx' # 念のためのフォールバック
+        
+    all_books_df = pd.DataFrame({'ローマ字ファイル名': all_books_list})
+    
+    if os.path.exists(file_path):
+        meta_df = pd.read_excel(file_path)
+        # 実在するファイルベースで結合 (メタデータ漏れを防ぐ)
+        merged_df = pd.merge(all_books_df, meta_df, on='ローマ字ファイル名', how='left')
+        merged_df['日本語書籍名'] = merged_df['日本語書籍名'].fillna(merged_df['ローマ字ファイル名'])
+        merged_df['著者名'] = merged_df['著者名'].fillna('不明')
+        merged_df['知名度スコア'] = pd.to_numeric(merged_df['知名度スコア'], errors='coerce').fillna(0)
+        merged_df['発表年'] = pd.to_numeric(merged_df['発表年'], errors='coerce').fillna(9999)
+        merged_df['ジャンル'] = merged_df['ジャンル'].fillna('不明')
+    else:
+        # メタデータファイルがない場合のフォールバック
+        merged_df = all_books_df.copy()
+        merged_df['日本語書籍名'] = merged_df['ローマ字ファイル名']
+        merged_df['著者名'] = '不明'
+        merged_df['知名度スコア'] = 0
+        merged_df['発表年'] = 9999
+        merged_df['ジャンル'] = '不明'
+        
+    return merged_df
+
+@st.cache_data
 def get_book_preview(book_name):
     for d in glob.glob(f"{BOOKS_DIR}*"):
         path = os.path.join(d, f"{book_name}.txt")
@@ -82,6 +112,14 @@ def get_image_path(book_name):
 
 DB_DATA = load_database()
 ALL_BOOKS = get_all_books()
+BOOK_META_DF = load_book_metadata(ALL_BOOKS)
+
+# ヘルパー: ローマ字から日本語名を取得
+def get_display_name(roman_name):
+    row = BOOK_META_DF[BOOK_META_DF['ローマ字ファイル名'] == roman_name]
+    if not row.empty:
+        return f"『{row.iloc[0]['日本語書籍名']}』"
+    return f"『{roman_name}』"
 
 # ==========================================
 # 3. セッションステート初期化
@@ -141,24 +179,67 @@ def render_step1():
 def render_step2():
     st.markdown("<h2 class='step-header'>Step 2: 既読作品の選択</h2>", unsafe_allow_html=True)
     st.write("内容を知っている作品を選択してください。📖ボタンで内容を全文確認できます。")
-    search_query = st.text_input("🔍 検索", placeholder="例：人間")
-    filtered_books = [book for book in ALL_BOOKS if search_query.lower() in book.lower()]
+    
+    # --- UI: コントロールパネル ---
+    col_search, col_sort, col_genre = st.columns([2, 1.5, 1.5])
+    with col_search:
+        search_query = st.text_input("🔍 検索 (作品名・著者名)", placeholder="例：人間失格、太宰治")
+    with col_sort:
+        sort_by = st.selectbox("並び替え", ["人気・知名度順", "発表年が新しい順", "発表年が古い順", "五十音順 (作品名)", "五十音順 (著者名)"])
+    with col_genre:
+        unique_genres = ["すべて"] + [g for g in BOOK_META_DF['ジャンル'].unique() if g != '不明']
+        genre_filter = st.selectbox("ジャンル絞り込み", unique_genres)
 
+    # --- データフィルタリング ---
+    df = BOOK_META_DF.copy()
+    
+    if search_query:
+        df = df[
+            df['日本語書籍名'].astype(str).str.contains(search_query, case=False, na=False) |
+            df['著者名'].astype(str).str.contains(search_query, case=False, na=False)
+        ]
+    
+    if genre_filter != "すべて":
+        df = df[df['ジャンル'] == genre_filter]
+
+    # --- データソート ---
+    if sort_by == "人気・知名度順":
+        df = df.sort_values(by='知名度スコア', ascending=False)
+    elif sort_by == "発表年が新しい順":
+        df = df.sort_values(by='発表年', ascending=False)
+    elif sort_by == "発表年が古い順":
+        df = df.sort_values(by='発表年', ascending=True)
+    elif sort_by == "五十音順 (作品名)":
+        df = df.sort_values(by='日本語書籍名', ascending=True)
+    elif sort_by == "五十音順 (著者名)":
+        df = df.sort_values(by='著者名', ascending=True)
+
+    display_records = df.to_dict('records')
+
+    # --- 作品リストレンダリング ---
     cols = st.columns(3)
-    for i, book in enumerate(filtered_books):
+    for i, row in enumerate(display_records):
+        roman_name = row['ローマ字ファイル名']
+        jp_name = row['日本語書籍名']
+        author = row['著者名']
+        display_label = f"『{jp_name}』\n({author})"
+
         with cols[i % 3]:
-            col_chk, col_btn = st.columns([3, 1])
+            col_chk, col_btn = st.columns([4, 1])
             with col_chk:
-                is_checked = book in st.session_state.selected_books
-                if st.checkbox(book, value=is_checked, key=f"chk_{book}"):
-                    if book not in st.session_state.selected_books: st.session_state.selected_books.append(book)
+                is_checked = roman_name in st.session_state.selected_books
+                if st.checkbox(display_label, value=is_checked, key=f"chk_{roman_name}"):
+                    if roman_name not in st.session_state.selected_books: 
+                        st.session_state.selected_books.append(roman_name)
                 else:
-                    if book in st.session_state.selected_books: st.session_state.selected_books.remove(book)
+                    if roman_name in st.session_state.selected_books: 
+                        st.session_state.selected_books.remove(roman_name)
             with col_btn:
-                with st.popover("📖", key=f"pop_{book}"):
-                    st.markdown(f"### {book}")
-                    content = get_book_preview(book)
-                    st.text_area("本文データ（全文）", value=content, height=400, key=f"area_{book}")
+                with st.popover("📖", key=f"pop_{roman_name}"):
+                    st.markdown(f"### {jp_name}")
+                    st.caption(f"著者: {author} | ジャンル: {row['ジャンル']} | 発表: {row['発表年']}年")
+                    content = get_book_preview(roman_name)
+                    st.text_area("本文データ（冒頭）", value=content, height=400, key=f"area_{roman_name}")
 
     st.write("---")
     st.success(f"現在の選択数: **{len(st.session_state.selected_books)} 冊**")
@@ -202,8 +283,10 @@ def render_step4():
         st.rerun()
 
     target_book = st.session_state.task_queue[st.session_state.current_q_index]
+    display_target = get_display_name(target_book)
+    
     st.markdown(f"<h2 class='step-header'>タスク ({st.session_state.current_q_index + 1} / {len(st.session_state.task_queue)})</h2>", unsafe_allow_html=True)
-    st.markdown(f"<h4 style='text-align: center;'>『<span style='color: #4CAF50;'>{target_book}</span>』<br>を表す「音の紋様」はどれ？</h4>", unsafe_allow_html=True)
+    st.markdown(f"<h4 style='text-align: center;'><span style='color: #4CAF50;'>{display_target}</span><br>を表す「音の紋様」はどれ？</h4>", unsafe_allow_html=True)
 
     if not st.session_state.current_options:
         options = get_dummies_bouba_kiki(target_book)
@@ -309,16 +392,12 @@ def render_simulator():
     
     with col_params:
         vf = st.slider("前舌母音 (VF) [鋭さ]", 0.0, 50.0, BASELINE['vf'])
-        
-        # [変更点1] 絶対的なサイズは正規化されているため、ラベルの表現を正確にする
         vb = st.slider("後舌母音 (VB) [芯の膨らみ]", 0.0, 50.0, BASELINE['vb'])
-        
         obs = st.slider("阻害音 (OBS) [トゲ]", 0.0, 50.0, BASELINE['obs'])
         son = st.slider("共鳴音 (SON) [丸み]", 0.0, 50.0, BASELINE['son'])
         
         st.write("---")
         st.caption("🛡️ 学術的統制（交絡変数排除）のため無効化中")
-        # [変更点2] スライダーを disabled=True にして物理的に動かせなくし、意図を明示する
         vd = st.slider("有声音 (VD) [線の太さ]", 0.0, 20.0, BASELINE['vd'], disabled=True)
 
     with col_plot:
