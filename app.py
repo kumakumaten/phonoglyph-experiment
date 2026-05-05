@@ -54,7 +54,7 @@ def load_database():
 
 # [修正1] @st.cache_data を削除。常に最新のExcelを直接読み込み、古いキャッシュの呪縛を断ち切る。
 def load_book_metadata(all_books_list):
-    file_path = 'book_mapping (2).xlsx'
+    file_path = 'book_mapping.xlsx'
     all_books_df = pd.DataFrame({'ローマ字ファイル名': all_books_list})
     
     try:
