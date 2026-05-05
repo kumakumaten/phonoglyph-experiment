@@ -52,22 +52,18 @@ def load_database():
             return pickle.load(f)
     return {}
 
-# [修正1] @st.cache_data を削除。常に最新のExcelを直接読み込み、古いキャッシュの呪縛を断ち切る。
-@st.cache_data
 def load_book_metadata(all_books_list):
     import glob
-    import os
+    import pandas as pd
     
     # 1. フォルダ内のすべての book_mapping 系Excelを検索
     possible_files = glob.glob('book_mapping*.xlsx')
     
     all_books_df = pd.DataFrame({'ローマ字ファイル名': all_books_list})
-    # [防弾化] 結合ミスを防ぐため空白を削除
     all_books_df['ローマ字ファイル名'] = all_books_df['ローマ字ファイル名'].astype(str).str.strip()
     
     if not possible_files:
-        # [BU] エラーを握りつぶさず、UI上に明確に警告を出す
-        st.error("🚨 致命的エラー: 'book_mapping.xlsx' が見つかりません。プロジェクトのフォルダに配置してください。")
+        st.error("🚨 エラー: 'book_mapping' で始まるExcelファイルが見つかりません。")
         all_books_df['日本語書籍名'] = all_books_df['ローマ字ファイル名']
         all_books_df['著者名'] = '不明'
         all_books_df['知名度スコア'] = 0
@@ -76,9 +72,11 @@ def load_book_metadata(all_books_list):
         all_books_df['あらすじ'] = 'あらすじ情報なし'
         return all_books_df
 
-    # 2. 更新日時が一番新しいファイルを自動選択
-    possible_files.sort(key=os.path.getmtime)
-    file_path = possible_files[-1]
+    # 2. 文字列ソート（'book_mapping (2).xlsx' のような名前の末尾の数字を基準に一番新しいものを取得）
+    possible_files.sort() 
+    file_path = possible_files[-1] 
+    
+    st.sidebar.caption(f"🔧 現在読み込んでいるメタデータ: {file_path}")
     
     try:
         meta_df = pd.read_excel(file_path)
@@ -99,7 +97,6 @@ def load_book_metadata(all_books_list):
         return merged_df
         
     except Exception as e:
-        # [BU] エラー発生時はログだけでなくUIにも露出させる
         st.error(f"🚨 メタデータ読み込みエラー: {e}")
         all_books_df['日本語書籍名'] = all_books_df['ローマ字ファイル名']
         all_books_df['著者名'] = '不明'
@@ -203,10 +200,8 @@ def render_step2():
         ]
     
     if genre_filter != "すべて":
-        # .str.strip() を使って安全に一致を判定
         df = df[df['ジャンル'].astype(str).str.strip() == genre_filter.strip()]
 
-    # サブソート（日本語書籍名）を追加し、同スコア時の順番ブレを固定（安定ソート）
     if sort_by == "人気・知名度順":
         df = df.sort_values(by=['知名度スコア', '日本語書籍名'], ascending=[False, True])
     elif sort_by == "五十音順 (作品名)":
@@ -221,7 +216,6 @@ def render_step2():
     display_records = df.to_dict('records')
     st.caption(f"現在の表示件数: {len(display_records)} 件")
 
-    # [修正3] DOM描画バグ対策：全体で一度 st.columns(3) を作るのではなく、「1行（3要素）ごとに」カラムを作り直す。
     for i in range(0, len(display_records), 3):
         cols = st.columns(3)
         for j in range(3):
