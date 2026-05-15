@@ -27,11 +27,11 @@ st.set_page_config(
 )
 
 # ============================================================
-# 2. Apple スタイル CSS
+# 2. CSS
 # ============================================================
 APPLE_CSS = """
 <style>
-/* ---------- 全体 ---------- */
+/* ===== 全体 ===== */
 *, *::before, *::after {
     -webkit-font-smoothing: antialiased;
     box-sizing: border-box;
@@ -41,53 +41,31 @@ html, body, .stApp {
     background: #F2F2F7;
     color: #1C1C1E;
 }
-.block-container {
-    padding: 48px 28px 80px;
-    max-width: 780px;
-}
+.block-container { padding: 48px 28px 80px; max-width: 780px; }
 
-/* ---------- メインエリア テキスト全般（視認性確保） ---------- */
-/* Streamlit が生成するすべての label / span / p に明示的に黒を指定 */
-.stApp p,
-.stApp span:not([data-testid="stSidebar"] span),
-.stApp li {
-    color: #1C1C1E;
-}
+/* ===== テキスト全般（メインエリア） ===== */
+.stApp p, .stApp li { color: #1C1C1E; }
 
-/* フォームラベル（ウィジェット上部のラベルテキスト） */
+/* ウィジェットラベル */
+[data-testid="stWidgetLabel"] p,
+[data-testid="stWidgetLabel"] span,
 .stTextInput    label,
 .stNumberInput  label,
 .stSelectbox    label,
 .stMultiSelect  label,
 .stSlider       label,
 .stRadio        label,
-.stCheckbox     label,
-[data-testid="stWidgetLabel"],
-[data-testid="stWidgetLabel"] p,
-[data-testid="stWidgetLabel"] span {
+.stCheckbox     label {
     color: #1C1C1E !important;
     font-size: 13px;
     font-weight: 500;
 }
 
-/* ラジオボタン・チェックボックスの選択肢テキスト */
-.stRadio    > div > label > div > p,
-.stRadio    > div > label span,
-.stCheckbox > label > div > p,
-.stCheckbox > label span {
-    color: #1C1C1E !important;
-}
-
 /* caption */
-.stApp [data-testid="stCaptionContainer"] p,
-.stApp .stCaption p {
-    color: #8E8E93 !important;
-}
+[data-testid="stCaptionContainer"] p { color: #8E8E93 !important; }
 
-/* ---------- サイドバー（白文字）---------- */
-section[data-testid="stSidebar"] {
-    background: #1C1C1E;
-}
+/* ===== サイドバー（白文字） ===== */
+section[data-testid="stSidebar"] { background: #1C1C1E; }
 section[data-testid="stSidebar"] p,
 section[data-testid="stSidebar"] span,
 section[data-testid="stSidebar"] label,
@@ -98,135 +76,60 @@ section[data-testid="stSidebar"] .stSlider > div > div > div {
     background: #007AFF !important;
 }
 
-/* ---------- ヘッダー ---------- */
+/* ===== ヘッダー ===== */
 .pg-eyebrow {
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 1.2px;
-    text-transform: uppercase;
-    color: #007AFF;
-    margin-bottom: 6px;
+    font-size: 12px; font-weight: 600; letter-spacing: 1.2px;
+    text-transform: uppercase; color: #007AFF; margin-bottom: 6px;
 }
 .pg-title {
-    font-size: 28px;
-    font-weight: 700;
-    letter-spacing: -0.5px;
-    color: #1C1C1E;
-    margin: 0 0 6px;
-    line-height: 1.2;
+    font-size: 28px; font-weight: 700; letter-spacing: -0.5px;
+    color: #1C1C1E; margin: 0 0 6px; line-height: 1.2;
 }
-.pg-subtitle {
-    font-size: 15px;
-    color: #8E8E93;
-    margin: 0 0 32px;
-    line-height: 1.5;
-}
+.pg-subtitle { font-size: 15px; color: #8E8E93; margin: 0 0 32px; line-height: 1.5; }
 
-/* ---------- カード ---------- */
+/* ===== お知らせカード ===== */
 .pg-notice {
-    background: rgba(0,122,255,.07);
-    border-radius: 12px;
-    padding: 14px 18px;
-    font-size: 14px;
-    color: #3A3A3C !important;
-    line-height: 1.55;
-    margin-bottom: 28px;
+    background: rgba(0,122,255,.07); border-radius: 12px;
+    padding: 14px 18px; font-size: 14px; color: #3A3A3C !important;
+    line-height: 1.55; margin-bottom: 28px;
 }
 .pg-notice strong { color: #007AFF !important; }
 
-/* ---------- 区切り ---------- */
-.pg-divider {
-    height: 1px;
-    background: #E5E5EA;
-    margin: 24px 0;
-    border: none;
-}
+/* ===== 区切り ===== */
+.pg-divider { height: 1px; background: #E5E5EA; margin: 24px 0; border: none; }
 
-/* ---------- プログレスバー ---------- */
-.pg-progress-track {
-    height: 3px;
-    background: #E5E5EA;
-    border-radius: 100px;
-    margin-bottom: 40px;
-    overflow: hidden;
-}
-.pg-progress-fill {
-    height: 3px;
-    background: #007AFF;
-    border-radius: 100px;
-    transition: width .4s ease;
-}
-
-/* ---------- タスク画面 ---------- */
-.pg-task-q {
-    font-size: 15px;
-    color: #8E8E93;
-    text-align: center;
-    margin-bottom: 4px;
-}
-.pg-task-book {
-    font-size: 22px;
-    font-weight: 700;
-    color: #007AFF;
-    text-align: center;
-    letter-spacing: -.3px;
-    margin-bottom: 28px;
-}
-.pg-option-badge {
-    display: inline-block;
-    background: #F2F2F7;
-    color: #3A3A3C;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: .8px;
-    padding: 2px 9px;
-    border-radius: 100px;
-    margin-bottom: 8px;
-}
-
-/* ---------- 結果画面 ---------- */
-.pg-result-wrap { text-align: center; padding: 40px 0 24px; }
-.pg-result-num  { font-size: 86px; font-weight: 700; letter-spacing: -5px; color: #30D158; line-height: 1; }
-.pg-result-unit { font-size: 32px; font-weight: 600; color: #30D158; letter-spacing: -1px; }
-.pg-result-caption { font-size: 15px; color: #8E8E93; margin-top: 8px; }
-
-/* ---------- QR ---------- */
-.pg-qr-wrap { text-align: center; padding: 20px 0; }
-.pg-qr-caption { font-size: 12px; color: #8E8E93; margin-top: 10px; font-family: "Menlo", monospace; }
-
-/* ---------- ボタン ---------- */
+/* ===== ボタン ===== */
 .stButton > button {
-    border: none;
-    border-radius: 22px;
-    font-size: 15px;
-    font-weight: 600;
-    padding: 10px 28px;
-    width: 100%;
-    transition: opacity .15s ease, transform .12s ease;
-    color: #FFFFFF !important;
+    border: none; border-radius: 22px;
+    font-size: 15px; font-weight: 600; padding: 10px 28px;
+    width: 100%; transition: opacity .15s ease, transform .12s ease;
 }
-.stButton > button[kind="primary"] {
+/* Primary — 必ず白文字・青背景 */
+.stButton > button[kind="primary"],
+.stButton > button[kind="primary"]:hover,
+.stButton > button[kind="primary"]:focus {
     background: #007AFF !important;
+    color: #FFFFFF !important;
 }
 .stButton > button[kind="primary"]:hover {
     opacity: .87;
     transform: translateY(-1px);
     box-shadow: 0 4px 16px rgba(0,122,255,.32);
 }
+/* Secondary */
 .stButton > button[kind="secondary"],
 .stButton > button:not([kind]) {
-    background: #E5E5EA !important;
+    background: #E8E8ED !important;
     color: #1C1C1E !important;
 }
 .stButton > button:active { transform: scale(.98); }
 
-/* ---------- テキスト入力 ---------- */
+/* ===== テキスト入力 ===== */
 .stTextInput > div > div > input {
     border-radius: 10px !important;
     border: 1.5px solid #E5E5EA !important;
     background: #FFFFFF !important;
-    font-size: 15px !important;
-    padding: 10px 14px !important;
+    font-size: 15px !important; padding: 10px 14px !important;
     color: #1C1C1E !important;
 }
 .stTextInput > div > div > input:focus {
@@ -234,8 +137,10 @@ section[data-testid="stSidebar"] .stSlider > div > div > div {
     box-shadow: 0 0 0 3px rgba(0,122,255,.12) !important;
 }
 
-/* ---------- 数値入力（黒背景を上書き）---------- */
-.stNumberInput div[data-baseweb="input"] {
+/* ===== 数値入力（黒背景を完全排除） ===== */
+.stNumberInput > div,
+.stNumberInput div[data-baseweb="input"],
+.stNumberInput div[data-baseweb="base-input"] {
     background: #FFFFFF !important;
     border: 1.5px solid #E5E5EA !important;
     border-radius: 10px !important;
@@ -250,12 +155,12 @@ section[data-testid="stSidebar"] .stSlider > div > div > div {
     font-size: 15px !important;
 }
 .stNumberInput button {
-    background: #F2F2F7 !important;
-    color: #1C1C1E !important;
-    border: none !important;
+    background: transparent !important;
+    color: #3A3A3C !important; border: none !important;
 }
+.stNumberInput button svg { fill: #3A3A3C !important; }
 
-/* ---------- セレクトボックス ---------- */
+/* ===== セレクトボックス ===== */
 div[data-baseweb="select"] > div {
     border-radius: 10px !important;
     border: 1.5px solid #E5E5EA !important;
@@ -265,22 +170,137 @@ div[data-baseweb="select"] > div:focus-within {
     border-color: #007AFF !important;
     box-shadow: 0 0 0 3px rgba(0,122,255,.12) !important;
 }
-div[data-baseweb="select"] span,
-div[data-baseweb="select"] div {
+div[data-baseweb="select"] span { color: #1C1C1E !important; }
+
+/* ===== マルチセレクト タグ ===== */
+div[data-baseweb="tag"] {
+    background: rgba(0,122,255,0.1) !important;
+    border: none !important; border-radius: 100px !important;
+}
+div[data-baseweb="tag"] span,
+div[data-baseweb="tag"] div { color: #007AFF !important; }
+
+/* ===== マルチセレクト ドロップダウン（黒背景を白に） ===== */
+ul[data-baseweb="menu"],
+div[data-baseweb="popover"] > div[role="listbox"] {
+    background: #FFFFFF !important;
+    border: 1px solid #E5E5EA !important;
+    border-radius: 12px !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1) !important;
+}
+ul[data-baseweb="menu"] li {
+    background: #FFFFFF !important;
+    color: #1C1C1E !important;
+}
+ul[data-baseweb="menu"] li * { color: #1C1C1E !important; }
+ul[data-baseweb="menu"] li:hover { background: #F2F2F7 !important; }
+ul[data-baseweb="menu"] li[aria-selected="true"] {
+    background: rgba(0,122,255,0.08) !important;
+}
+
+/* ===== ラジオボタン（選択前: 白背景 + 灰色縁） ===== */
+.stRadio [role="radio"],
+[data-testid="stRadio"] [role="radio"] {
+    background: #FFFFFF !important;
+    border: 1.5px solid #C7C7CC !important;
+    border-radius: 50% !important;
+}
+.stRadio [role="radio"][aria-checked="true"],
+[data-testid="stRadio"] [role="radio"][aria-checked="true"] {
+    background: #007AFF !important;
+    border-color: #007AFF !important;
+}
+/* ラジオラベルテキスト — 設問と選択肢を同サイズに揃える */
+.stRadio [data-testid="stWidgetLabel"] p,
+.stRadio label p,
+.stRadio label span {
+    font-size: 15px !important;
     color: #1C1C1E !important;
 }
 
-/* ---------- チェックボックス ---------- */
-.stCheckbox > label > div:first-child {
-    border-radius: 6px !important;
+/* ===== チェックボックス（白背景 + 灰色縁） ===== */
+.stCheckbox [role="checkbox"],
+[data-testid="stCheckbox"] [role="checkbox"] {
+    background: #FFFFFF !important;
+    border: 1.5px solid #C7C7CC !important;
+    border-radius: 4px !important;
 }
-
-/* ---------- スライダー ---------- */
-.stSlider > div > div > div {
+.stCheckbox [role="checkbox"][aria-checked="true"],
+[data-testid="stCheckbox"] [role="checkbox"][aria-checked="true"] {
     background: #007AFF !important;
+    border-color: #007AFF !important;
+}
+.stCheckbox label p,
+.stCheckbox label span { color: #1C1C1E !important; font-size: 14px !important; }
+
+/* ===== スライダー ===== */
+.stSlider > div > div > div { background: #007AFF !important; }
+/* 端の数値ラベル (1, 5) を黒に */
+.stSlider [data-testid="stTickBarMin"],
+.stSlider [data-testid="stTickBarMax"],
+.stSlider [data-testid="stSliderTickBarMin"],
+.stSlider [data-testid="stSliderTickBarMax"],
+.stSlider p { color: #3A3A3C !important; }
+
+/* ===== ポップオーバー（あらすじ）: 白背景・黒テキスト ===== */
+[data-testid="stPopoverBody"],
+div[data-baseweb="popover"] {
+    background: #FFFFFF !important;
+    border: 1px solid #E5E5EA !important;
+    border-radius: 16px !important;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
+    color: #1C1C1E !important;
+}
+[data-testid="stPopoverBody"] p,
+[data-testid="stPopoverBody"] span,
+[data-testid="stPopoverBody"] div,
+[data-testid="stPopoverBody"] strong { color: #1C1C1E !important; }
+
+/* ポップオーバー開閉ボタン — 枠なし・アイコンのみ */
+.stPopover button,
+[data-testid="stPopover"] button {
+    background: transparent !important;
+    border: none !important; border-radius: 8px !important;
+    padding: 2px 6px !important; font-size: 18px !important;
+    color: #8E8E93 !important; line-height: 1;
+    vertical-align: middle !important;
 }
 
-/* ---------- 非表示 ---------- */
+/* ===== プログレスバー ===== */
+.pg-progress-track {
+    height: 3px; background: #E5E5EA; border-radius: 100px;
+    margin-bottom: 40px; overflow: hidden;
+}
+.pg-progress-fill {
+    height: 3px; background: #007AFF; border-radius: 100px; transition: width .4s ease;
+}
+
+/* ===== タスク画面 ===== */
+.pg-task-q { font-size: 15px; color: #8E8E93; text-align: center; margin-bottom: 4px; }
+.pg-task-book {
+    font-size: 22px; font-weight: 700; color: #007AFF;
+    text-align: center; letter-spacing: -.3px; margin-bottom: 28px;
+}
+.pg-option-badge {
+    display: inline-block; background: #F2F2F7; color: #3A3A3C;
+    font-size: 11px; font-weight: 700; letter-spacing: .8px;
+    padding: 2px 9px; border-radius: 100px; margin-bottom: 8px;
+}
+
+/* ===== 結果画面 ===== */
+.pg-result-wrap { text-align: center; padding: 40px 0 24px; }
+.pg-result-num  { font-size: 86px; font-weight: 700; letter-spacing: -5px; color: #30D158 !important; line-height: 1; }
+.pg-result-unit { font-size: 32px; font-weight: 600; color: #30D158 !important; letter-spacing: -1px; }
+.pg-result-caption { font-size: 15px; color: #8E8E93 !important; margin-top: 8px; }
+
+/* ===== QR ===== */
+.pg-qr-wrap { text-align: center; padding: 20px 0; }
+.pg-qr-caption {
+    font-size: 12px; color: #8E8E93; margin-top: 10px;
+    font-family: "Menlo", "SF Mono", monospace;
+}
+
+/* ===== 非表示 ===== */
 #MainMenu, footer, header, .stDeployButton { visibility: hidden; }
 </style>
 """
@@ -455,6 +475,15 @@ def get_dummies_bouba_kiki(target_book):
     layer       = max(2, len(pool_sorted) // 5)
     return random.sample(pool_sorted[:layer], 2) + random.sample(pool_sorted[-layer:], 2)
 
+
+def reset_session():
+    """実験セッションをリセットして Step 1 に戻る"""
+    keys = ["step", "user_data", "selected_books", "task_queue",
+            "current_q_index", "results", "current_options", "data_saved", "session_id"]
+    for k in keys:
+        if k in st.session_state:
+            del st.session_state[k]
+
 # ============================================================
 # 8. UI ヘルパー
 # ============================================================
@@ -495,13 +524,15 @@ def render_step1():
         age  = st.number_input("年齢", min_value=15, max_value=100, value=20, step=1)
     with col2:
         gender = st.radio("性別", ["男性", "女性", "その他"], horizontal=True)
-        major  = st.radio("専攻分野", ["理数系", "文系", "芸術・デザイン系", "その他"], horizontal=True)
+        major  = st.radio("専攻分野", ["理数系", "文系", "芸術・デザイン系", "その他"],
+                          horizontal=True)
 
     reading_freq = st.selectbox("読書頻度",
                                 ["全く読まない", "月に1〜2冊", "月に3〜5冊", "月に6冊以上"])
     genres      = st.multiselect("よく読むジャンル",
                                   ["純文学", "大衆文学", "SF", "ラノベ", "実用書", "その他"])
-    synesthesia = st.slider("言葉の響きに色や形を感じるか（1: 全く感じない — 5: 強く感じる）", 1, 5, 3)
+    synesthesia = st.slider("言葉の響きに色や形を感じるか（1: 全く感じない — 5: 強く感じる）",
+                            1, 5, 3)
 
     pg_divider()
     _, col_btn = st.columns([1, 1])
@@ -581,7 +612,8 @@ def render_step2():
                     with st.popover("📖", key=f"pop_{rname}"):
                         st.markdown(f"**{jname}**")
                         if auth != "不明":
-                            st.caption(f"{auth}  ·  {row['ジャンル']}  ·  {int(row['発表年'])}年")
+                            st.caption(
+                                f"{auth}  ·  {row['ジャンル']}  ·  {int(row['発表年'])}年")
                             pg_divider()
                             st.write(row["あらすじ"])
                         else:
@@ -737,7 +769,8 @@ def render_step5():
         JST       = timezone(timedelta(hours=9), "JST")
         timestamp = datetime.now(JST).strftime("%Y/%m/%d %H:%M:%S")
         raw_name  = u.get("name", "unknown")
-        h_name    = hashlib.sha256(raw_name.encode()).hexdigest()[:16] if raw_name != "unknown" else "unknown"
+        h_name    = (hashlib.sha256(raw_name.encode()).hexdigest()[:16]
+                     if raw_name != "unknown" else "unknown")
 
         rows = []
         for r in st.session_state.results:
@@ -774,18 +807,32 @@ def render_step5():
         except Exception as e:
             st.error(f"認証エラー: {e}")
 
+    # QR + URL
     pg_divider()
-    qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=160x160&data={urllib.parse.quote(DEPLOY_URL)}"
+    qr_url = (f"https://api.qrserver.com/v1/create-qr-code/?size=160x160"
+              f"&data={urllib.parse.quote(DEPLOY_URL)}")
     st.markdown(f"""
     <div class="pg-qr-wrap">
       <img src="{qr_url}" width="160" style="border-radius:12px">
       <p class="pg-qr-caption">{DEPLOY_URL}</p>
     </div>""", unsafe_allow_html=True)
 
+    # 最初に戻るボタン（別の書籍で再挑戦を促す）
+    pg_divider()
+    col_l, col_r = st.columns(2)
+    with col_l:
+        if st.button("別の作品で再挑戦する", key="restart", type="primary"):
+            reset_session()
+            st.rerun()
+    with col_r:
+        st.caption("新しいセッションが始まります。\n既読作品を再選択して再挑戦できます。")
+
 
 def _show_recovery(rows):
     st.warning("データの保存に失敗しました。下のボタンでバックアップをダウンロードしてください。")
-    header = "Timestamp,SessionID,HashedName,Age,Gender,Major,ReadingFreq,Genres,Synesthesia,Q1,Q2,Q3,Accuracy,Target,Answer,Correctness\n"
+    header = ("Timestamp,SessionID,HashedName,Age,Gender,Major,"
+              "ReadingFreq,Genres,Synesthesia,Q1,Q2,Q3,"
+              "Accuracy,Target,Answer,Correctness\n")
     body   = "\n".join([",".join(map(str, r)) for r in rows])
     st.download_button("バックアップをダウンロード",
                        data=header + body,
@@ -823,7 +870,7 @@ def render_simulator():
 
 
 # ============================================================
-# 10. メインエントリポイント
+# 10. メイン
 # ============================================================
 def main():
     mode = st.query_params.get("mode")
@@ -846,7 +893,8 @@ def main():
             "非線形増幅係数 β", 0.1, 2.0, st.session_state.amp_power, 0.1)
         st.sidebar.markdown("---")
         st.sidebar.caption(f"読込: {st.session_state.get('debug_target_file', '—')}")
-        st.sidebar.caption(f"結合: {st.session_state.get('debug_match_count', 0)} / {len(ALL_BOOKS)} 件")
+        st.sidebar.caption(
+            f"結合: {st.session_state.get('debug_match_count', 0)} / {len(ALL_BOOKS)} 件")
 
     if st.session_state.admin_mode == "実験タスク (被験者用)":
         renderers = {1: render_step1, 2: render_step2, 3: render_step3,
