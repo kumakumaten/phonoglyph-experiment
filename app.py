@@ -364,7 +364,7 @@ def render_step2():
                         if au!="不明":
                             g=row["ジャンル"]; yr=int(row["発表年"]); syn=row["あらすじ"]
                             st.markdown(
-                                f'<div style="padding:14px 4px 10px">'
+                                f'<div style="padding:20px 16px 20px">'
                                 f'<p style="font-size:10px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:#007AFF;margin:0 0 8px">{g} &nbsp;·&nbsp; {yr}年</p>'
                                 f'<p style="font-size:19px;font-weight:700;color:#1C1C1E;letter-spacing:-.3px;line-height:1.25;margin:0 0 4px">{jn}</p>'
                                 f'<p style="font-size:13px;color:#8E8E93;margin:0 0 14px">{au}</p>'
