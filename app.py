@@ -1,910 +1,469 @@
 import streamlit as st
-import os
-import glob
-import random
-import pickle
+import os, glob, random, pickle
 import numpy as np
 from PIL import Image
 from datetime import datetime, timedelta, timezone
-import urllib.parse
-import gspread
-from google.oauth2.service_account import Credentials
+import urllib.parse, gspread, hashlib, uuid, time
 import matplotlib.pyplot as plt
-import hashlib
-import uuid
-import time
 import pandas as pd
+from google.oauth2.service_account import Credentials
 import phonoglyph_math
 
-# ============================================================
-# 1. ページ設定
-# ============================================================
-st.set_page_config(
-    page_title="Phonoglyph",
-    page_icon="🌒",
-    layout="centered",
-    initial_sidebar_state="collapsed",
-)
+st.set_page_config(page_title="Phonoglyph", page_icon="🌒",
+                   layout="centered", initial_sidebar_state="auto")
 
-# ============================================================
-# 2. CSS
-# ============================================================
-APPLE_CSS = """
+CSS = """
 <style>
-/* ===== 全体 ===== */
-*, *::before, *::after {
-    -webkit-font-smoothing: antialiased;
-    box-sizing: border-box;
-}
-html, body, .stApp {
-    font-family: -apple-system, "Helvetica Neue", "Hiragino Sans", Arial, sans-serif;
-    background: #F2F2F7;
-    color: #1C1C1E;
-}
-.block-container { padding: 48px 28px 80px; max-width: 780px; }
+*,*::before,*::after{-webkit-font-smoothing:antialiased;box-sizing:border-box;}
+html,body,.stApp{font-family:-apple-system,"Helvetica Neue","Hiragino Sans",Arial,sans-serif;background:#F2F2F7;color:#1C1C1E;}
+.block-container{padding:48px 28px 80px;max-width:780px;}
+.stApp p,.stApp li{color:#1C1C1E;}
 
-/* ===== テキスト全般（メインエリア） ===== */
-.stApp p, .stApp li { color: #1C1C1E; }
+/* ラベル全般 */
+[data-testid="stWidgetLabel"] p,[data-testid="stWidgetLabel"] span,
+.stTextInput label,.stNumberInput label,.stSelectbox label,
+.stMultiSelect label,.stSlider label,.stRadio label,.stCheckbox label
+{color:#1C1C1E!important;font-size:13px;font-weight:500;}
+[data-testid="stCaptionContainer"] p{color:#8E8E93!important;}
 
-/* ウィジェットラベル */
-[data-testid="stWidgetLabel"] p,
-[data-testid="stWidgetLabel"] span,
-.stTextInput    label,
-.stNumberInput  label,
-.stSelectbox    label,
-.stMultiSelect  label,
-.stSlider       label,
-.stRadio        label,
-.stCheckbox     label {
-    color: #1C1C1E !important;
-    font-size: 13px;
-    font-weight: 500;
-}
-
-/* caption */
-[data-testid="stCaptionContainer"] p { color: #8E8E93 !important; }
-
-/* ===== サイドバー（白文字） ===== */
-section[data-testid="stSidebar"] { background: #1C1C1E; }
+/* サイドバー */
+section[data-testid="stSidebar"]{background:#1C1C1E;}
 section[data-testid="stSidebar"] p,
 section[data-testid="stSidebar"] span,
 section[data-testid="stSidebar"] label,
-section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p {
-    color: #EBEBF5 !important;
-}
-section[data-testid="stSidebar"] .stSlider > div > div > div {
-    background: #007AFF !important;
-}
+section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p
+{color:#EBEBF5!important;}
+section[data-testid="stSidebar"] .stSlider>div>div>div{background:#007AFF!important;}
 
-/* ===== ヘッダー ===== */
-.pg-eyebrow {
-    font-size: 12px; font-weight: 600; letter-spacing: 1.2px;
-    text-transform: uppercase; color: #007AFF; margin-bottom: 6px;
-}
-.pg-title {
-    font-size: 28px; font-weight: 700; letter-spacing: -0.5px;
-    color: #1C1C1E; margin: 0 0 6px; line-height: 1.2;
-}
-.pg-subtitle { font-size: 15px; color: #8E8E93; margin: 0 0 32px; line-height: 1.5; }
+/* カスタムヘッダー */
+.pg-eyebrow{font-size:12px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:#007AFF;margin-bottom:6px;}
+.pg-title{font-size:28px;font-weight:700;letter-spacing:-0.5px;color:#1C1C1E;margin:0 0 6px;line-height:1.2;}
+.pg-subtitle{font-size:15px;color:#8E8E93;margin:0 0 32px;line-height:1.5;}
+.pg-notice{background:rgba(0,122,255,.07);border-radius:12px;padding:14px 18px;font-size:14px;color:#3A3A3C!important;line-height:1.55;margin-bottom:28px;}
+.pg-notice strong{color:#007AFF!important;}
+.pg-divider{height:1px;background:#E5E5EA;margin:24px 0;border:none;}
 
-/* ===== お知らせカード ===== */
-.pg-notice {
-    background: rgba(0,122,255,.07); border-radius: 12px;
-    padding: 14px 18px; font-size: 14px; color: #3A3A3C !important;
-    line-height: 1.55; margin-bottom: 28px;
-}
-.pg-notice strong { color: #007AFF !important; }
+/* ボタン — 子要素含め完全上書き */
+.stButton>button{border:none;border-radius:22px;font-size:15px;font-weight:600;padding:10px 28px;width:100%;transition:opacity .15s ease,transform .12s ease;}
+.stButton>button[kind="primary"],.stButton>button[kind="primary"]:hover,.stButton>button[kind="primary"]:focus,
+.stButton>button[kind="primary"] *,.stButton>button[kind="primary"] p,.stButton>button[kind="primary"] span
+{background:#007AFF!important;color:#FFFFFF!important;}
+.stButton>button[kind="primary"]:hover{opacity:.87;transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,122,255,.32);}
+.stButton>button[kind="secondary"],.stButton>button:not([kind]),
+.stButton>button[kind="secondary"] *,.stButton>button:not([kind]) *
+{background:#E8E8ED!important;color:#1C1C1E!important;}
+.stButton>button:active{transform:scale(.98);}
 
-/* ===== 区切り ===== */
-.pg-divider { height: 1px; background: #E5E5EA; margin: 24px 0; border: none; }
+/* テキスト入力 */
+.stTextInput>div>div>input{border-radius:10px!important;border:1.5px solid #E5E5EA!important;background:#FFFFFF!important;font-size:15px!important;padding:10px 14px!important;color:#1C1C1E!important;}
+.stTextInput>div>div>input::placeholder{color:#C7C7CC!important;opacity:1;}
+.stTextInput>div>div>input:focus{border-color:#007AFF!important;box-shadow:0 0 0 3px rgba(0,122,255,.12)!important;}
 
-/* ===== ボタン ===== */
-.stButton > button {
-    border: none; border-radius: 22px;
-    font-size: 15px; font-weight: 600; padding: 10px 28px;
-    width: 100%; transition: opacity .15s ease, transform .12s ease;
-}
-/* Primary — 必ず白文字・青背景 */
-.stButton > button[kind="primary"],
-.stButton > button[kind="primary"]:hover,
-.stButton > button[kind="primary"]:focus {
-    background: #007AFF !important;
-    color: #FFFFFF !important;
-}
-.stButton > button[kind="primary"]:hover {
-    opacity: .87;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 16px rgba(0,122,255,.32);
-}
-/* Secondary */
-.stButton > button[kind="secondary"],
-.stButton > button:not([kind]) {
-    background: #E8E8ED !important;
-    color: #1C1C1E !important;
-}
-.stButton > button:active { transform: scale(.98); }
+/* 数値入力 */
+.stNumberInput>div,.stNumberInput div[data-baseweb="input"],.stNumberInput div[data-baseweb="base-input"]{background:#FFFFFF!important;border:1.5px solid #E5E5EA!important;border-radius:10px!important;}
+.stNumberInput div[data-baseweb="input"]:focus-within{border-color:#007AFF!important;box-shadow:0 0 0 3px rgba(0,122,255,.12)!important;}
+.stNumberInput input{background:#FFFFFF!important;color:#1C1C1E!important;font-size:15px!important;}
+.stNumberInput button{background:transparent!important;color:#3A3A3C!important;border:none!important;}
+.stNumberInput button svg{fill:#3A3A3C!important;}
 
-/* ===== テキスト入力 ===== */
-.stTextInput > div > div > input {
-    border-radius: 10px !important;
-    border: 1.5px solid #E5E5EA !important;
-    background: #FFFFFF !important;
-    font-size: 15px !important; padding: 10px 14px !important;
-    color: #1C1C1E !important;
-}
-.stTextInput > div > div > input:focus {
-    border-color: #007AFF !important;
-    box-shadow: 0 0 0 3px rgba(0,122,255,.12) !important;
-}
+/* セレクトボックス — 値テキストを完全に黒に */
+div[data-baseweb="select"]>div{border-radius:10px!important;border:1.5px solid #E5E5EA!important;background:#FFFFFF!important;}
+div[data-baseweb="select"]>div:focus-within{border-color:#007AFF!important;box-shadow:0 0 0 3px rgba(0,122,255,.12)!important;}
+div[data-baseweb="select"] span,
+div[data-baseweb="select"] div,
+div[data-baseweb="select"] p,
+div[data-baseweb="select"] *:not(svg):not(path):not([data-baseweb="tag"])
+{color:#1C1C1E!important;}
+/* placeholder (未選択時) */
+div[data-baseweb="select"] [data-testid="stSelectboxValue"]:empty::before,
+div[data-baseweb="select"] input::placeholder
+{color:#C7C7CC!important;}
 
-/* ===== 数値入力（黒背景を完全排除） ===== */
-.stNumberInput > div,
-.stNumberInput div[data-baseweb="input"],
-.stNumberInput div[data-baseweb="base-input"] {
-    background: #FFFFFF !important;
-    border: 1.5px solid #E5E5EA !important;
-    border-radius: 10px !important;
-}
-.stNumberInput div[data-baseweb="input"]:focus-within {
-    border-color: #007AFF !important;
-    box-shadow: 0 0 0 3px rgba(0,122,255,.12) !important;
-}
-.stNumberInput input {
-    background: #FFFFFF !important;
-    color: #1C1C1E !important;
-    font-size: 15px !important;
-}
-.stNumberInput button {
-    background: transparent !important;
-    color: #3A3A3C !important; border: none !important;
-}
-.stNumberInput button svg { fill: #3A3A3C !important; }
+/* マルチセレクト タグ */
+div[data-baseweb="tag"]{background:rgba(0,122,255,0.1)!important;border:none!important;border-radius:100px!important;}
+div[data-baseweb="tag"] span,div[data-baseweb="tag"] div{color:#007AFF!important;}
 
-/* ===== セレクトボックス ===== */
-div[data-baseweb="select"] > div {
-    border-radius: 10px !important;
-    border: 1.5px solid #E5E5EA !important;
-    background: #FFFFFF !important;
-}
-div[data-baseweb="select"] > div:focus-within {
-    border-color: #007AFF !important;
-    box-shadow: 0 0 0 3px rgba(0,122,255,.12) !important;
-}
-div[data-baseweb="select"] span { color: #1C1C1E !important; }
+/* ドロップダウンリスト (選択肢) */
+ul[data-baseweb="menu"],div[data-baseweb="popover"]>div[role="listbox"]{background:#FFFFFF!important;border:1px solid #E5E5EA!important;border-radius:12px!important;box-shadow:0 4px 20px rgba(0,0,0,0.1)!important;}
+ul[data-baseweb="menu"] li{background:#FFFFFF!important;color:#1C1C1E!important;}
+ul[data-baseweb="menu"] li *{color:#1C1C1E!important;}
+ul[data-baseweb="menu"] li:hover{background:#F2F2F7!important;}
+ul[data-baseweb="menu"] li[aria-selected="true"]{background:rgba(0,122,255,0.08)!important;}
 
-/* ===== マルチセレクト タグ ===== */
-div[data-baseweb="tag"] {
-    background: rgba(0,122,255,0.1) !important;
-    border: none !important; border-radius: 100px !important;
-}
-div[data-baseweb="tag"] span,
-div[data-baseweb="tag"] div { color: #007AFF !important; }
+/* ラジオボタン */
+.stRadio [role="radio"],[data-testid="stRadio"] [role="radio"]{background:#FFFFFF!important;border:1.5px solid #C7C7CC!important;border-radius:50%!important;}
+.stRadio [role="radio"][aria-checked="true"],[data-testid="stRadio"] [role="radio"][aria-checked="true"]{background:#007AFF!important;border-color:#007AFF!important;}
+.stRadio [data-testid="stWidgetLabel"] p,.stRadio label p,.stRadio label span{font-size:15px!important;color:#1C1C1E!important;}
 
-/* ===== マルチセレクト ドロップダウン（黒背景を白に） ===== */
-ul[data-baseweb="menu"],
-div[data-baseweb="popover"] > div[role="listbox"] {
-    background: #FFFFFF !important;
-    border: 1px solid #E5E5EA !important;
-    border-radius: 12px !important;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1) !important;
-}
-ul[data-baseweb="menu"] li {
-    background: #FFFFFF !important;
-    color: #1C1C1E !important;
-}
-ul[data-baseweb="menu"] li * { color: #1C1C1E !important; }
-ul[data-baseweb="menu"] li:hover { background: #F2F2F7 !important; }
-ul[data-baseweb="menu"] li[aria-selected="true"] {
-    background: rgba(0,122,255,0.08) !important;
-}
+/* チェックボックス */
+.stCheckbox [role="checkbox"],[data-testid="stCheckbox"] [role="checkbox"]{background:#FFFFFF!important;border:1.5px solid #C7C7CC!important;border-radius:4px!important;}
+.stCheckbox [role="checkbox"][aria-checked="true"],[data-testid="stCheckbox"] [role="checkbox"][aria-checked="true"]{background:#007AFF!important;border-color:#007AFF!important;}
+.stCheckbox label p,.stCheckbox label span{color:#1C1C1E!important;font-size:14px!important;}
 
-/* ===== ラジオボタン（選択前: 白背景 + 灰色縁） ===== */
-.stRadio [role="radio"],
-[data-testid="stRadio"] [role="radio"] {
-    background: #FFFFFF !important;
-    border: 1.5px solid #C7C7CC !important;
-    border-radius: 50% !important;
-}
-.stRadio [role="radio"][aria-checked="true"],
-[data-testid="stRadio"] [role="radio"][aria-checked="true"] {
-    background: #007AFF !important;
-    border-color: #007AFF !important;
-}
-/* ラジオラベルテキスト — 設問と選択肢を同サイズに揃える */
-.stRadio [data-testid="stWidgetLabel"] p,
-.stRadio label p,
-.stRadio label span {
-    font-size: 15px !important;
-    color: #1C1C1E !important;
-}
+/* スライダー */
+.stSlider>div>div>div{background:#007AFF!important;}
+.stSlider [data-testid="stTickBarMin"],.stSlider [data-testid="stTickBarMax"],
+.stSlider [data-testid="stSliderTickBarMin"],.stSlider [data-testid="stSliderTickBarMax"],
+.stSlider p{color:#3A3A3C!important;}
 
-/* ===== チェックボックス（白背景 + 灰色縁） ===== */
-.stCheckbox [role="checkbox"],
-[data-testid="stCheckbox"] [role="checkbox"] {
-    background: #FFFFFF !important;
-    border: 1.5px solid #C7C7CC !important;
-    border-radius: 4px !important;
-}
-.stCheckbox [role="checkbox"][aria-checked="true"],
-[data-testid="stCheckbox"] [role="checkbox"][aria-checked="true"] {
-    background: #007AFF !important;
-    border-color: #007AFF !important;
-}
-.stCheckbox label p,
-.stCheckbox label span { color: #1C1C1E !important; font-size: 14px !important; }
-
-/* ===== スライダー ===== */
-.stSlider > div > div > div { background: #007AFF !important; }
-/* 端の数値ラベル (1, 5) を黒に */
-.stSlider [data-testid="stTickBarMin"],
-.stSlider [data-testid="stTickBarMax"],
-.stSlider [data-testid="stSliderTickBarMin"],
-.stSlider [data-testid="stSliderTickBarMax"],
-.stSlider p { color: #3A3A3C !important; }
-
-/* ===== ポップオーバー（あらすじ）: 白背景・黒テキスト ===== */
+/* ポップオーバー (あらすじ) — role=dialog とPortal含め全方位から上書き */
 [data-testid="stPopoverBody"],
-div[data-baseweb="popover"] {
-    background: #FFFFFF !important;
-    border: 1px solid #E5E5EA !important;
-    border-radius: 16px !important;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.12) !important;
-    color: #1C1C1E !important;
-}
-[data-testid="stPopoverBody"] p,
-[data-testid="stPopoverBody"] span,
-[data-testid="stPopoverBody"] div,
-[data-testid="stPopoverBody"] strong { color: #1C1C1E !important; }
+[data-testid="stPopoverBody"]>div,
+div[role="dialog"],
+div[role="dialog"]>div,
+div[role="tooltip"],
+.stPopover div[data-baseweb="popover"]
+{background:#FFFFFF!important;background-color:#FFFFFF!important;
+ border:1px solid #E5E5EA!important;border-radius:16px!important;
+ box-shadow:0 8px 32px rgba(0,0,0,0.12)!important;}
+[data-testid="stPopoverBody"] *,
+div[role="dialog"] p,
+div[role="dialog"] span,
+div[role="dialog"] div,
+div[role="dialog"] strong
+{color:#1C1C1E!important;background-color:transparent;}
+/* ポップオーバー開閉ボタン */
+.stPopover button,[data-testid="stPopover"] button{background:transparent!important;border:none!important;border-radius:8px!important;padding:2px 6px!important;font-size:18px!important;color:#8E8E93!important;line-height:1;vertical-align:middle!important;}
 
-/* ポップオーバー開閉ボタン — 枠なし・アイコンのみ */
-.stPopover button,
-[data-testid="stPopover"] button {
-    background: transparent !important;
-    border: none !important; border-radius: 8px !important;
-    padding: 2px 6px !important; font-size: 18px !important;
-    color: #8E8E93 !important; line-height: 1;
-    vertical-align: middle !important;
-}
+/* プログレスバー */
+.pg-progress-track{height:3px;background:#E5E5EA;border-radius:100px;margin-bottom:40px;overflow:hidden;}
+.pg-progress-fill{height:3px;background:#007AFF;border-radius:100px;transition:width .4s ease;}
 
-/* ===== プログレスバー ===== */
-.pg-progress-track {
-    height: 3px; background: #E5E5EA; border-radius: 100px;
-    margin-bottom: 40px; overflow: hidden;
-}
-.pg-progress-fill {
-    height: 3px; background: #007AFF; border-radius: 100px; transition: width .4s ease;
-}
+/* タスク */
+.pg-task-q{font-size:15px;color:#8E8E93;text-align:center;margin-bottom:4px;}
+.pg-task-book{font-size:22px;font-weight:700;color:#007AFF;text-align:center;letter-spacing:-.3px;margin-bottom:28px;}
+.pg-option-badge{display:inline-block;background:#F2F2F7;color:#3A3A3C;font-size:11px;font-weight:700;letter-spacing:.8px;padding:2px 9px;border-radius:100px;margin-bottom:8px;}
 
-/* ===== タスク画面 ===== */
-.pg-task-q { font-size: 15px; color: #8E8E93; text-align: center; margin-bottom: 4px; }
-.pg-task-book {
-    font-size: 22px; font-weight: 700; color: #007AFF;
-    text-align: center; letter-spacing: -.3px; margin-bottom: 28px;
-}
-.pg-option-badge {
-    display: inline-block; background: #F2F2F7; color: #3A3A3C;
-    font-size: 11px; font-weight: 700; letter-spacing: .8px;
-    padding: 2px 9px; border-radius: 100px; margin-bottom: 8px;
-}
+/* 結果 */
+.pg-result-wrap{text-align:center;padding:40px 0 24px;}
+.pg-result-num{font-size:86px;font-weight:700;letter-spacing:-5px;color:#30D158!important;line-height:1;}
+.pg-result-unit{font-size:32px;font-weight:600;color:#30D158!important;letter-spacing:-1px;}
+.pg-result-caption{font-size:15px;color:#8E8E93!important;margin-top:8px;}
 
-/* ===== 結果画面 ===== */
-.pg-result-wrap { text-align: center; padding: 40px 0 24px; }
-.pg-result-num  { font-size: 86px; font-weight: 700; letter-spacing: -5px; color: #30D158 !important; line-height: 1; }
-.pg-result-unit { font-size: 32px; font-weight: 600; color: #30D158 !important; letter-spacing: -1px; }
-.pg-result-caption { font-size: 15px; color: #8E8E93 !important; margin-top: 8px; }
+/* QR */
+.pg-qr-wrap{text-align:center;padding:20px 0;}
+.pg-qr-caption{font-size:12px;color:#8E8E93;margin-top:10px;font-family:"Menlo","SF Mono",monospace;}
 
-/* ===== QR ===== */
-.pg-qr-wrap { text-align: center; padding: 20px 0; }
-.pg-qr-caption {
-    font-size: 12px; color: #8E8E93; margin-top: 10px;
-    font-family: "Menlo", "SF Mono", monospace;
-}
-
-/* ===== 非表示 ===== */
-#MainMenu, footer, header, .stDeployButton { visibility: hidden; }
+#MainMenu,footer,header,.stDeployButton{visibility:hidden;}
 </style>
 """
-st.markdown(APPLE_CSS, unsafe_allow_html=True)
+st.markdown(CSS, unsafe_allow_html=True)
 
-# ============================================================
-# 3. 定数
-# ============================================================
-IMAGE_DIR  = "phonoglyphs_v19"
-IMG_SUFFIX = "_v19.png"
-DB_PATH    = "features_db.pkl"
-DEPLOY_URL = "https://phonoglyph-task.streamlit.app/"
+IMAGE_DIR="phonoglyphs_v19"; IMG_SUFFIX="_v19.png"
+DB_PATH="features_db.pkl"; DEPLOY_URL="https://phonoglyph-task.streamlit.app/"
 
-# ============================================================
-# 4. データロード (キャッシュ)
-# ============================================================
 @st.cache_data
 def load_database():
     if os.path.exists(DB_PATH):
-        with open(DB_PATH, "rb") as f:
-            return pickle.load(f)
+        with open(DB_PATH,"rb") as f: return pickle.load(f)
     return {}
-
 
 @st.cache_data
 def _build_image_cache():
-    cache = {}
+    cache={}
     for d in glob.glob(f"{IMAGE_DIR}*"):
         if os.path.isdir(d):
-            for fpath in glob.glob(os.path.join(d, "*.png")):
-                key = os.path.basename(fpath).replace(IMG_SUFFIX, "")
-                cache[key] = fpath
+            for p in glob.glob(os.path.join(d,"*.png")):
+                cache[os.path.basename(p).replace(IMG_SUFFIX,"")] = p
     return cache
 
+def get_image_path(n): return _build_image_cache().get(n)
 
-def get_image_path(book_name):
-    return _build_image_cache().get(book_name)
-
-
-def _fallback_df(base_df):
-    df = base_df.copy()
-    df["ローマ字ファイル名"] = df["SystemKey"]
-    df["日本語書籍名"]      = df["SystemKey"].apply(lambda x: str(x).split("_")[0])
-    df["著者名"]            = "不明"
-    df["知名度スコア"]      = 0
-    df["発表年"]            = 9999
-    df["ジャンル"]          = "不明"
-    df["あらすじ"]          = "あらすじ情報なし"
+def _fallback_df(b):
+    df=b.copy(); df["ローマ字ファイル名"]=df["SystemKey"]
+    df["日本語書籍名"]=df["SystemKey"].apply(lambda x:str(x).split("_")[0])
+    df["著者名"]="不明"; df["知名度スコア"]=0; df["発表年"]=9999
+    df["ジャンル"]="不明"; df["あらすじ"]="あらすじ情報なし"
     return df
-
 
 @st.cache_data
-def _load_metadata_core(all_books_tuple):
-    all_books_list = list(all_books_tuple)
-    base_df        = pd.DataFrame({"SystemKey": all_books_list})
-    debug          = {}
-
-    xlsx_files = glob.glob("*book_mapping*.xlsx")
-    if not xlsx_files:
-        debug["error"] = "book_mapping ファイルが見つかりません"
-        return _fallback_df(base_df), debug
-
-    xlsx_files.sort(key=os.path.getmtime, reverse=True)
-    target = xlsx_files[0]
-    for f in xlsx_files:
+def _load_metadata_core(tup):
+    lst=list(tup); base=pd.DataFrame({"SystemKey":lst}); dbg={}
+    files=glob.glob("*book_mapping*.xlsx")
+    if not files: dbg["error"]="book_mapping が見つかりません"; return _fallback_df(base),dbg
+    files.sort(key=os.path.getmtime,reverse=True); tgt=files[0]
+    for f in files:
         try:
-            if "あらすじ" in pd.read_excel(f, nrows=1).columns:
-                target = f
-                break
-        except Exception:
-            pass
-    debug["target_file"] = target
-
+            if "あらすじ" in pd.read_excel(f,nrows=1).columns: tgt=f; break
+        except: pass
+    dbg["target_file"]=tgt
     try:
-        meta = pd.read_excel(target)
-        meta.columns = [str(c).strip().replace("﻿", "") for c in meta.columns]
+        meta=pd.read_excel(tgt)
+        meta.columns=[str(c).strip().replace("﻿","") for c in meta.columns]
         if "ローマ字ファイル名" not in meta.columns:
-            meta.rename(columns={meta.columns[0]: "ローマ字ファイル名"}, inplace=True)
-
-        s_rom = meta["ローマ字ファイル名"].astype(str).str.lower().str.replace(" ", "").str.replace("　", "")
-        s_ta  = (meta.get("日本語書籍名", "") + "_" + meta.get("著者名", "")).astype(str).str.lower().str.replace(" ", "").str.replace("　", "")
-        s_t   = meta.get("日本語書籍名", "").astype(str).str.lower().str.replace(" ", "").str.replace("　", "")
-
-        rows = []
-        for key in all_books_list:
-            k  = str(key).lower().replace(" ", "").replace("　", "")
-            kt = k.split("_")[0]
-            m1 = meta[s_rom == k]
-            m2 = meta[s_ta  == k]
-            m3 = meta[s_t   == kt]
-            if   not m1.empty: rows.append(m1.iloc[0].to_dict())
+            meta.rename(columns={meta.columns[0]:"ローマ字ファイル名"},inplace=True)
+        s_r=meta["ローマ字ファイル名"].astype(str).str.lower().str.replace(" ","").str.replace("　","")
+        s_ta=(meta.get("日本語書籍名","")+"_"+meta.get("著者名","")).astype(str).str.lower().str.replace(" ","").str.replace("　","")
+        s_t=meta.get("日本語書籍名","").astype(str).str.lower().str.replace(" ","").str.replace("　","")
+        rows=[]
+        for k in lst:
+            kc=str(k).lower().replace(" ","").replace("　",""); kt=kc.split("_")[0]
+            m1=meta[s_r==kc]; m2=meta[s_ta==kc]; m3=meta[s_t==kt]
+            if not m1.empty: rows.append(m1.iloc[0].to_dict())
             elif not m2.empty: rows.append(m2.iloc[0].to_dict())
             elif not m3.empty: rows.append(m3.iloc[0].to_dict())
-            else:              rows.append({})
-
-        matched = pd.DataFrame(rows)
-        merged  = pd.concat([base_df, matched], axis=1)
-        merged["ローマ字ファイル名"] = merged["SystemKey"]
-        merged["日本語書籍名"] = merged.get("日本語書籍名", merged["SystemKey"]).fillna(
-            merged["SystemKey"].apply(lambda x: str(x).split("_")[0]))
-        merged["著者名"]      = merged.get("著者名",      "不明").fillna("不明")
-        merged["知名度スコア"] = pd.to_numeric(merged.get("知名度スコア", 0),   errors="coerce").fillna(0)
-        merged["発表年"]      = pd.to_numeric(merged.get("発表年",      9999), errors="coerce").fillna(9999)
-        merged["ジャンル"]    = merged.get("ジャンル",    "不明").fillna("不明").astype(str).str.strip()
-        merged["あらすじ"]    = merged.get("あらすじ", "あらすじ情報なし").fillna("あらすじ情報なし")
-
-        debug.update({
-            "columns":     list(meta.columns),
-            "sys_keys":    all_books_list[:5],
-            "meta_keys":   meta["ローマ字ファイル名"].tolist()[:5],
-            "match_count": sum(1 for r in rows if r),
-        })
-        return merged, debug
-
+            else: rows.append({})
+        matched=pd.DataFrame(rows); merged=pd.concat([base,matched],axis=1)
+        merged["ローマ字ファイル名"]=merged["SystemKey"]
+        merged["日本語書籍名"]=merged.get("日本語書籍名",merged["SystemKey"]).fillna(merged["SystemKey"].apply(lambda x:str(x).split("_")[0]))
+        merged["著者名"]=merged.get("著者名","不明").fillna("不明")
+        merged["知名度スコア"]=pd.to_numeric(merged.get("知名度スコア",0),errors="coerce").fillna(0)
+        merged["発表年"]=pd.to_numeric(merged.get("発表年",9999),errors="coerce").fillna(9999)
+        merged["ジャンル"]=merged.get("ジャンル","不明").fillna("不明").astype(str).str.strip()
+        merged["あらすじ"]=merged.get("あらすじ","あらすじ情報なし").fillna("あらすじ情報なし")
+        dbg.update({"columns":list(meta.columns),"sys_keys":lst[:5],
+                    "meta_keys":meta["ローマ字ファイル名"].tolist()[:5],
+                    "match_count":sum(1 for r in rows if r)})
+        return merged,dbg
     except Exception as e:
-        debug["error"] = str(e)
-        return _fallback_df(base_df), debug
+        dbg["error"]=str(e); return _fallback_df(base),dbg
 
-
-def load_book_metadata(all_books_list):
-    df, debug = _load_metadata_core(tuple(all_books_list))
-    for k, v in debug.items():
-        st.session_state[f"debug_{k}"] = v
+def load_book_metadata(lst):
+    df,dbg=_load_metadata_core(tuple(lst))
+    for k,v in dbg.items(): st.session_state[f"debug_{k}"]=v
     return df
 
+DB_DATA=load_database(); ALL_BOOKS=sorted(list(DB_DATA.keys()))
+BOOK_META_DF=load_book_metadata(ALL_BOOKS)
 
-# ============================================================
-# 5. モジュールレベル初期化
-# ============================================================
-DB_DATA      = load_database()
-ALL_BOOKS    = sorted(list(DB_DATA.keys()))
-BOOK_META_DF = load_book_metadata(ALL_BOOKS)
+def get_display_name(r):
+    row=BOOK_META_DF[BOOK_META_DF["ローマ字ファイル名"]==r]
+    if not row.empty and row.iloc[0]["著者名"]!="不明": return f"『{row.iloc[0]['日本語書籍名']}』"
+    return f"『{str(r).split('_')[0]}』"
 
+_def={"session_id":str(uuid.uuid4()),"step":1,"user_data":{},"selected_books":[],
+      "task_queue":[],"current_q_index":0,"results":[],"current_options":[],
+      "data_saved":False,"is_admin":False,"admin_mode":"実験タスク (被験者用)","amp_power":0.8}
+for k,v in _def.items():
+    if k not in st.session_state: st.session_state[k]=v
 
-def get_display_name(roman_name):
-    row = BOOK_META_DF[BOOK_META_DF["ローマ字ファイル名"] == roman_name]
-    if not row.empty and row.iloc[0]["著者名"] != "不明":
-        return f"『{row.iloc[0]['日本語書籍名']}』"
-    return f"『{str(roman_name).split('_')[0]}』"
-
-
-# ============================================================
-# 6. セッションステート初期化
-# ============================================================
-_defaults = {
-    "session_id":      str(uuid.uuid4()),
-    "step":            1,
-    "user_data":       {},
-    "selected_books":  [],
-    "task_queue":      [],
-    "current_q_index": 0,
-    "results":         [],
-    "current_options": [],
-    "data_saved":      False,
-    "is_admin":        False,
-    "admin_mode":      "実験タスク (被験者用)",
-    "amp_power":       0.8,
-}
-for k, v in _defaults.items():
-    if k not in st.session_state:
-        st.session_state[k] = v
-
-# ============================================================
-# 7. 実験ロジック
-# ============================================================
-def get_dummies_bouba_kiki(target_book):
-    pool = [b for b in ALL_BOOKS
-            if b not in st.session_state.selected_books and b != target_book and b in DB_DATA]
-    if len(pool) < 4:
-        return random.sample(pool, len(pool))
-    pool_sorted = sorted(pool, key=lambda b: DB_DATA[b][7])
-    layer       = max(2, len(pool_sorted) // 5)
-    return random.sample(pool_sorted[:layer], 2) + random.sample(pool_sorted[-layer:], 2)
-
+def get_dummies(t):
+    pool=[b for b in ALL_BOOKS if b not in st.session_state.selected_books and b!=t and b in DB_DATA]
+    if len(pool)<4: return random.sample(pool,len(pool))
+    ps=sorted(pool,key=lambda b:DB_DATA[b][7]); lay=max(2,len(ps)//5)
+    return random.sample(ps[:lay],2)+random.sample(ps[-lay:],2)
 
 def reset_session():
-    """実験セッションをリセットして Step 1 に戻る"""
-    keys = ["step", "user_data", "selected_books", "task_queue",
-            "current_q_index", "results", "current_options", "data_saved", "session_id"]
-    for k in keys:
-        if k in st.session_state:
-            del st.session_state[k]
+    for k in ["step","user_data","selected_books","task_queue","current_q_index",
+              "results","current_options","data_saved","session_id"]:
+        if k in st.session_state: del st.session_state[k]
 
-# ============================================================
-# 8. UI ヘルパー
-# ============================================================
-def pg_header(eyebrow, title, subtitle=""):
-    s  = f'<p class="pg-eyebrow">{eyebrow}</p>'
-    s += f'<p class="pg-title">{title}</p>'
-    if subtitle:
-        s += f'<p class="pg-subtitle">{subtitle}</p>'
-    st.markdown(s, unsafe_allow_html=True)
+def hd(ey,ti,su=""):
+    s=f'<p class="pg-eyebrow">{ey}</p><p class="pg-title">{ti}</p>'
+    if su: s+=f'<p class="pg-subtitle">{su}</p>'
+    st.markdown(s,unsafe_allow_html=True)
 
+def hr(): st.markdown('<hr class="pg-divider">',unsafe_allow_html=True)
 
-def pg_divider():
-    st.markdown('<hr class="pg-divider">', unsafe_allow_html=True)
-
-
-# ============================================================
-# 9. 各ステップ レンダリング
-# ============================================================
-
-# ---- Step 1 ----
+# ======= STEP 1 =======
 def render_step1():
-    pg_header("Step 1 / 5", "実験への参加",
-              "基本情報をご入力のうえ、実験への参加に同意してください。")
-
-    st.markdown("""
-    <div class="pg-notice">
-      <strong>実験協力のお願い</strong><br>
-      本実験は「音象徴と幾何学図形の認知」に関する学術調査です。
-      取得したデータは匿名化され、研究目的にのみ使用されます。
-    </div>""", unsafe_allow_html=True)
-
-    consent = st.checkbox("上記の内容を理解し、実験への参加に同意する")
-    pg_divider()
-
-    col1, col2 = st.columns(2)
-    with col1:
-        name = st.text_input("氏名（漢字またはカタカナ）", placeholder="例：山田 太郎")
-        age  = st.number_input("年齢", min_value=15, max_value=100, value=20, step=1)
-    with col2:
-        gender = st.radio("性別", ["男性", "女性", "その他"], horizontal=True)
-        major  = st.radio("専攻分野", ["理数系", "文系", "芸術・デザイン系", "その他"],
-                          horizontal=True)
-
-    reading_freq = st.selectbox("読書頻度",
-                                ["全く読まない", "月に1〜2冊", "月に3〜5冊", "月に6冊以上"])
-    genres      = st.multiselect("よく読むジャンル",
-                                  ["純文学", "大衆文学", "SF", "ラノベ", "実用書", "その他"])
-    synesthesia = st.slider("言葉の響きに色や形を感じるか（1: 全く感じない — 5: 強く感じる）",
-                            1, 5, 3)
-
-    pg_divider()
-    _, col_btn = st.columns([1, 1])
-    with col_btn:
-        if st.button("次へ進む", key="s1_next", type="primary"):
-            if not consent or not name.strip():
-                st.error("同意チェックと氏名入力は必須です。")
+    hd("Step 1 / 5","実験への参加","基本情報をご入力のうえ、実験への参加に同意してください。")
+    st.markdown('<div class="pg-notice"><strong>実験協力のお願い</strong><br>本実験は「音象徴と幾何学図形の認知」に関する学術調査です。取得したデータは匿名化され、研究目的にのみ使用されます。</div>',unsafe_allow_html=True)
+    consent=st.checkbox("上記の内容を理解し、実験への参加に同意する"); hr()
+    c1,c2=st.columns(2)
+    with c1:
+        name=st.text_input("氏名（漢字またはカタカナ）",placeholder="例：山田 太郎")
+        age=st.number_input("年齢",min_value=15,max_value=100,value=20,step=1)
+    with c2:
+        gender=st.radio("性別",["男性","女性","その他"],horizontal=True)
+        major=st.radio("専攻分野",["理数系","文系","芸術・デザイン系","その他"],horizontal=True)
+    rf=st.selectbox("読書頻度",["全く読まない","月に1〜2冊","月に3〜5冊","月に6冊以上"])
+    gn=st.multiselect("よく読むジャンル",["純文学","大衆文学","SF","ラノベ","実用書","その他"])
+    syn=st.slider("言葉の響きに色や形を感じるか（1: 全く感じない — 5: 強く感じる）",1,5,3)
+    hr(); _,cb=st.columns([1,1])
+    with cb:
+        if st.button("次へ進む",key="s1_next",type="primary"):
+            if not consent or not name.strip(): st.error("同意チェックと氏名入力は必須です。")
             else:
-                st.session_state.user_data = {
-                    "name": name.strip(), "age": age, "gender": gender, "major": major,
-                    "reading_freq": reading_freq, "genres": ", ".join(genres),
-                    "synesthesia_score": synesthesia,
-                }
-                st.session_state.step = 2
-                st.rerun()
+                st.session_state.user_data={"name":name.strip(),"age":age,"gender":gender,"major":major,
+                    "reading_freq":rf,"genres":", ".join(gn),"synesthesia_score":syn}
+                st.session_state.step=2; st.rerun()
 
-
-# ---- Step 2 ----
+# ======= STEP 2 =======
 def render_step2():
-    pg_header("Step 2 / 5", "既読作品の選択",
-              "内容を知っている作品にチェックを入れてください。📖 でタイトル・あらすじを確認できます。")
-
-    col_s, col_o, col_g = st.columns([2, 1.5, 1.5])
-    with col_s:
-        q = st.text_input("検索（作品名・著者名）", placeholder="例：人間失格",
-                          label_visibility="collapsed")
-    with col_o:
-        sort_by = st.selectbox("並び替え",
-                               ["人気・知名度順", "五十音順（作品名）", "五十音順（著者名）",
-                                "発表年が新しい順", "発表年が古い順"],
-                               label_visibility="collapsed")
-    with col_g:
-        genres_list  = ["すべて"] + [g for g in BOOK_META_DF["ジャンル"].unique() if g != "不明"]
-        genre_filter = st.selectbox("ジャンル", genres_list, label_visibility="collapsed")
-
-    df = BOOK_META_DF.copy()
-    if q:
-        df = df[df["日本語書籍名"].astype(str).str.contains(q, case=False, na=False)
-              | df["著者名"].astype(str).str.contains(q, case=False, na=False)]
-    if genre_filter != "すべて":
-        df = df[df["ジャンル"].astype(str).str.strip() == genre_filter.strip()]
-
-    _sort = {
-        "人気・知名度順":      (["知名度スコア", "日本語書籍名"], [False, True]),
-        "五十音順（作品名）":  (["日本語書籍名"],                  [True]),
-        "五十音順（著者名）":  (["著者名", "日本語書籍名"],        [True, True]),
-        "発表年が新しい順":    (["発表年", "日本語書籍名"],        [False, True]),
-        "発表年が古い順":      (["発表年", "日本語書籍名"],        [True, True]),
-    }
-    sc, sa = _sort[sort_by]
-    df = df.sort_values(by=sc, ascending=sa)
-    records = df.to_dict("records")
-    st.caption(f"{len(records)} 件表示")
-
-    for i in range(0, len(records), 3):
-        cols = st.columns(3)
+    hd("Step 2 / 5","既読作品の選択","内容を知っている作品にチェックを入れてください。📖 でタイトル・あらすじを確認できます。")
+    cs,co,cg=st.columns([2,1.5,1.5])
+    with cs: q=st.text_input("検索",placeholder="例：人間失格",label_visibility="collapsed")
+    with co:
+        sb=st.selectbox("並び替え",["人気・知名度順","五十音順（作品名）","五十音順（著者名）","発表年が新しい順","発表年が古い順"],label_visibility="collapsed")
+    with cg:
+        gl=["すべて"]+[g for g in BOOK_META_DF["ジャンル"].unique() if g!="不明"]
+        gf=st.selectbox("ジャンル",gl,label_visibility="collapsed")
+    df=BOOK_META_DF.copy()
+    if q: df=df[df["日本語書籍名"].astype(str).str.contains(q,case=False,na=False)|df["著者名"].astype(str).str.contains(q,case=False,na=False)]
+    if gf!="すべて": df=df[df["ジャンル"].astype(str).str.strip()==gf.strip()]
+    sm={"人気・知名度順":(["知名度スコア","日本語書籍名"],[False,True]),"五十音順（作品名）":(["日本語書籍名"],[True]),
+        "五十音順（著者名）":(["著者名","日本語書籍名"],[True,True]),"発表年が新しい順":(["発表年","日本語書籍名"],[False,True]),"発表年が古い順":(["発表年","日本語書籍名"],[True,True])}
+    sc,sa=sm[sb]; df=df.sort_values(by=sc,ascending=sa); recs=df.to_dict("records")
+    st.caption(f"{len(recs)} 件表示")
+    for i in range(0,len(recs),3):
+        cols=st.columns(3)
         for j in range(3):
-            if i + j >= len(records):
-                break
-            row   = records[i + j]
-            rname = row["ローマ字ファイル名"]
-            jname = row["日本語書籍名"]
-            auth  = row["著者名"]
-            label = f"『{jname}』\n({auth})" if auth != "不明" else f"『{jname}』"
-
+            if i+j>=len(recs): break
+            row=recs[i+j]; rn=row["ローマ字ファイル名"]; jn=row["日本語書籍名"]; au=row["著者名"]
+            lbl=f"『{jn}』\n({au})" if au!="不明" else f"『{jn}』"
             with cols[j]:
-                c1, c2 = st.columns([5, 1])
+                c1,c2=st.columns([5,1])
                 with c1:
-                    checked = rname in st.session_state.selected_books
-                    if st.checkbox(label, value=checked, key=f"chk_{rname}"):
-                        if rname not in st.session_state.selected_books:
-                            st.session_state.selected_books.append(rname)
+                    ck=rn in st.session_state.selected_books
+                    if st.checkbox(lbl,value=ck,key=f"chk_{rn}"):
+                        if rn not in st.session_state.selected_books: st.session_state.selected_books.append(rn)
                     else:
-                        if rname in st.session_state.selected_books:
-                            st.session_state.selected_books.remove(rname)
+                        if rn in st.session_state.selected_books: st.session_state.selected_books.remove(rn)
                 with c2:
-                    with st.popover("📖", key=f"pop_{rname}"):
-                        st.markdown(f"**{jname}**")
-                        if auth != "不明":
-                            st.caption(
-                                f"{auth}  ·  {row['ジャンル']}  ·  {int(row['発表年'])}年")
-                            pg_divider()
-                            st.write(row["あらすじ"])
-                        else:
-                            st.caption("詳細情報なし")
-
-    pg_divider()
-
+                    with st.popover("\U0001f4d6",key=f"pop_{rn}"):
+                        st.markdown(f"**{jn}**")
+                        if au!="不明":
+                            st.caption(f"{au}  ·  {row['ジャンル']}  ·  {int(row['発表年'])}年"); hr(); st.write(row["あらすじ"])
+                        else: st.caption("詳細情報なし")
+    hr()
     if st.session_state.is_admin:
-        with st.expander("システム診断", expanded=False):
-            st.json({
-                "読込ファイル":  st.session_state.get("debug_target_file", "不明"),
-                "結合成功数":    f"{st.session_state.get('debug_match_count', 0)} / {len(ALL_BOOKS)}",
-                "sys_keys 例":  st.session_state.get("debug_sys_keys", []),
-                "meta_keys 例": st.session_state.get("debug_meta_keys", []),
-            })
-            if "debug_error" in st.session_state:
-                st.error(st.session_state.debug_error)
-
+        with st.expander("システム診断",expanded=False):
+            st.json({"読込":st.session_state.get("debug_target_file","不明"),
+                     "結合":f"{st.session_state.get('debug_match_count',0)}/{len(ALL_BOOKS)}"})
+            if "debug_error" in st.session_state: st.error(st.session_state.debug_error)
     st.caption(f"選択中: {len(st.session_state.selected_books)} 冊")
-    col_back, col_next = st.columns(2)
-    with col_back:
-        if st.button("戻る", key="s2_back"):
-            st.session_state.step = 1
-            st.rerun()
-    with col_next:
-        if st.button("次へ進む", key="s2_next", type="primary"):
-            if len(st.session_state.selected_books) == 0:
-                st.error("最低 1 冊は選択してください。")
+    cb2,cn2=st.columns(2)
+    with cb2:
+        if st.button("戻る",key="s2_back"): st.session_state.step=1; st.rerun()
+    with cn2:
+        if st.button("次へ進む",key="s2_next",type="primary"):
+            if not st.session_state.selected_books: st.error("最低 1 冊は選択してください。")
             else:
-                q_ = st.session_state.selected_books.copy()
-                random.shuffle(q_)
-                st.session_state.task_queue = q_
-                st.session_state.step = 3
-                st.rerun()
+                q_=st.session_state.selected_books.copy(); random.shuffle(q_)
+                st.session_state.task_queue=q_; st.session_state.step=3; st.rerun()
 
-
-# ---- Step 3 ----
+# ======= STEP 3 =======
 def render_step3():
-    pg_header("Step 3 / 5", "読書体験に関するアンケート",
-              "タスク開始前に、以下の 3 問にお答えください。")
+    hd("Step 3 / 5","読書体験に関するアンケート","タスク開始前に、以下の 3 問にお答えください。"); hr()
+    q1=st.radio("Q1.  表紙のデザインやイラストに惹かれて本を選んだこと（ジャケ買い）がありますか？",["はい","いいえ"],horizontal=True); hr()
+    q2=st.radio("Q2.  ジャケ買いをした結果、文章の雰囲気が表紙の印象と違って読むのをやめた経験はありますか？",["よくある","たまにある","あまりない","全くない"],horizontal=True); hr()
+    q3=st.radio("Q3.  あらすじや表紙だけでなく「文章の響き・文体」が直感的に分かる指標があれば、本選びの参考にしたいですか？",["思う","やや思う","あまり思わない","思わない"],horizontal=True); hr()
+    cb3,cn3=st.columns(2)
+    with cb3:
+        if st.button("戻る",key="s3_back"): st.session_state.step=2; st.rerun()
+    with cn3:
+        if st.button("タスクを開始する",key="s3_start",type="primary"):
+            st.session_state.user_data.update({"q1":q1,"q2":q2,"q3":q3})
+            st.session_state.step=4; st.rerun()
 
-    pg_divider()
-    q1 = st.radio(
-        "Q1.  表紙のデザインやイラストに惹かれて本を選んだこと（ジャケ買い）がありますか？",
-        ["はい", "いいえ"], horizontal=True)
-    pg_divider()
-    q2 = st.radio(
-        "Q2.  ジャケ買いをした結果、文章の雰囲気が表紙の印象と違って読むのをやめた経験はありますか？",
-        ["よくある", "たまにある", "あまりない", "全くない"], horizontal=True)
-    pg_divider()
-    q3 = st.radio(
-        "Q3.  あらすじや表紙だけでなく「文章の響き・文体」が直感的に分かる指標があれば、本選びの参考にしたいですか？",
-        ["思う", "やや思う", "あまり思わない", "思わない"], horizontal=True)
-    pg_divider()
-
-    col_back, col_next = st.columns(2)
-    with col_back:
-        if st.button("戻る", key="s3_back"):
-            st.session_state.step = 2
-            st.rerun()
-    with col_next:
-        if st.button("タスクを開始する", key="s3_start", type="primary"):
-            st.session_state.user_data.update({"q1": q1, "q2": q2, "q3": q3})
-            st.session_state.step = 4
-            st.rerun()
-
-
-# ---- Step 4 ----
+# ======= STEP 4 =======
 def render_step4():
-    if st.session_state.current_q_index >= len(st.session_state.task_queue):
-        st.session_state.step = 5
-        st.rerun()
-
-    idx   = st.session_state.current_q_index
-    total = len(st.session_state.task_queue)
-    pct   = idx / total * 100
-
-    st.markdown(f"""
-    <div class="pg-progress-track">
-      <div class="pg-progress-fill" style="width:{pct:.1f}%"></div>
-    </div>""", unsafe_allow_html=True)
-
-    target_book  = st.session_state.task_queue[idx]
-    display_name = get_display_name(target_book)
-
-    st.markdown(f'<p class="pg-task-q">{idx + 1} / {total} — 音の紋様を選んでください</p>',
-                unsafe_allow_html=True)
-    st.markdown(f'<p class="pg-task-book">{display_name}</p>', unsafe_allow_html=True)
-
+    if st.session_state.current_q_index>=len(st.session_state.task_queue):
+        st.session_state.step=5; st.rerun()
+    idx=st.session_state.current_q_index; tot=len(st.session_state.task_queue)
+    st.markdown(f'<div class="pg-progress-track"><div class="pg-progress-fill" style="width:{idx/tot*100:.1f}%"></div></div>',unsafe_allow_html=True)
+    tb=st.session_state.task_queue[idx]; dn=get_display_name(tb)
+    st.markdown(f'<p class="pg-task-q">{idx+1} / {tot} — 音の紋様を選んでください</p><p class="pg-task-book">{dn}</p>',unsafe_allow_html=True)
     if not st.session_state.current_options:
-        opts = get_dummies_bouba_kiki(target_book)
-        opts.append(target_book)
-        random.shuffle(opts)
-        st.session_state.current_options = opts
-
-    options = st.session_state.current_options
-    labels  = ["A", "B", "C", "D", "E"]
-    cols    = st.columns(5)
-
-    for i, book in enumerate(options):
+        opts=get_dummies(tb); opts.append(tb); random.shuffle(opts)
+        st.session_state.current_options=opts
+    opts=st.session_state.current_options; lbs=["A","B","C","D","E"]; cols=st.columns(5)
+    for i,bk in enumerate(opts):
         with cols[i]:
-            st.markdown(f'<div style="text-align:center">'
-                        f'<span class="pg-option-badge">{labels[i]}</span></div>',
-                        unsafe_allow_html=True)
-            img = get_image_path(book)
-            if img:
-                st.image(Image.open(img), use_container_width=True)
-            else:
-                st.markdown('<div style="height:160px;background:#F2F2F7;border-radius:12px;'
-                            'display:flex;align-items:center;justify-content:center;'
-                            'color:#8E8E93;font-size:12px">画像なし</div>',
-                            unsafe_allow_html=True)
+            st.markdown(f'<div style="text-align:center"><span class="pg-option-badge">{lbs[i]}</span></div>',unsafe_allow_html=True)
+            ip=get_image_path(bk)
+            if ip: st.image(Image.open(ip),use_container_width=True)
+            else: st.markdown('<div style="height:160px;background:#F2F2F7;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#8E8E93;font-size:12px">画像なし</div>',unsafe_allow_html=True)
+    hr()
+    ans=st.radio("選択：",lbs,horizontal=True,key=f"q_{idx}",label_visibility="collapsed")
+    _,cb4=st.columns([2,1])
+    with cb4:
+        if st.button("次へ",key=f"next_{idx}",type="primary"):
+            ch=opts[lbs.index(ans)]; ic=(ch==tb)
+            st.session_state.results.append({"出題書籍":tb,"被験者回答":ch,"正誤":"正解" if ic else "不正解"})
+            st.session_state.current_q_index+=1; st.session_state.current_options=[]; st.rerun()
 
-    pg_divider()
-    answer = st.radio("選択：", labels, horizontal=True,
-                      key=f"q_{idx}", label_visibility="collapsed")
-
-    _, col_btn = st.columns([2, 1])
-    with col_btn:
-        if st.button("次へ", key=f"next_{idx}", type="primary"):
-            chosen     = options[labels.index(answer)]
-            is_correct = (chosen == target_book)
-            st.session_state.results.append({
-                "出題書籍": target_book,
-                "被験者回答": chosen,
-                "正誤": "正解" if is_correct else "不正解",
-            })
-            st.session_state.current_q_index += 1
-            st.session_state.current_options  = []
-            st.rerun()
-
-
-# ---- Step 5 ----
+# ======= STEP 5 =======
 def render_step5():
     st.balloons()
-    total    = len(st.session_state.results)
-    correct  = sum(1 for r in st.session_state.results if r["正誤"] == "正解")
-    accuracy = (correct / total * 100) if total else 0
-
-    st.markdown(f"""
-    <div class="pg-result-wrap">
-      <div>
-        <span class="pg-result-num">{accuracy:.1f}</span>
-        <span class="pg-result-unit">%</span>
-      </div>
-      <p class="pg-result-caption">正答率 — {correct} / {total} 問正解</p>
-    </div>""", unsafe_allow_html=True)
-
-    pg_divider()
-
+    tot=len(st.session_state.results); cor=sum(1 for r in st.session_state.results if r["正誤"]=="正解")
+    acc=(cor/tot*100) if tot else 0
+    st.markdown(f'<div class="pg-result-wrap"><div><span class="pg-result-num">{acc:.1f}</span><span class="pg-result-unit">%</span></div><p class="pg-result-caption">正答率 — {cor} / {tot} 問正解</p></div>',unsafe_allow_html=True)
+    hr()
     if not st.session_state.data_saved:
-        u         = st.session_state.user_data
-        JST       = timezone(timedelta(hours=9), "JST")
-        timestamp = datetime.now(JST).strftime("%Y/%m/%d %H:%M:%S")
-        raw_name  = u.get("name", "unknown")
-        h_name    = (hashlib.sha256(raw_name.encode()).hexdigest()[:16]
-                     if raw_name != "unknown" else "unknown")
-
-        rows = []
+        u=st.session_state.user_data; JST=timezone(timedelta(hours=9),"JST")
+        ts=datetime.now(JST).strftime("%Y/%m/%d %H:%M:%S")
+        rn=u.get("name","unknown"); hn=hashlib.sha256(rn.encode()).hexdigest()[:16] if rn!="unknown" else "unknown"
+        rows=[]
         for r in st.session_state.results:
-            rows.append([
-                timestamp, st.session_state.session_id, h_name,
-                u.get("age",""), u.get("gender",""), u.get("major",""),
-                u.get("reading_freq",""), u.get("genres",""), u.get("synesthesia_score",""),
-                u.get("q1",""), u.get("q2",""), u.get("q3",""),
-                round(accuracy, 1), r["出題書籍"], r["被験者回答"], r["正誤"],
-            ])
-
+            rows.append([ts,st.session_state.session_id,hn,u.get("age",""),u.get("gender",""),u.get("major",""),
+                         u.get("reading_freq",""),u.get("genres",""),u.get("synesthesia_score",""),
+                         u.get("q1",""),u.get("q2",""),u.get("q3",""),round(acc,1),r["出題書籍"],r["被験者回答"],r["正誤"]])
         try:
             if "gcp_service_account" in st.secrets:
-                scopes = ["https://www.googleapis.com/auth/spreadsheets",
-                          "https://www.googleapis.com/auth/drive"]
-                creds  = Credentials.from_service_account_info(
-                    dict(st.secrets["gcp_service_account"]), scopes=scopes)
-                client = gspread.authorize(creds)
-                sheet  = client.open_by_url(st.secrets["private_gsheets_url"]).sheet1
-                saved  = False
-                for attempt in range(3):
-                    try:
-                        sheet.append_rows(rows)
-                        st.session_state.data_saved = True
-                        saved = True
-                        break
-                    except Exception:
-                        if attempt < 2:
-                            time.sleep(2 ** attempt + random.uniform(0, 1))
-                if not saved:
-                    _show_recovery(rows)
-            else:
-                st.caption("GCP シークレット未設定")
-        except Exception as e:
-            st.error(f"認証エラー: {e}")
+                sc=["https://www.googleapis.com/auth/spreadsheets","https://www.googleapis.com/auth/drive"]
+                cr=Credentials.from_service_account_info(dict(st.secrets["gcp_service_account"]),scopes=sc)
+                cl=gspread.authorize(cr); sh=cl.open_by_url(st.secrets["private_gsheets_url"]).sheet1
+                sv=False
+                for att in range(3):
+                    try: sh.append_rows(rows); st.session_state.data_saved=True; sv=True; break
+                    except:
+                        if att<2: time.sleep(2**att+random.uniform(0,1))
+                if not sv:
+                    st.warning("データの保存に失敗しました。バックアップをダウンロードしてください。")
+                    hd2="Timestamp,SessionID,HashedName,Age,Gender,Major,ReadingFreq,Genres,Synesthesia,Q1,Q2,Q3,Accuracy,Target,Answer,Correctness\n"
+                    bd="\n".join([",".join(map(str,r)) for r in rows])
+                    st.download_button("バックアップをダウンロード",data=hd2+bd,
+                                       file_name=f"recovery_{st.session_state.session_id}.csv",mime="text/csv",type="primary")
+            else: st.caption("GCP シークレット未設定")
+        except Exception as e: st.error(f"認証エラー: {e}")
+    hr()
+    qru=f"https://api.qrserver.com/v1/create-qr-code/?size=160x160&data={urllib.parse.quote(DEPLOY_URL)}"
+    st.markdown(f'<div class="pg-qr-wrap"><img src="{qru}" width="160" style="border-radius:12px"><p class="pg-qr-caption">{DEPLOY_URL}</p></div>',unsafe_allow_html=True)
+    hr()
+    cl5,cr5=st.columns(2)
+    with cl5:
+        if st.button("別の作品で再挑戦する",key="restart",type="primary"):
+            reset_session(); st.rerun()
+    with cr5: st.caption("新しいセッションが始まります。\n既読作品を再選択して再挑戦できます。")
 
-    # QR + URL
-    pg_divider()
-    qr_url = (f"https://api.qrserver.com/v1/create-qr-code/?size=160x160"
-              f"&data={urllib.parse.quote(DEPLOY_URL)}")
-    st.markdown(f"""
-    <div class="pg-qr-wrap">
-      <img src="{qr_url}" width="160" style="border-radius:12px">
-      <p class="pg-qr-caption">{DEPLOY_URL}</p>
-    </div>""", unsafe_allow_html=True)
-
-    # 最初に戻るボタン（別の書籍で再挑戦を促す）
-    pg_divider()
-    col_l, col_r = st.columns(2)
-    with col_l:
-        if st.button("別の作品で再挑戦する", key="restart", type="primary"):
-            reset_session()
-            st.rerun()
-    with col_r:
-        st.caption("新しいセッションが始まります。\n既読作品を再選択して再挑戦できます。")
-
-
-def _show_recovery(rows):
-    st.warning("データの保存に失敗しました。下のボタンでバックアップをダウンロードしてください。")
-    header = ("Timestamp,SessionID,HashedName,Age,Gender,Major,"
-              "ReadingFreq,Genres,Synesthesia,Q1,Q2,Q3,"
-              "Accuracy,Target,Answer,Correctness\n")
-    body   = "\n".join([",".join(map(str, r)) for r in rows])
-    st.download_button("バックアップをダウンロード",
-                       data=header + body,
-                       file_name=f"recovery_{st.session_state.session_id}.csv",
-                       mime="text/csv", type="primary")
-
-
-# ---- シミュレーター ----
+# ======= SIMULATOR =======
 def render_simulator():
-    pg_header("管理者", "Phonoglyph シミュレーター",
-              "音素パラメータをリアルタイムで変化させて図形を確認できます。")
+    hd("管理者","Phonoglyph シミュレーター","音素パラメータをリアルタイムで変化させて図形を確認できます。")
+    BL=phonoglyph_math.BASELINE; cp,cv=st.columns([1,1.5])
+    with cp:
+        vf=st.slider("前舌母音 VF",0.0,50.0,BL["vf"]); vb=st.slider("後舌母音 VB",0.0,50.0,BL["vb"])
+        obs=st.slider("阻害音 OBS",0.0,50.0,BL["obs"]); son=st.slider("共鳴音 SON",0.0,50.0,BL["son"])
+        hr(); st.caption("有声音 VD（交絡変数排除のため固定）")
+        vd=st.slider("VD",0.0,20.0,BL["vd"],disabled=True,label_visibility="collapsed")
+    with cv:
+        x,y,lw=phonoglyph_math.calculate_phonoglyph_coordinates(vf,vb,obs,son,vd,amp_power=st.session_state.amp_power)
+        fig,ax=plt.subplots(figsize=(5,5),facecolor="white")
+        ax.plot(x,y,color="black",linewidth=lw,solid_joinstyle="round")
+        ax.fill(x,y,color="black",alpha=0.05); ax.set_aspect("equal"); ax.axis("off"); st.pyplot(fig)
 
-    BASELINE = phonoglyph_math.BASELINE
-    col_p, col_v = st.columns([1, 1.5])
-
-    with col_p:
-        vf  = st.slider("前舌母音 VF — 鋭さ",      0.0, 50.0, BASELINE["vf"])
-        vb  = st.slider("後舌母音 VB — 芯の膨らみ", 0.0, 50.0, BASELINE["vb"])
-        obs = st.slider("阻害音 OBS — トゲ",        0.0, 50.0, BASELINE["obs"])
-        son = st.slider("共鳴音 SON — 丸み",        0.0, 50.0, BASELINE["son"])
-        pg_divider()
-        st.caption("有声音 VD — 線の太さ（交絡変数排除のため固定）")
-        vd  = st.slider("VD", 0.0, 20.0, BASELINE["vd"], disabled=True,
-                        label_visibility="collapsed")
-
-    with col_v:
-        x, y, lw = phonoglyph_math.calculate_phonoglyph_coordinates(
-            vf, vb, obs, son, vd, amp_power=st.session_state.amp_power)
-        fig, ax = plt.subplots(figsize=(5, 5), facecolor="white")
-        ax.plot(x, y, color="black", linewidth=lw, solid_joinstyle="round")
-        ax.fill(x, y, color="black", alpha=0.05)
-        ax.set_aspect("equal")
-        ax.axis("off")
-        st.pyplot(fig)
-
-
-# ============================================================
-# 10. メイン
-# ============================================================
+# ======= MAIN =======
 def main():
-    mode = st.query_params.get("mode")
-    if isinstance(mode, list):
-        mode = mode[0] if mode else None
-    if mode == "admin":
-        st.session_state.is_admin = True
+    mode=st.query_params.get("mode")
+    if isinstance(mode,list): mode=mode[0] if mode else None
+    if mode=="admin": st.session_state.is_admin=True
 
-    if st.session_state.is_admin:
-        st.sidebar.title("管理者モード")
-        selected = st.sidebar.radio(
-            "機能",
-            ["実験タスク (被験者用)", "シミュレーター (デモ用)"],
-            index=0 if st.session_state.admin_mode == "実験タスク (被験者用)" else 1,
-        )
-        st.session_state.admin_mode = selected
-        st.sidebar.markdown("---")
-        st.sidebar.caption("アルゴリズム検証")
-        st.session_state.amp_power = st.sidebar.slider(
-            "非線形増幅係数 β", 0.1, 2.0, st.session_state.amp_power, 0.1)
-        st.sidebar.markdown("---")
-        st.sidebar.caption(f"読込: {st.session_state.get('debug_target_file', '—')}")
-        st.sidebar.caption(
-            f"結合: {st.session_state.get('debug_match_count', 0)} / {len(ALL_BOOKS)} 件")
+    # サイドバー — 常時表示（管理者ボタン or 管理者コントロール）
+    with st.sidebar:
+        if not st.session_state.is_admin:
+            st.markdown("### 🌒 Phonoglyph")
+            st.caption("開発者・研究者向けのアクセスポイントです。")
+            if st.button("管理者モードに切り替え", key="admin_on"):
+                st.session_state.is_admin=True; st.rerun()
+        else:
+            st.title("管理者モード")
+            sel=st.radio("機能",["実験タスク (被験者用)","シミュレーター (デモ用)"],
+                         index=0 if st.session_state.admin_mode=="実験タスク (被験者用)" else 1)
+            st.session_state.admin_mode=sel
+            st.markdown("---"); st.caption("アルゴリズム検証")
+            st.session_state.amp_power=st.sidebar.slider("非線形増幅係数 β",0.1,2.0,st.session_state.amp_power,0.1)
+            st.markdown("---")
+            st.caption(f"読込: {st.session_state.get('debug_target_file','—')}")
+            st.caption(f"結合: {st.session_state.get('debug_match_count',0)}/{len(ALL_BOOKS)} 件")
+            if st.button("管理者モードを解除",key="admin_off"):
+                st.session_state.is_admin=False
+                st.session_state.admin_mode="実験タスク (被験者用)"; st.rerun()
 
-    if st.session_state.admin_mode == "実験タスク (被験者用)":
-        renderers = {1: render_step1, 2: render_step2, 3: render_step3,
-                     4: render_step4, 5: render_step5}
-        fn = renderers.get(st.session_state.step)
-        if fn:
-            fn()
+    if st.session_state.admin_mode=="実験タスク (被験者用)":
+        {1:render_step1,2:render_step2,3:render_step3,4:render_step4,5:render_step5}.get(st.session_state.step,render_step1)()
     else:
         render_simulator()
 
-
-if __name__ == "__main__":
+if __name__=="__main__":
     main()
