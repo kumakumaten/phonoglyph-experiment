@@ -459,29 +459,10 @@ def render_step5():
         except Exception as e: st.error(f"認証エラー: {e}")
     hr()
     qru=f"https://api.qrserver.com/v1/create-qr-code/?size=160x160&data={urllib.parse.quote(DEPLOY_URL)}"
-    st.markdown(f'<div class="pg-qr-wrap"><img src="{qru}" width="160" style="border-radius:12px"><p class="pg-qr-caption">{DEPLOY_URL}</p></div>',unsafe_allow_html=True)
-    # ワンタップコピーボタン
-    st.markdown(f"""
-<div style="text-align:center;margin:12px 0 4px">
-  <button
-    onclick="navigator.clipboard.writeText('{DEPLOY_URL}').then(function(){{
-      var b=document.getElementById('copy-link-btn');
-      b.innerHTML='✓&nbsp;コピーしました！';
-      b.style.background='#30D158';
-      setTimeout(function(){{
-        b.innerHTML='🔗&nbsp;リンクをコピー';
-        b.style.background='#007AFF';
-      }},2000);
-    }});"
-    id="copy-link-btn"
-    style="background:#007AFF;color:#FFFFFF;border:none;border-radius:22px;
-           padding:11px 32px;font-size:15px;font-weight:600;cursor:pointer;
-           font-family:-apple-system,'Helvetica Neue',sans-serif;
-           box-shadow:0 2px 8px rgba(0,122,255,.25);transition:background .25s;">
-    🔗&nbsp;リンクをコピー
-  </button>
-</div>
-""", unsafe_allow_html=True)
+    st.markdown(f'<div class="pg-qr-wrap"><img src="{qru}" width="160" style="border-radius:12px"></div>',unsafe_allow_html=True)
+    # st.code は Streamlit ネイティブのコピーボタン付き（右上のクリップボードアイコン）
+    st.markdown('<p style="text-align:center;font-size:13px;color:#8E8E93;margin:8px 0 4px">右上のアイコンでURLをコピー</p>',unsafe_allow_html=True)
+    st.code(DEPLOY_URL, language=None)
     hr()
     cl5,cr5=st.columns(2)
     with cl5:
