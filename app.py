@@ -34,17 +34,13 @@ section[data-testid="stSidebar"] .stSlider>div>div>div{background:#007AFF!import
 .pg-notice{background:rgba(0,122,255,.07);border-radius:12px;padding:14px 18px;font-size:14px;color:#3A3A3C!important;line-height:1.55;margin-bottom:20px;}
 .pg-notice strong{color:#007AFF!important;}
 .pg-divider{height:1px;background:#E5E5EA;margin:24px 0;border:none;}
-
-/* インフォームドコンセントカード */
 .pg-consent-card{background:#FFFFFF;border-radius:16px;padding:24px 28px;margin-bottom:20px;
  box-shadow:0 1px 3px rgba(0,0,0,.07),0 4px 12px rgba(0,0,0,.04);}
 .pg-consent-section{margin-bottom:18px;}
-.pg-consent-title{font-size:11px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;
- color:#007AFF;margin:0 0 6px;}
+.pg-consent-title{font-size:11px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:#007AFF;margin:0 0 6px;}
 .pg-consent-body{font-size:14px;color:#3A3A3C;line-height:1.65;margin:0;}
 .pg-consent-item{font-size:14px;color:#3A3A3C;line-height:1.65;padding-left:1em;margin:2px 0;}
 .pg-consent-item::before{content:"·";margin-right:6px;color:#8E8E93;}
-
 .stButton>button{border:none;border-radius:22px;font-size:15px;font-weight:600;padding:10px 28px;width:100%;transition:opacity .15s,transform .12s;}
 .stButton>button[kind="primary"],.stButton>button[kind="primary"]:hover,
 .stButton>button[kind="primary"]:focus,.stButton>button[kind="primary"] *
@@ -93,6 +89,7 @@ div[role="dialog"],div[role="dialog"]>div,div[role="tooltip"],
  box-shadow:0 12px 40px rgba(0,0,0,0.10),0 2px 8px rgba(0,0,0,0.06)!important;}
 [data-testid="stPopoverBody"] *,div[role="dialog"] p,div[role="dialog"] span,
 div[role="dialog"] div,div[role="dialog"] strong{color:#1C1C1E!important;background-color:transparent;}
+[data-testid="stPopoverBody"]>div>div{padding:12px 16px!important;}
 .stPopover button,[data-testid="stPopover"] button{background:transparent!important;border:none!important;font-size:18px!important;color:#8E8E93!important;line-height:1;}
 [data-testid="stExpander"]{border:1px solid #E5E5EA!important;border-radius:12px!important;background:#FFFFFF!important;overflow:hidden;}
 [data-testid="stExpander"] summary{background:#FFFFFF!important;padding:12px 16px!important;}
@@ -184,6 +181,11 @@ def _load_metadata_core(tup):
         merged["発表年"]=pd.to_numeric(merged.get("発表年",9999),errors="coerce").fillna(9999)
         merged["ジャンル"]=merged.get("ジャンル","不明").fillna("不明").astype(str).str.strip()
         merged["あらすじ"]=merged.get("あらすじ","あらすじ情報なし").fillna("あらすじ情報なし")
+        for col in ["著者名読み","日本語書籍名読み"]:
+            if col in meta.columns:
+                merged[col]=merged.get(col,"").fillna("")
+            else:
+                merged[col]=""
         dbg.update({"columns":list(meta.columns),"sys_keys":lst[:5],
                     "meta_keys":meta["ローマ字ファイル名"].tolist()[:5],
                     "match_count":sum(1 for r in rows if r)})
@@ -228,9 +230,10 @@ def hd(ey,ti,su=""):
 
 def hr(): st.markdown('<hr class="pg-divider">',unsafe_allow_html=True)
 
-# ======= ページ上部の常設ナビバー =======
 def render_topbar():
-    """シミュレーターへのワンクリックアクセスバー（全ページ共通）"""
+    """管理者のみ表示するシミュレーター切り替えバー"""
+    if not st.session_state.is_admin:
+        return  # 被験者には一切表示しない
     col_l, col_r = st.columns([7, 3])
     with col_r:
         if st.session_state.admin_mode == "シミュレーター (デモ用)":
@@ -239,69 +242,66 @@ def render_topbar():
                 st.rerun()
         else:
             if st.button("⚙ シミュレーター", key="topbar_sim"):
-                st.session_state.is_admin = True
                 st.session_state.admin_mode = "シミュレーター (デモ用)"
                 st.rerun()
-    st.markdown('<div style="margin-top:-8px"></div>', unsafe_allow_html=True)
 
-# ======= STEP 1（インフォームドコンセント強化） =======
+def _sort_df(df, sb):
+    """五十音順ソート：読み列があれば使用、なければ漢字列で代替"""
+    has_author_yomi = "著者名読み" in df.columns and df["著者名読み"].str.strip().ne("").any()
+    has_title_yomi  = "日本語書籍名読み" in df.columns and df["日本語書籍名読み"].str.strip().ne("").any()
+    if sb == "人気・知名度順":
+        return df.sort_values(["知名度スコア","日本語書籍名"], ascending=[False,True])
+    if sb == "五十音順（作品名）":
+        col = "日本語書籍名読み" if has_title_yomi else "日本語書籍名"
+        return df.sort_values([col,"日本語書籍名"], ascending=[True,True])
+    if sb == "五十音順（著者名）":
+        col1 = "著者名読み"       if has_author_yomi else "著者名"
+        col2 = "日本語書籍名読み" if has_title_yomi  else "日本語書籍名"
+        return df.sort_values([col1,col2], ascending=[True,True])
+    if sb == "発表年が新しい順":
+        return df.sort_values(["発表年","日本語書籍名"], ascending=[False,True])
+    if sb == "発表年が古い順":
+        return df.sort_values(["発表年","日本語書籍名"], ascending=[True,True])
+    return df
+
 def render_step1():
-    hd("Step 1 / 5","実験参加への同意","以下の説明をよくお読みのうえ、同意いただける場合は基本情報をご入力ください。")
-
-    # インフォームドコンセント本文
+    hd("Step 1 / 5","実験への参加","以下の説明をよくお読みのうえ、同意いただける場合は基本情報をご入力ください。")
     st.markdown("""
 <div class="pg-consent-card">
-
 <div class="pg-consent-section">
   <p class="pg-consent-title">研究の概要</p>
-  <p class="pg-consent-body">
-    本研究は東京電機大学 インタラクティブアート&amp;デザイン研究室（山本研）が実施する学術調査です。<br>
-    <strong style="color:#1C1C1E">目的：</strong>文章の「音の響き（音素）」から生成した抽象図形が、書籍の雰囲気を直感的に伝える指標として機能するかを検証します。
-  </p>
+  <p class="pg-consent-body">本研究は東京電機大学 インタラクティブアート&amp;デザイン研究室（山本研）が実施する学術調査です。<br>
+  <strong style="color:#1C1C1E">目的：</strong>文章の「音の響き（音素）」から生成した抽象図形が、書籍の雰囲気を直感的に伝える指標として機能するかを検証します。</p>
 </div>
-
 <div class="pg-consent-section">
   <p class="pg-consent-title">参加内容と所要時間</p>
   <p class="pg-consent-item">読書体験に関する事前アンケート（1〜2分）</p>
   <p class="pg-consent-item">既読の書籍に対応する抽象図形を5択から選ぶタスク（選択作品数 × 約20秒）</p>
   <p class="pg-consent-item">合計所要時間の目安：5〜15分程度</p>
 </div>
-
 <div class="pg-consent-section">
   <p class="pg-consent-title">取得するデータと利用目的</p>
   <p class="pg-consent-item">基本属性（年齢・性別・専攻・読書頻度など）</p>
   <p class="pg-consent-item">各タスクへの回答（どの図形を選んだか）</p>
   <p class="pg-consent-item">これらのデータは研究目的にのみ使用し、学術論文・学会発表での報告に用いることがあります。</p>
 </div>
-
 <div class="pg-consent-section">
   <p class="pg-consent-title">個人情報の保護</p>
   <p class="pg-consent-item">入力された氏名は実験中の管理用に使用します。</p>
   <p class="pg-consent-item">データ保存時に氏名はハッシュ化（不可逆変換）され、氏名そのものが保存・公開されることはありません。</p>
   <p class="pg-consent-item">収集データは暗号化された安全な環境で管理され、研究終了後に適切に廃棄されます。</p>
 </div>
-
 <div class="pg-consent-section">
   <p class="pg-consent-title">参加の任意性</p>
-  <p class="pg-consent-item">本実験への参加は完全に任意です。参加しない、または途中でやめても何ら不利益は生じません。</p>
-  <p class="pg-consent-item">タスク中にいつでも中断いただけます。</p>
+  <p class="pg-consent-item">本実験への参加は完全に任意です。途中でやめても何ら不利益は生じません。</p>
 </div>
-
 <div class="pg-consent-section" style="margin-bottom:0">
   <p class="pg-consent-title">問い合わせ先</p>
-  <p class="pg-consent-body" style="font-size:13px;color:#8E8E93">
-    東京電機大学 システムデザイン工学部 デザイン工学科<br>
-    インタラクティブアート&amp;デザイン研究室（山本研）<br>
-    担当：熊谷 天
-  </p>
+  <p class="pg-consent-body" style="font-size:13px;color:#8E8E93">東京電機大学 システムデザイン工学部 デザイン工学科<br>インタラクティブアート&amp;デザイン研究室（山本研）　担当：熊谷 天</p>
 </div>
-
 </div>
 """, unsafe_allow_html=True)
-
-    consent = st.checkbox("上記の内容を理解し、実験への参加に同意します")
-    hr()
-
+    consent=st.checkbox("上記の内容を理解し、実験への参加に同意します"); hr()
     c1,c2=st.columns(2)
     with c1:
         name=st.text_input("氏名（漢字またはカタカナ）",placeholder="例：山田 太郎")
@@ -310,25 +310,20 @@ def render_step1():
         gender=st.radio("性別",["男性","女性","その他"],horizontal=True)
         major=st.radio("専攻分野",["理数系","文系","芸術・デザイン系","その他"],horizontal=True)
     rf=st.selectbox("読書頻度",["月に1〜2冊","月に3〜5冊","月に6冊以上","全く読まない"],
-                    index=None, placeholder="選択してください")
+                    index=None,placeholder="選択してください")
     gn=st.multiselect("よく読むジャンル",["純文学","大衆文学","SF","ラノベ","実用書","その他"])
     syn=st.slider("言葉の響きに色や形を感じるか（1: 全く感じない — 5: 強く感じる）",1,5,3)
-    hr()
-    _,cb=st.columns([1,1])
+    hr(); _,cb=st.columns([1,1])
     with cb:
         if st.button("次へ進む",key="s1_next",type="primary"):
-            if not consent:
-                st.error("実験への参加に同意してください。")
-            elif not name.strip():
-                st.error("氏名を入力してください。")
-            elif rf is None:
-                st.error("読書頻度を選択してください。")
+            if not consent: st.error("実験への参加に同意してください。")
+            elif not name.strip(): st.error("氏名を入力してください。")
+            elif rf is None: st.error("読書頻度を選択してください。")
             else:
                 st.session_state.user_data={"name":name.strip(),"age":age,"gender":gender,"major":major,
                     "reading_freq":rf,"genres":", ".join(gn),"synesthesia_score":syn}
                 st.session_state.step=2; st.rerun()
 
-# ======= STEP 2 =======
 def render_step2():
     hd("Step 2 / 5","既読作品の選択","内容を知っている作品にチェックを入れてください。📖 でタイトル・あらすじを確認できます。")
     cs,co,cg=st.columns([2,1.5,1.5])
@@ -341,9 +336,7 @@ def render_step2():
     df=BOOK_META_DF.copy()
     if q: df=df[df["日本語書籍名"].astype(str).str.contains(q,case=False,na=False)|df["著者名"].astype(str).str.contains(q,case=False,na=False)]
     if gf!="すべて": df=df[df["ジャンル"].astype(str).str.strip()==gf.strip()]
-    sm={"人気・知名度順":(["知名度スコア","日本語書籍名"],[False,True]),"五十音順（作品名）":(["日本語書籍名"],[True]),
-        "五十音順（著者名）":(["著者名","日本語書籍名"],[True,True]),"発表年が新しい順":(["発表年","日本語書籍名"],[False,True]),"発表年が古い順":(["発表年","日本語書籍名"],[True,True])}
-    sc,sa=sm[sb]; df=df.sort_values(by=sc,ascending=sa); recs=df.to_dict("records")
+    df=_sort_df(df,sb); recs=df.to_dict("records")
     st.caption(f"{len(recs)} 件表示")
     for i in range(0,len(recs),3):
         cols=st.columns(3)
@@ -364,23 +357,15 @@ def render_step2():
                         if au!="不明":
                             g=row["ジャンル"]; yr=int(row["発表年"]); syn=row["あらすじ"]
                             st.markdown(
-                                f'<div style="padding:20px 16px 20px">'
+                                f'<div style="padding:20px 24px 18px">'
                                 f'<p style="font-size:10px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:#007AFF;margin:0 0 8px">{g} &nbsp;·&nbsp; {yr}年</p>'
                                 f'<p style="font-size:19px;font-weight:700;color:#1C1C1E;letter-spacing:-.3px;line-height:1.25;margin:0 0 4px">{jn}</p>'
                                 f'<p style="font-size:13px;color:#8E8E93;margin:0 0 14px">{au}</p>'
                                 f'<div style="height:1px;background:#F0F0F5;margin-bottom:12px"></div>'
                                 f'<p style="font-size:14px;color:#3A3A3C;line-height:1.7;margin:0">{syn}</p>'
-                                f'</div>',
-                                unsafe_allow_html=True
-                            )
+                                f'</div>',unsafe_allow_html=True)
                         else:
-                            st.markdown(
-                                f'<div style="padding:14px 4px 10px">'
-                                f'<p style="font-size:19px;font-weight:700;color:#1C1C1E;margin:0 0 6px">{jn}</p>'
-                                f'<p style="font-size:13px;color:#C7C7CC;margin:0">詳細情報なし</p>'
-                                f'</div>',
-                                unsafe_allow_html=True
-                            )
+                            st.markdown(f'<div style="padding:20px 24px 18px"><p style="font-size:19px;font-weight:700;color:#1C1C1E;margin:0 0 6px">{jn}</p><p style="font-size:13px;color:#C7C7CC;margin:0">詳細情報なし</p></div>',unsafe_allow_html=True)
     hr()
     if st.session_state.is_admin:
         with st.expander("システム診断",expanded=False):
@@ -400,7 +385,6 @@ def render_step2():
                 q_=st.session_state.selected_books.copy(); random.shuffle(q_)
                 st.session_state.task_queue=q_; st.session_state.step=3; st.rerun()
 
-# ======= STEP 3 =======
 def render_step3():
     hd("Step 3 / 5","読書体験に関するアンケート","タスク開始前に、以下の 3 問にお答えください。"); hr()
     q1=st.radio("Q1.  表紙のデザインやイラストに惹かれて本を選んだこと（ジャケ買い）がありますか？",["はい","いいえ"],horizontal=True); hr()
@@ -414,7 +398,6 @@ def render_step3():
             st.session_state.user_data.update({"q1":q1,"q2":q2,"q3":q3})
             st.session_state.step=4; st.rerun()
 
-# ======= STEP 4 =======
 def render_step4():
     if st.session_state.current_q_index>=len(st.session_state.task_queue):
         st.session_state.step=5; st.rerun()
@@ -441,7 +424,6 @@ def render_step4():
             st.session_state.results.append({"出題書籍":tb,"被験者回答":ch,"正誤":"正解" if ic else "不正解"})
             st.session_state.current_q_index+=1; st.session_state.current_options=[]; st.rerun()
 
-# ======= STEP 5 =======
 def render_step5():
     st.balloons()
     tot=len(st.session_state.results); cor=sum(1 for r in st.session_state.results if r["正誤"]=="正解")
@@ -485,7 +467,6 @@ def render_step5():
             reset_session(); st.rerun()
     with cr5: st.caption("新しいセッションが始まります。\n既読作品を再選択して再挑戦できます。")
 
-# ======= SIMULATOR =======
 def render_simulator():
     hd("管理者","Phonoglyph シミュレーター","音素パラメータをリアルタイムで変化させて図形を確認できます。")
     BL=phonoglyph_math.BASELINE; cp,cv=st.columns([1,1.5])
@@ -494,8 +475,7 @@ def render_simulator():
         obs=st.slider("阻害音 OBS",0.0,50.0,BL["obs"]); son=st.slider("共鳴音 SON",0.0,50.0,BL["son"])
         hr(); st.caption("有声音 VD（交絡変数排除のため固定）")
         vd=st.slider("VD",0.0,20.0,BL["vd"],disabled=True,label_visibility="collapsed")
-        hr()
-        st.caption("増幅係数 β")
+        hr(); st.caption("増幅係数 β")
         st.session_state.amp_power=st.slider("β",0.1,2.0,st.session_state.amp_power,0.1,label_visibility="collapsed")
     with cv:
         x,y,lw=phonoglyph_math.calculate_phonoglyph_coordinates(vf,vb,obs,son,vd,amp_power=st.session_state.amp_power)
@@ -503,7 +483,6 @@ def render_simulator():
         ax.plot(x,y,color="black",linewidth=lw,solid_joinstyle="round")
         ax.fill(x,y,color="black",alpha=0.05); ax.set_aspect("equal"); ax.axis("off"); st.pyplot(fig)
 
-# ======= MAIN =======
 def main():
     mode=st.query_params.get("mode")
     if isinstance(mode,list): mode=mode[0] if mode else None
@@ -512,7 +491,6 @@ def main():
         st.session_state.is_admin=True
         st.session_state.admin_mode="シミュレーター (デモ用)"
 
-    # サイドバー（管理者コントロール）
     with st.sidebar:
         st.markdown("### 🌒 Phonoglyph")
         hr()
@@ -532,7 +510,6 @@ def main():
                 st.session_state.is_admin=False
                 st.session_state.admin_mode="実験タスク (被験者用)"; st.rerun()
 
-    # 常設トップバー（シミュレーター↔実験切り替え）
     render_topbar()
 
     if st.session_state.admin_mode=="実験タスク (被験者用)":
