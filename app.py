@@ -46,11 +46,52 @@ html, body, .stApp {
     max-width: 780px;
 }
 
-/* ---------- サイドバー ---------- */
+/* ---------- メインエリア テキスト全般（視認性確保） ---------- */
+/* Streamlit が生成するすべての label / span / p に明示的に黒を指定 */
+.stApp p,
+.stApp span:not([data-testid="stSidebar"] span),
+.stApp li {
+    color: #1C1C1E;
+}
+
+/* フォームラベル（ウィジェット上部のラベルテキスト） */
+.stTextInput    label,
+.stNumberInput  label,
+.stSelectbox    label,
+.stMultiSelect  label,
+.stSlider       label,
+.stRadio        label,
+.stCheckbox     label,
+[data-testid="stWidgetLabel"],
+[data-testid="stWidgetLabel"] p,
+[data-testid="stWidgetLabel"] span {
+    color: #1C1C1E !important;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+/* ラジオボタン・チェックボックスの選択肢テキスト */
+.stRadio    > div > label > div > p,
+.stRadio    > div > label span,
+.stCheckbox > label > div > p,
+.stCheckbox > label span {
+    color: #1C1C1E !important;
+}
+
+/* caption */
+.stApp [data-testid="stCaptionContainer"] p,
+.stApp .stCaption p {
+    color: #8E8E93 !important;
+}
+
+/* ---------- サイドバー（白文字）---------- */
 section[data-testid="stSidebar"] {
     background: #1C1C1E;
 }
-section[data-testid="stSidebar"] * {
+section[data-testid="stSidebar"] p,
+section[data-testid="stSidebar"] span,
+section[data-testid="stSidebar"] label,
+section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p {
     color: #EBEBF5 !important;
 }
 section[data-testid="stSidebar"] .stSlider > div > div > div {
@@ -82,23 +123,16 @@ section[data-testid="stSidebar"] .stSlider > div > div > div {
 }
 
 /* ---------- カード ---------- */
-.pg-card {
-    background: #FFFFFF;
-    border-radius: 16px;
-    padding: 20px 24px;
-    margin-bottom: 16px;
-    box-shadow: 0 1px 3px rgba(0,0,0,.07), 0 4px 12px rgba(0,0,0,.04);
-}
 .pg-notice {
     background: rgba(0,122,255,.07);
     border-radius: 12px;
     padding: 14px 18px;
     font-size: 14px;
-    color: #3A3A3C;
+    color: #3A3A3C !important;
     line-height: 1.55;
     margin-bottom: 28px;
 }
-.pg-notice strong { color: #007AFF; }
+.pg-notice strong { color: #007AFF !important; }
 
 /* ---------- 区切り ---------- */
 .pg-divider {
@@ -108,16 +142,7 @@ section[data-testid="stSidebar"] .stSlider > div > div > div {
     border: none;
 }
 
-/* ---------- ラベル ---------- */
-.pg-label {
-    font-size: 12px;
-    font-weight: 600;
-    color: #8E8E93;
-    letter-spacing: .4px;
-    margin-bottom: 4px;
-}
-
-/* ---------- プログレス ---------- */
+/* ---------- プログレスバー ---------- */
 .pg-progress-track {
     height: 3px;
     background: #E5E5EA;
@@ -160,40 +185,14 @@ section[data-testid="stSidebar"] .stSlider > div > div > div {
 }
 
 /* ---------- 結果画面 ---------- */
-.pg-result-wrap {
-    text-align: center;
-    padding: 40px 0 24px;
-}
-.pg-result-num {
-    font-size: 86px;
-    font-weight: 700;
-    letter-spacing: -5px;
-    color: #30D158;
-    line-height: 1;
-}
-.pg-result-unit {
-    font-size: 32px;
-    font-weight: 600;
-    color: #30D158;
-    letter-spacing: -1px;
-}
-.pg-result-caption {
-    font-size: 15px;
-    color: #8E8E93;
-    margin-top: 8px;
-}
+.pg-result-wrap { text-align: center; padding: 40px 0 24px; }
+.pg-result-num  { font-size: 86px; font-weight: 700; letter-spacing: -5px; color: #30D158; line-height: 1; }
+.pg-result-unit { font-size: 32px; font-weight: 600; color: #30D158; letter-spacing: -1px; }
+.pg-result-caption { font-size: 15px; color: #8E8E93; margin-top: 8px; }
 
-/* ---------- QR コード ---------- */
-.pg-qr-wrap {
-    text-align: center;
-    padding: 20px 0;
-}
-.pg-qr-caption {
-    font-size: 12px;
-    color: #8E8E93;
-    margin-top: 10px;
-    font-family: "SF Mono", "Menlo", monospace;
-}
+/* ---------- QR ---------- */
+.pg-qr-wrap { text-align: center; padding: 20px 0; }
+.pg-qr-caption { font-size: 12px; color: #8E8E93; margin-top: 10px; font-family: "Menlo", monospace; }
 
 /* ---------- ボタン ---------- */
 .stButton > button {
@@ -204,10 +203,10 @@ section[data-testid="stSidebar"] .stSlider > div > div > div {
     padding: 10px 28px;
     width: 100%;
     transition: opacity .15s ease, transform .12s ease;
+    color: #FFFFFF !important;
 }
 .stButton > button[kind="primary"] {
-    background: #007AFF;
-    color: #FFFFFF;
+    background: #007AFF !important;
 }
 .stButton > button[kind="primary"]:hover {
     opacity: .87;
@@ -216,26 +215,47 @@ section[data-testid="stSidebar"] .stSlider > div > div > div {
 }
 .stButton > button[kind="secondary"],
 .stButton > button:not([kind]) {
-    background: #E5E5EA;
-    color: #1C1C1E;
+    background: #E5E5EA !important;
+    color: #1C1C1E !important;
 }
 .stButton > button:active { transform: scale(.98); }
 
-/* ---------- 入力フィールド ---------- */
-.stTextInput > div > div > input,
-.stNumberInput > div > div > input {
+/* ---------- テキスト入力 ---------- */
+.stTextInput > div > div > input {
     border-radius: 10px !important;
     border: 1.5px solid #E5E5EA !important;
     background: #FFFFFF !important;
-    font-size: 15px;
-    padding: 10px 14px;
-    color: #1C1C1E;
+    font-size: 15px !important;
+    padding: 10px 14px !important;
+    color: #1C1C1E !important;
 }
-.stTextInput > div > div > input:focus,
-.stNumberInput > div > div > input:focus {
+.stTextInput > div > div > input:focus {
     border-color: #007AFF !important;
     box-shadow: 0 0 0 3px rgba(0,122,255,.12) !important;
 }
+
+/* ---------- 数値入力（黒背景を上書き）---------- */
+.stNumberInput div[data-baseweb="input"] {
+    background: #FFFFFF !important;
+    border: 1.5px solid #E5E5EA !important;
+    border-radius: 10px !important;
+}
+.stNumberInput div[data-baseweb="input"]:focus-within {
+    border-color: #007AFF !important;
+    box-shadow: 0 0 0 3px rgba(0,122,255,.12) !important;
+}
+.stNumberInput input {
+    background: #FFFFFF !important;
+    color: #1C1C1E !important;
+    font-size: 15px !important;
+}
+.stNumberInput button {
+    background: #F2F2F7 !important;
+    color: #1C1C1E !important;
+    border: none !important;
+}
+
+/* ---------- セレクトボックス ---------- */
 div[data-baseweb="select"] > div {
     border-radius: 10px !important;
     border: 1.5px solid #E5E5EA !important;
@@ -244,6 +264,10 @@ div[data-baseweb="select"] > div {
 div[data-baseweb="select"] > div:focus-within {
     border-color: #007AFF !important;
     box-shadow: 0 0 0 3px rgba(0,122,255,.12) !important;
+}
+div[data-baseweb="select"] span,
+div[data-baseweb="select"] div {
+    color: #1C1C1E !important;
 }
 
 /* ---------- チェックボックス ---------- */
@@ -283,7 +307,6 @@ def load_database():
 
 @st.cache_data
 def _build_image_cache():
-    """画像パス辞書をキャッシュ — get_image_path を O(1) にする"""
     cache = {}
     for d in glob.glob(f"{IMAGE_DIR}*"):
         if os.path.isdir(d):
@@ -311,7 +334,6 @@ def _fallback_df(base_df):
 
 @st.cache_data
 def _load_metadata_core(all_books_tuple):
-    """純粋データ処理 (Streamlit API なし) — キャッシュ対象"""
     all_books_list = list(all_books_tuple)
     base_df        = pd.DataFrame({"SystemKey": all_books_list})
     debug          = {}
@@ -338,9 +360,9 @@ def _load_metadata_core(all_books_tuple):
         if "ローマ字ファイル名" not in meta.columns:
             meta.rename(columns={meta.columns[0]: "ローマ字ファイル名"}, inplace=True)
 
-        s_rom  = meta["ローマ字ファイル名"].astype(str).str.lower().str.replace(" ", "").str.replace("　", "")
-        s_ta   = (meta.get("日本語書籍名", "") + "_" + meta.get("著者名", "")).astype(str).str.lower().str.replace(" ", "").str.replace("　", "")
-        s_t    = meta.get("日本語書籍名", "").astype(str).str.lower().str.replace(" ", "").str.replace("　", "")
+        s_rom = meta["ローマ字ファイル名"].astype(str).str.lower().str.replace(" ", "").str.replace("　", "")
+        s_ta  = (meta.get("日本語書籍名", "") + "_" + meta.get("著者名", "")).astype(str).str.lower().str.replace(" ", "").str.replace("　", "")
+        s_t   = meta.get("日本語書籍名", "").astype(str).str.lower().str.replace(" ", "").str.replace("　", "")
 
         rows = []
         for key in all_books_list:
@@ -452,7 +474,7 @@ def pg_divider():
 # 9. 各ステップ レンダリング
 # ============================================================
 
-# ---- Step 1: 同意 + 基本情報 ----
+# ---- Step 1 ----
 def render_step1():
     pg_header("Step 1 / 5", "実験への参加",
               "基本情報をご入力のうえ、実験への参加に同意してください。")
@@ -465,7 +487,6 @@ def render_step1():
     </div>""", unsafe_allow_html=True)
 
     consent = st.checkbox("上記の内容を理解し、実験への参加に同意する")
-
     pg_divider()
 
     col1, col2 = st.columns(2)
@@ -498,7 +519,7 @@ def render_step1():
                 st.rerun()
 
 
-# ---- Step 2: 既読作品の選択 ----
+# ---- Step 2 ----
 def render_step2():
     pg_header("Step 2 / 5", "既読作品の選択",
               "内容を知っている作品にチェックを入れてください。📖 でタイトル・あらすじを確認できます。")
@@ -513,8 +534,8 @@ def render_step2():
                                 "発表年が新しい順", "発表年が古い順"],
                                label_visibility="collapsed")
     with col_g:
-        genres_list   = ["すべて"] + [g for g in BOOK_META_DF["ジャンル"].unique() if g != "不明"]
-        genre_filter  = st.selectbox("ジャンル", genres_list, label_visibility="collapsed")
+        genres_list  = ["すべて"] + [g for g in BOOK_META_DF["ジャンル"].unique() if g != "不明"]
+        genre_filter = st.selectbox("ジャンル", genres_list, label_visibility="collapsed")
 
     df = BOOK_META_DF.copy()
     if q:
@@ -533,7 +554,6 @@ def render_step2():
     sc, sa = _sort[sort_by]
     df = df.sort_values(by=sc, ascending=sa)
     records = df.to_dict("records")
-
     st.caption(f"{len(records)} 件表示")
 
     for i in range(0, len(records), 3):
@@ -569,21 +589,18 @@ def render_step2():
 
     pg_divider()
 
-    # 管理者のみ: デバッグパネル
     if st.session_state.is_admin:
         with st.expander("システム診断", expanded=False):
             st.json({
-                "読込ファイル": st.session_state.get("debug_target_file", "不明"),
-                "結合成功数":   f"{st.session_state.get('debug_match_count', 0)} / {len(ALL_BOOKS)}",
-                "sys_keys 例": st.session_state.get("debug_sys_keys", []),
+                "読込ファイル":  st.session_state.get("debug_target_file", "不明"),
+                "結合成功数":    f"{st.session_state.get('debug_match_count', 0)} / {len(ALL_BOOKS)}",
+                "sys_keys 例":  st.session_state.get("debug_sys_keys", []),
                 "meta_keys 例": st.session_state.get("debug_meta_keys", []),
             })
             if "debug_error" in st.session_state:
                 st.error(st.session_state.debug_error)
 
-    n = len(st.session_state.selected_books)
-    st.caption(f"選択中: {n} 冊")
-
+    st.caption(f"選択中: {len(st.session_state.selected_books)} 冊")
     col_back, col_next = st.columns(2)
     with col_back:
         if st.button("戻る", key="s2_back"):
@@ -591,7 +608,7 @@ def render_step2():
             st.rerun()
     with col_next:
         if st.button("次へ進む", key="s2_next", type="primary"):
-            if n == 0:
+            if len(st.session_state.selected_books) == 0:
                 st.error("最低 1 冊は選択してください。")
             else:
                 q_ = st.session_state.selected_books.copy()
@@ -601,7 +618,7 @@ def render_step2():
                 st.rerun()
 
 
-# ---- Step 3: 事前アンケート ----
+# ---- Step 3 ----
 def render_step3():
     pg_header("Step 3 / 5", "読書体験に関するアンケート",
               "タスク開始前に、以下の 3 問にお答えください。")
@@ -632,7 +649,7 @@ def render_step3():
             st.rerun()
 
 
-# ---- Step 4: マッチングタスク ----
+# ---- Step 4 ----
 def render_step4():
     if st.session_state.current_q_index >= len(st.session_state.task_queue):
         st.session_state.step = 5
@@ -642,13 +659,12 @@ def render_step4():
     total = len(st.session_state.task_queue)
     pct   = idx / total * 100
 
-    # プログレスバー
     st.markdown(f"""
     <div class="pg-progress-track">
       <div class="pg-progress-fill" style="width:{pct:.1f}%"></div>
     </div>""", unsafe_allow_html=True)
 
-    target_book = st.session_state.task_queue[idx]
+    target_book  = st.session_state.task_queue[idx]
     display_name = get_display_name(target_book)
 
     st.markdown(f'<p class="pg-task-q">{idx + 1} / {total} — 音の紋様を選んでください</p>',
@@ -674,10 +690,10 @@ def render_step4():
             if img:
                 st.image(Image.open(img), use_container_width=True)
             else:
-                st.markdown('<div style="height:160px;background:#F2F2F7;'
-                            'border-radius:12px;display:flex;align-items:center;'
-                            'justify-content:center;color:#8E8E93;font-size:12px">'
-                            '画像なし</div>', unsafe_allow_html=True)
+                st.markdown('<div style="height:160px;background:#F2F2F7;border-radius:12px;'
+                            'display:flex;align-items:center;justify-content:center;'
+                            'color:#8E8E93;font-size:12px">画像なし</div>',
+                            unsafe_allow_html=True)
 
     pg_divider()
     answer = st.radio("選択：", labels, horizontal=True,
@@ -698,10 +714,9 @@ def render_step4():
             st.rerun()
 
 
-# ---- Step 5: 結果 ----
+# ---- Step 5 ----
 def render_step5():
     st.balloons()
-
     total    = len(st.session_state.results)
     correct  = sum(1 for r in st.session_state.results if r["正誤"] == "正解")
     accuracy = (correct / total * 100) if total else 0
@@ -759,7 +774,6 @@ def render_step5():
         except Exception as e:
             st.error(f"認証エラー: {e}")
 
-    # QR + URL
     pg_divider()
     qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=160x160&data={urllib.parse.quote(DEPLOY_URL)}"
     st.markdown(f"""
@@ -779,7 +793,7 @@ def _show_recovery(rows):
                        mime="text/csv", type="primary")
 
 
-# ---- シミュレーター (管理者用) ----
+# ---- シミュレーター ----
 def render_simulator():
     pg_header("管理者", "Phonoglyph シミュレーター",
               "音素パラメータをリアルタイムで変化させて図形を確認できます。")
@@ -793,7 +807,7 @@ def render_simulator():
         obs = st.slider("阻害音 OBS — トゲ",        0.0, 50.0, BASELINE["obs"])
         son = st.slider("共鳴音 SON — 丸み",        0.0, 50.0, BASELINE["son"])
         pg_divider()
-        st.caption("有声音 VD — 線の太さ (交絡変数排除のため固定)")
+        st.caption("有声音 VD — 線の太さ（交絡変数排除のため固定）")
         vd  = st.slider("VD", 0.0, 20.0, BASELINE["vd"], disabled=True,
                         label_visibility="collapsed")
 
@@ -818,7 +832,6 @@ def main():
     if mode == "admin":
         st.session_state.is_admin = True
 
-    # 管理者サイドバー
     if st.session_state.is_admin:
         st.sidebar.title("管理者モード")
         selected = st.sidebar.radio(
@@ -835,7 +848,6 @@ def main():
         st.sidebar.caption(f"読込: {st.session_state.get('debug_target_file', '—')}")
         st.sidebar.caption(f"結合: {st.session_state.get('debug_match_count', 0)} / {len(ALL_BOOKS)} 件")
 
-    # ルーティング
     if st.session_state.admin_mode == "実験タスク (被験者用)":
         renderers = {1: render_step1, 2: render_step2, 3: render_step3,
                      4: render_step4, 5: render_step5}
