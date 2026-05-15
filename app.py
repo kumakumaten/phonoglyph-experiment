@@ -10,13 +10,13 @@ from google.oauth2.service_account import Credentials
 import phonoglyph_math
 
 st.set_page_config(page_title="Phonoglyph", page_icon="🌒",
-                   layout="centered", initial_sidebar_state="auto")
+                   layout="centered", initial_sidebar_state="collapsed")
 
 CSS = """
 <style>
 *,*::before,*::after{-webkit-font-smoothing:antialiased;box-sizing:border-box;}
 html,body,.stApp{font-family:-apple-system,"Helvetica Neue","Hiragino Sans",Arial,sans-serif;background:#F2F2F7;color:#1C1C1E;}
-.block-container{padding:48px 28px 80px;max-width:780px;}
+.block-container{padding:40px 28px 80px;max-width:780px;}
 .stApp p,.stApp li{color:#1C1C1E;}
 [data-testid="stWidgetLabel"] p,[data-testid="stWidgetLabel"] span,
 .stTextInput label,.stNumberInput label,.stSelectbox label,
@@ -24,21 +24,30 @@ html,body,.stApp{font-family:-apple-system,"Helvetica Neue","Hiragino Sans",Aria
 {color:#1C1C1E!important;font-size:13px;font-weight:500;}
 [data-testid="stCaptionContainer"] p{color:#8E8E93!important;}
 section[data-testid="stSidebar"]{background:#1C1C1E;}
-section[data-testid="stSidebar"] p,
-section[data-testid="stSidebar"] span,
+section[data-testid="stSidebar"] p,section[data-testid="stSidebar"] span,
 section[data-testid="stSidebar"] label,
-section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p
-{color:#EBEBF5!important;}
+section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p{color:#EBEBF5!important;}
 section[data-testid="stSidebar"] .stSlider>div>div>div{background:#007AFF!important;}
 .pg-eyebrow{font-size:12px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:#007AFF;margin-bottom:6px;}
 .pg-title{font-size:28px;font-weight:700;letter-spacing:-0.5px;color:#1C1C1E;margin:0 0 6px;line-height:1.2;}
 .pg-subtitle{font-size:15px;color:#8E8E93;margin:0 0 32px;line-height:1.5;}
-.pg-notice{background:rgba(0,122,255,.07);border-radius:12px;padding:14px 18px;font-size:14px;color:#3A3A3C!important;line-height:1.55;margin-bottom:28px;}
+.pg-notice{background:rgba(0,122,255,.07);border-radius:12px;padding:14px 18px;font-size:14px;color:#3A3A3C!important;line-height:1.55;margin-bottom:20px;}
 .pg-notice strong{color:#007AFF!important;}
 .pg-divider{height:1px;background:#E5E5EA;margin:24px 0;border:none;}
-.stButton>button{border:none;border-radius:22px;font-size:15px;font-weight:600;padding:10px 28px;width:100%;transition:opacity .15s ease,transform .12s ease;}
-.stButton>button[kind="primary"],.stButton>button[kind="primary"]:hover,.stButton>button[kind="primary"]:focus,
-.stButton>button[kind="primary"] *,.stButton>button[kind="primary"] p,.stButton>button[kind="primary"] span
+
+/* インフォームドコンセントカード */
+.pg-consent-card{background:#FFFFFF;border-radius:16px;padding:24px 28px;margin-bottom:20px;
+ box-shadow:0 1px 3px rgba(0,0,0,.07),0 4px 12px rgba(0,0,0,.04);}
+.pg-consent-section{margin-bottom:18px;}
+.pg-consent-title{font-size:11px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;
+ color:#007AFF;margin:0 0 6px;}
+.pg-consent-body{font-size:14px;color:#3A3A3C;line-height:1.65;margin:0;}
+.pg-consent-item{font-size:14px;color:#3A3A3C;line-height:1.65;padding-left:1em;margin:2px 0;}
+.pg-consent-item::before{content:"·";margin-right:6px;color:#8E8E93;}
+
+.stButton>button{border:none;border-radius:22px;font-size:15px;font-weight:600;padding:10px 28px;width:100%;transition:opacity .15s,transform .12s;}
+.stButton>button[kind="primary"],.stButton>button[kind="primary"]:hover,
+.stButton>button[kind="primary"]:focus,.stButton>button[kind="primary"] *
 {background:#007AFF!important;color:#FFFFFF!important;}
 .stButton>button[kind="primary"]:hover{opacity:.87;transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,122,255,.32);}
 .stButton>button[kind="secondary"],.stButton>button:not([kind]),
@@ -49,7 +58,6 @@ section[data-testid="stSidebar"] .stSlider>div>div>div{background:#007AFF!import
 .stTextInput>div>div>input::placeholder{color:#C7C7CC!important;opacity:1;}
 .stTextInput>div>div>input:focus{border-color:#007AFF!important;box-shadow:0 0 0 3px rgba(0,122,255,.12)!important;}
 .stNumberInput>div,.stNumberInput div[data-baseweb="input"],.stNumberInput div[data-baseweb="base-input"]{background:#FFFFFF!important;border:1.5px solid #E5E5EA!important;border-radius:10px!important;}
-.stNumberInput div[data-baseweb="input"]:focus-within{border-color:#007AFF!important;box-shadow:0 0 0 3px rgba(0,122,255,.12)!important;}
 .stNumberInput input{background:#FFFFFF!important;color:#1C1C1E!important;font-size:15px!important;}
 .stNumberInput button{background:transparent!important;color:#3A3A3C!important;border:none!important;}
 .stNumberInput button svg{fill:#3A3A3C!important;}
@@ -71,6 +79,8 @@ ul[data-baseweb="menu"] li[aria-selected="true"]{background:rgba(0,122,255,0.08)
 .stCheckbox [role="checkbox"],[data-testid="stCheckbox"] [role="checkbox"]{background:#FFFFFF!important;border:1.5px solid #C7C7CC!important;border-radius:4px!important;}
 .stCheckbox [role="checkbox"][aria-checked="true"],[data-testid="stCheckbox"] [role="checkbox"][aria-checked="true"]{background:#007AFF!important;border-color:#007AFF!important;}
 .stCheckbox label p,.stCheckbox label span{color:#1C1C1E!important;font-size:14px!important;}
+.stCheckbox>label{border-radius:8px;padding:5px 6px;transition:background .15s;cursor:pointer;}
+.stCheckbox>label:hover{background:rgba(0,122,255,0.06)!important;}
 .stSlider>div>div>div{background:#007AFF!important;}
 .stSlider [data-testid="stTickBarMin"],.stSlider [data-testid="stTickBarMax"],
 .stSlider [data-testid="stSliderTickBarMin"],.stSlider [data-testid="stSliderTickBarMax"],
@@ -83,15 +93,14 @@ div[role="dialog"],div[role="dialog"]>div,div[role="tooltip"],
  box-shadow:0 12px 40px rgba(0,0,0,0.10),0 2px 8px rgba(0,0,0,0.06)!important;}
 [data-testid="stPopoverBody"] *,div[role="dialog"] p,div[role="dialog"] span,
 div[role="dialog"] div,div[role="dialog"] strong{color:#1C1C1E!important;background-color:transparent;}
-.stPopover button,[data-testid="stPopover"] button{background:transparent!important;border:none!important;border-radius:8px!important;padding:2px 6px!important;font-size:18px!important;color:#8E8E93!important;line-height:1;vertical-align:middle!important;}
+.stPopover button,[data-testid="stPopover"] button{background:transparent!important;border:none!important;font-size:18px!important;color:#8E8E93!important;line-height:1;}
 [data-testid="stExpander"]{border:1px solid #E5E5EA!important;border-radius:12px!important;background:#FFFFFF!important;overflow:hidden;}
 [data-testid="stExpander"] summary{background:#FFFFFF!important;padding:12px 16px!important;}
 [data-testid="stExpander"] summary p,[data-testid="stExpander"] summary span,
 [data-testid="stExpanderToggleIcon"]{color:#1C1C1E!important;}
-[data-testid="stExpander"] summary:hover{background:#F9F9FB!important;}
 [data-testid="stExpander"]>div:last-child{background:#FFFFFF!important;padding:4px 16px 16px!important;}
 .pg-progress-track{height:3px;background:#E5E5EA;border-radius:100px;margin-bottom:40px;overflow:hidden;}
-.pg-progress-fill{height:3px;background:#007AFF;border-radius:100px;transition:width .4s ease;}
+.pg-progress-fill{height:3px;background:#007AFF;border-radius:100px;transition:width .4s;}
 .pg-task-q{font-size:15px;color:#8E8E93;text-align:center;margin-bottom:4px;}
 .pg-task-book{font-size:22px;font-weight:700;color:#007AFF;text-align:center;letter-spacing:-.3px;margin-bottom:28px;}
 .pg-option-badge{display:inline-block;background:#F2F2F7;color:#3A3A3C;font-size:11px;font-weight:700;letter-spacing:.8px;padding:2px 9px;border-radius:100px;margin-bottom:8px;}
@@ -101,6 +110,13 @@ div[role="dialog"] div,div[role="dialog"] strong{color:#1C1C1E!important;backgro
 .pg-result-caption{font-size:15px;color:#8E8E93!important;margin-top:8px;}
 .pg-qr-wrap{text-align:center;padding:20px 0;}
 .pg-qr-caption{font-size:12px;color:#8E8E93;margin-top:10px;font-family:"Menlo","SF Mono",monospace;}
+.stSuccess>div{border-radius:10px!important;border:none!important;background:rgba(48,209,88,0.1)!important;}
+.stSuccess p{color:#1C7A3A!important;font-weight:600!important;font-size:14px!important;}
+@media(max-width:600px){
+    .block-container{padding:24px 12px 60px!important;}
+    div[data-testid="stHorizontalBlock"]{flex-wrap:wrap!important;}
+    div[data-testid="column"]{flex:1 1 260px!important;min-width:0!important;}
+}
 #MainMenu,footer,header,.stDeployButton{visibility:hidden;}
 </style>
 """
@@ -212,10 +228,80 @@ def hd(ey,ti,su=""):
 
 def hr(): st.markdown('<hr class="pg-divider">',unsafe_allow_html=True)
 
+# ======= ページ上部の常設ナビバー =======
+def render_topbar():
+    """シミュレーターへのワンクリックアクセスバー（全ページ共通）"""
+    col_l, col_r = st.columns([7, 3])
+    with col_r:
+        if st.session_state.admin_mode == "シミュレーター (デモ用)":
+            if st.button("← 実験タスクに戻る", key="topbar_exp"):
+                st.session_state.admin_mode = "実験タスク (被験者用)"
+                st.rerun()
+        else:
+            if st.button("⚙ シミュレーター", key="topbar_sim"):
+                st.session_state.is_admin = True
+                st.session_state.admin_mode = "シミュレーター (デモ用)"
+                st.rerun()
+    st.markdown('<div style="margin-top:-8px"></div>', unsafe_allow_html=True)
+
+# ======= STEP 1（インフォームドコンセント強化） =======
 def render_step1():
-    hd("Step 1 / 5","実験への参加","基本情報をご入力のうえ、実験への参加に同意してください。")
-    st.markdown('<div class="pg-notice"><strong>実験協力のお願い</strong><br>本実験は「音象徴と幾何学図形の認知」に関する学術調査です。取得したデータは匿名化され、研究目的にのみ使用されます。</div>',unsafe_allow_html=True)
-    consent=st.checkbox("上記の内容を理解し、実験への参加に同意する"); hr()
+    hd("Step 1 / 5","実験参加への同意","以下の説明をよくお読みのうえ、同意いただける場合は基本情報をご入力ください。")
+
+    # インフォームドコンセント本文
+    st.markdown("""
+<div class="pg-consent-card">
+
+<div class="pg-consent-section">
+  <p class="pg-consent-title">研究の概要</p>
+  <p class="pg-consent-body">
+    本研究は東京電機大学 インタラクティブアート&amp;デザイン研究室（山本研）が実施する学術調査です。<br>
+    <strong style="color:#1C1C1E">目的：</strong>文章の「音の響き（音素）」から生成した抽象図形が、書籍の雰囲気を直感的に伝える指標として機能するかを検証します。
+  </p>
+</div>
+
+<div class="pg-consent-section">
+  <p class="pg-consent-title">参加内容と所要時間</p>
+  <p class="pg-consent-item">読書体験に関する事前アンケート（1〜2分）</p>
+  <p class="pg-consent-item">既読の書籍に対応する抽象図形を5択から選ぶタスク（選択作品数 × 約20秒）</p>
+  <p class="pg-consent-item">合計所要時間の目安：5〜15分程度</p>
+</div>
+
+<div class="pg-consent-section">
+  <p class="pg-consent-title">取得するデータと利用目的</p>
+  <p class="pg-consent-item">基本属性（年齢・性別・専攻・読書頻度など）</p>
+  <p class="pg-consent-item">各タスクへの回答（どの図形を選んだか）</p>
+  <p class="pg-consent-item">これらのデータは研究目的にのみ使用し、学術論文・学会発表での報告に用いることがあります。</p>
+</div>
+
+<div class="pg-consent-section">
+  <p class="pg-consent-title">個人情報の保護</p>
+  <p class="pg-consent-item">入力された氏名は実験中の管理用に使用します。</p>
+  <p class="pg-consent-item">データ保存時に氏名はハッシュ化（不可逆変換）され、氏名そのものが保存・公開されることはありません。</p>
+  <p class="pg-consent-item">収集データは暗号化された安全な環境で管理され、研究終了後に適切に廃棄されます。</p>
+</div>
+
+<div class="pg-consent-section">
+  <p class="pg-consent-title">参加の任意性</p>
+  <p class="pg-consent-item">本実験への参加は完全に任意です。参加しない、または途中でやめても何ら不利益は生じません。</p>
+  <p class="pg-consent-item">タスク中にいつでも中断いただけます。</p>
+</div>
+
+<div class="pg-consent-section" style="margin-bottom:0">
+  <p class="pg-consent-title">問い合わせ先</p>
+  <p class="pg-consent-body" style="font-size:13px;color:#8E8E93">
+    東京電機大学 システムデザイン工学部 デザイン工学科<br>
+    インタラクティブアート&amp;デザイン研究室（山本研）<br>
+    担当：熊谷 天
+  </p>
+</div>
+
+</div>
+""", unsafe_allow_html=True)
+
+    consent = st.checkbox("上記の内容を理解し、実験への参加に同意します")
+    hr()
+
     c1,c2=st.columns(2)
     with c1:
         name=st.text_input("氏名（漢字またはカタカナ）",placeholder="例：山田 太郎")
@@ -223,22 +309,30 @@ def render_step1():
     with c2:
         gender=st.radio("性別",["男性","女性","その他"],horizontal=True)
         major=st.radio("専攻分野",["理数系","文系","芸術・デザイン系","その他"],horizontal=True)
-    rf=st.selectbox("読書頻度",["全く読まない","月に1〜2冊","月に3〜5冊","月に6冊以上"])
+    rf=st.selectbox("読書頻度",["月に1〜2冊","月に3〜5冊","月に6冊以上","全く読まない"],
+                    index=None, placeholder="選択してください")
     gn=st.multiselect("よく読むジャンル",["純文学","大衆文学","SF","ラノベ","実用書","その他"])
     syn=st.slider("言葉の響きに色や形を感じるか（1: 全く感じない — 5: 強く感じる）",1,5,3)
-    hr(); _,cb=st.columns([1,1])
+    hr()
+    _,cb=st.columns([1,1])
     with cb:
         if st.button("次へ進む",key="s1_next",type="primary"):
-            if not consent or not name.strip(): st.error("同意チェックと氏名入力は必須です。")
+            if not consent:
+                st.error("実験への参加に同意してください。")
+            elif not name.strip():
+                st.error("氏名を入力してください。")
+            elif rf is None:
+                st.error("読書頻度を選択してください。")
             else:
                 st.session_state.user_data={"name":name.strip(),"age":age,"gender":gender,"major":major,
                     "reading_freq":rf,"genres":", ".join(gn),"synesthesia_score":syn}
                 st.session_state.step=2; st.rerun()
 
+# ======= STEP 2 =======
 def render_step2():
     hd("Step 2 / 5","既読作品の選択","内容を知っている作品にチェックを入れてください。📖 でタイトル・あらすじを確認できます。")
     cs,co,cg=st.columns([2,1.5,1.5])
-    with cs: q=st.text_input("検索",placeholder="例：人間失格",label_visibility="collapsed")
+    with cs: q=st.text_input("検索",placeholder="🔍  例：人間失格",label_visibility="collapsed")
     with co:
         sb=st.selectbox("並び替え",["人気・知名度順","五十音順（作品名）","五十音順（著者名）","発表年が新しい順","発表年が古い順"],label_visibility="collapsed")
     with cg:
@@ -267,27 +361,46 @@ def render_step2():
                         if rn in st.session_state.selected_books: st.session_state.selected_books.remove(rn)
                 with c2:
                     with st.popover("\U0001f4d6",key=f"pop_{rn}"):
-                        st.markdown(f"**{jn}**")
                         if au!="不明":
-                            st.caption(f"{au}  ·  {row['ジャンル']}  ·  {int(row['発表年'])}年"); hr(); st.write(row["あらすじ"])
-                        else: st.caption("詳細情報なし")
+                            g=row["ジャンル"]; yr=int(row["発表年"]); syn=row["あらすじ"]
+                            st.markdown(
+                                f'<div style="padding:14px 4px 10px">'
+                                f'<p style="font-size:10px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:#007AFF;margin:0 0 8px">{g} &nbsp;·&nbsp; {yr}年</p>'
+                                f'<p style="font-size:19px;font-weight:700;color:#1C1C1E;letter-spacing:-.3px;line-height:1.25;margin:0 0 4px">{jn}</p>'
+                                f'<p style="font-size:13px;color:#8E8E93;margin:0 0 14px">{au}</p>'
+                                f'<div style="height:1px;background:#F0F0F5;margin-bottom:12px"></div>'
+                                f'<p style="font-size:14px;color:#3A3A3C;line-height:1.7;margin:0">{syn}</p>'
+                                f'</div>',
+                                unsafe_allow_html=True
+                            )
+                        else:
+                            st.markdown(
+                                f'<div style="padding:14px 4px 10px">'
+                                f'<p style="font-size:19px;font-weight:700;color:#1C1C1E;margin:0 0 6px">{jn}</p>'
+                                f'<p style="font-size:13px;color:#C7C7CC;margin:0">詳細情報なし</p>'
+                                f'</div>',
+                                unsafe_allow_html=True
+                            )
     hr()
     if st.session_state.is_admin:
         with st.expander("システム診断",expanded=False):
             st.json({"読込":st.session_state.get("debug_target_file","不明"),
                      "結合":f"{st.session_state.get('debug_match_count',0)}/{len(ALL_BOOKS)}"})
             if "debug_error" in st.session_state: st.error(st.session_state.debug_error)
-    st.caption(f"選択中: {len(st.session_state.selected_books)} 冊")
+    n=len(st.session_state.selected_books)
+    if n>0: st.success(f"✓  {n} 冊を選択中")
+    else: st.caption("作品を選択してください")
     cb2,cn2=st.columns(2)
     with cb2:
         if st.button("戻る",key="s2_back"): st.session_state.step=1; st.rerun()
     with cn2:
         if st.button("次へ進む",key="s2_next",type="primary"):
-            if not st.session_state.selected_books: st.error("最低 1 冊は選択してください。")
+            if n==0: st.error("最低 1 冊は選択してください。")
             else:
                 q_=st.session_state.selected_books.copy(); random.shuffle(q_)
                 st.session_state.task_queue=q_; st.session_state.step=3; st.rerun()
 
+# ======= STEP 3 =======
 def render_step3():
     hd("Step 3 / 5","読書体験に関するアンケート","タスク開始前に、以下の 3 問にお答えください。"); hr()
     q1=st.radio("Q1.  表紙のデザインやイラストに惹かれて本を選んだこと（ジャケ買い）がありますか？",["はい","いいえ"],horizontal=True); hr()
@@ -301,6 +414,7 @@ def render_step3():
             st.session_state.user_data.update({"q1":q1,"q2":q2,"q3":q3})
             st.session_state.step=4; st.rerun()
 
+# ======= STEP 4 =======
 def render_step4():
     if st.session_state.current_q_index>=len(st.session_state.task_queue):
         st.session_state.step=5; st.rerun()
@@ -327,6 +441,7 @@ def render_step4():
             st.session_state.results.append({"出題書籍":tb,"被験者回答":ch,"正誤":"正解" if ic else "不正解"})
             st.session_state.current_q_index+=1; st.session_state.current_options=[]; st.rerun()
 
+# ======= STEP 5 =======
 def render_step5():
     st.balloons()
     tot=len(st.session_state.results); cor=sum(1 for r in st.session_state.results if r["正誤"]=="正解")
@@ -370,6 +485,7 @@ def render_step5():
             reset_session(); st.rerun()
     with cr5: st.caption("新しいセッションが始まります。\n既読作品を再選択して再挑戦できます。")
 
+# ======= SIMULATOR =======
 def render_simulator():
     hd("管理者","Phonoglyph シミュレーター","音素パラメータをリアルタイムで変化させて図形を確認できます。")
     BL=phonoglyph_math.BASELINE; cp,cv=st.columns([1,1.5])
@@ -378,35 +494,47 @@ def render_simulator():
         obs=st.slider("阻害音 OBS",0.0,50.0,BL["obs"]); son=st.slider("共鳴音 SON",0.0,50.0,BL["son"])
         hr(); st.caption("有声音 VD（交絡変数排除のため固定）")
         vd=st.slider("VD",0.0,20.0,BL["vd"],disabled=True,label_visibility="collapsed")
+        hr()
+        st.caption("増幅係数 β")
+        st.session_state.amp_power=st.slider("β",0.1,2.0,st.session_state.amp_power,0.1,label_visibility="collapsed")
     with cv:
         x,y,lw=phonoglyph_math.calculate_phonoglyph_coordinates(vf,vb,obs,son,vd,amp_power=st.session_state.amp_power)
         fig,ax=plt.subplots(figsize=(5,5),facecolor="white")
         ax.plot(x,y,color="black",linewidth=lw,solid_joinstyle="round")
         ax.fill(x,y,color="black",alpha=0.05); ax.set_aspect("equal"); ax.axis("off"); st.pyplot(fig)
 
+# ======= MAIN =======
 def main():
     mode=st.query_params.get("mode")
     if isinstance(mode,list): mode=mode[0] if mode else None
     if mode=="admin": st.session_state.is_admin=True
+    if mode=="sim":
+        st.session_state.is_admin=True
+        st.session_state.admin_mode="シミュレーター (デモ用)"
+
+    # サイドバー（管理者コントロール）
     with st.sidebar:
+        st.markdown("### 🌒 Phonoglyph")
+        hr()
         if not st.session_state.is_admin:
-            st.markdown("### 🌒 Phonoglyph")
-            st.caption("開発者・研究者向けのアクセスポイントです。")
+            st.caption("管理者・研究者向け")
             if st.button("管理者モードに切り替え",key="admin_on"):
                 st.session_state.is_admin=True; st.rerun()
         else:
-            st.title("管理者モード")
-            sel=st.radio("機能",["実験タスク (被験者用)","シミュレーター (デモ用)"],
+            st.caption("管理者モード 有効")
+            sel=st.radio("表示モード",["実験タスク","シミュレーター"],
                          index=0 if st.session_state.admin_mode=="実験タスク (被験者用)" else 1)
-            st.session_state.admin_mode=sel
-            st.markdown("---"); st.caption("アルゴリズム検証")
-            st.session_state.amp_power=st.sidebar.slider("非線形増幅係数 β",0.1,2.0,st.session_state.amp_power,0.1)
-            st.markdown("---")
+            st.session_state.admin_mode="実験タスク (被験者用)" if sel=="実験タスク" else "シミュレーター (デモ用)"
+            hr()
             st.caption(f"読込: {st.session_state.get('debug_target_file','—')}")
             st.caption(f"結合: {st.session_state.get('debug_match_count',0)}/{len(ALL_BOOKS)} 件")
             if st.button("管理者モードを解除",key="admin_off"):
                 st.session_state.is_admin=False
                 st.session_state.admin_mode="実験タスク (被験者用)"; st.rerun()
+
+    # 常設トップバー（シミュレーター↔実験切り替え）
+    render_topbar()
+
     if st.session_state.admin_mode=="実験タスク (被験者用)":
         {1:render_step1,2:render_step2,3:render_step3,4:render_step4,5:render_step5}.get(st.session_state.step,render_step1)()
     else:
