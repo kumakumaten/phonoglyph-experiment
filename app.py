@@ -213,10 +213,45 @@ for k,v in _def.items():
     if k not in st.session_state: st.session_state[k]=v
 
 def get_dummies(t):
+    """
+    6択・3グループ均等配置のダミー選定（教授指摘対応）
+    鋭い(spiky)・中間(medium)・丸い(round) を各2枚 = 合計6択
+    正解が属するグループからのダミーを1枚にして残り2グループから各2枚
+    → 正解グループ計2枚・他グループ各2枚 = 均等配置
+    """
     pool=[b for b in ALL_BOOKS if b not in st.session_state.selected_books and b!=t and b in DB_DATA]
-    if len(pool)<4: return random.sample(pool,len(pool))
-    ps=sorted(pool,key=lambda b:DB_DATA[b][7]); lay=max(2,len(ps)//5)
-    return random.sample(ps[:lay],2)+random.sample(ps[-lay:],2)
+    if len(pool)<5: return random.sample(pool,len(pool))
+
+    # 円形度で昇順ソート（低=鋭利、高=丸い）
+    ps=sorted(pool,key=lambda b:DB_DATA[b][7])
+    n=len(ps); sz=max(2,n//3)
+    spiky_pool  = ps[:sz]
+    round_pool  = ps[-sz:]
+    medium_pool = ps[sz:-sz]
+    if len(medium_pool)<2: medium_pool=ps[sz:sz+max(2,n//5)]
+
+    # 正解の円形度でグループ判定（pool内の分布に対する相対位置）
+    all_circs=sorted([DB_DATA[b][7] for b in ps])
+    lo_thr=all_circs[n//3]
+    hi_thr=all_circs[min(2*n//3, n-1)]
+    tc=DB_DATA[t][7]
+
+    if tc<=lo_thr:   s,m,r=1,2,2  # 正解=spiky  → spiky1+medium2+round2
+    elif tc>=hi_thr: s,m,r=2,2,1  # 正解=round  → spiky2+medium2+round1
+    else:            s,m,r=2,1,2  # 正解=medium → spiky2+medium1+round2
+
+    dummies=[]
+    dummies+=random.sample(spiky_pool,  min(s,len(spiky_pool)))
+    dummies+=random.sample(medium_pool, min(m,len(medium_pool)))
+    dummies+=random.sample(round_pool,  min(r,len(round_pool)))
+
+    # プールが小さい場合の補完
+    while len(dummies)<5:
+        rem=[b for b in pool if b not in dummies]
+        if not rem: break
+        dummies.append(random.choice(rem))
+
+    return dummies[:5]
 
 def reset_session():
     for k in ["step","user_data","selected_books","task_queue","current_q_index",
@@ -276,7 +311,7 @@ def render_step1():
 <div class="pg-consent-section">
   <p class="pg-consent-title">参加内容と所要時間</p>
   <p class="pg-consent-item">読書体験に関する事前アンケート（1〜2分）</p>
-  <p class="pg-consent-item">既読の書籍に対応する抽象図形を5択から選ぶタスク（選択作品数 × 約20秒）</p>
+  <p class="pg-consent-item">既読の書籍に対応する抽象図形を6択から選ぶタスク（選択作品数 × 約20秒）</p>
   <p class="pg-consent-item">合計所要時間の目安：5〜15分程度</p>
 </div>
 <div class="pg-consent-section">
@@ -408,15 +443,20 @@ def render_step4():
     if not st.session_state.current_options:
         opts=get_dummies(tb); opts.append(tb); random.shuffle(opts)
         st.session_state.current_options=opts
-    opts=st.session_state.current_options; lbs=["A","B","C","D","E"]; cols=st.columns(5)
-    for i,bk in enumerate(opts):
-        with cols[i]:
-            st.markdown(f'<div style="text-align:center"><span class="pg-option-badge">{lbs[i]}</span></div>',unsafe_allow_html=True)
-            ip=get_image_path(bk)
-            if ip: st.image(Image.open(ip),use_container_width=True)
-            else: st.markdown('<div style="height:160px;background:#F2F2F7;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#8E8E93;font-size:12px">画像なし</div>',unsafe_allow_html=True)
+    opts=st.session_state.current_options; lbs=["A","B","C","D","E","F"]
+    # 3+3 の2段レイアウト（6択均等配置）
+    for row_start in [0,3]:
+        cols=st.columns(3)
+        for j in range(3):
+            idx_opt=row_start+j
+            if idx_opt>=len(opts): break
+            with cols[j]:
+                st.markdown(f'<div style="text-align:center"><span class="pg-option-badge">{lbs[idx_opt]}</span></div>',unsafe_allow_html=True)
+                ip=get_image_path(opts[idx_opt])
+                if ip: st.image(Image.open(ip),use_container_width=True)
+                else: st.markdown('<div style="height:160px;background:#F2F2F7;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#8E8E93;font-size:12px">画像なし</div>',unsafe_allow_html=True)
     hr()
-    ans=st.radio("選択：",lbs,horizontal=True,key=f"q_{idx}",label_visibility="collapsed")
+    ans=st.radio("選択：",lbs[:len(opts)],horizontal=True,key=f"q_{idx}",label_visibility="collapsed")
     _,cb4=st.columns([2,1])
     with cb4:
         if st.button("次へ",key=f"next_{idx}",type="primary"):
