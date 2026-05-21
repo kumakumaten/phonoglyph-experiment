@@ -14,7 +14,7 @@ st.set_page_config(page_title="Phonoglyph", page_icon="🌒",
                    layout="centered", initial_sidebar_state="collapsed")
 
 # ==========================================
-# 1. カスタムCSS (カード型チェックボックス等を追加)
+# 1. カスタムCSS (カード型UI・タスクカードUIの大幅刷新)
 # ==========================================
 CSS = """
 <style>
@@ -45,6 +45,8 @@ section[data-testid="stSidebar"] .stSlider>div>div>div{background:#007AFF!import
 .pg-consent-body{font-size:14px;color:#3A3A3C;line-height:1.65;margin:0;}
 .pg-consent-item{font-size:14px;color:#3A3A3C;line-height:1.65;padding-left:1em;margin:2px 0;}
 .pg-consent-item::before{content:"·";margin-right:6px;color:#8E8E93;}
+
+/* ボタン共通のモダンデザイン */
 .stButton>button{border:none;border-radius:22px;font-size:15px;font-weight:600;padding:10px 28px;width:100%;transition:opacity .15s,transform .12s;}
 .stButton>button[kind="primary"],.stButton>button[kind="primary"]:hover,
 .stButton>button[kind="primary"]:focus,.stButton>button[kind="primary"] *
@@ -53,7 +55,55 @@ section[data-testid="stSidebar"] .stSlider>div>div>div{background:#007AFF!import
 .stButton>button[kind="secondary"],.stButton>button:not([kind]),
 .stButton>button[kind="secondary"] *,.stButton>button:not([kind]) *
 {background:#E8E8ED!important;color:#1C1C1E!important;}
+.stButton>button:not([kind]):hover{background:#007AFF!important;color:#FFFFFF!important;}
 .stButton>button:active{transform:scale(.98);}
+
+/* =========================================
+   Step 2: カード型チェックボックス UI
+   ========================================= */
+div[data-testid="stCheckbox"] {
+    background: #FFFFFF;
+    border: 2px solid #E5E5EA;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    transition: all 0.2s ease-in-out;
+    display: flex;
+    align-items: center;
+}
+div[data-testid="stCheckbox"]:hover {
+    border-color: #30D158;
+    box-shadow: 0 4px 14px rgba(48, 209, 88, 0.15);
+    transform: translateY(-1px);
+}
+div[data-testid="stCheckbox"]:has(input:checked) {
+    border-color: #30D158;
+    background: rgba(48, 209, 88, 0.05);
+}
+div[data-testid="stCheckbox"] label { cursor: pointer; width: 100%; }
+.stCheckbox [role="checkbox"],[data-testid="stCheckbox"] [role="checkbox"]{background:#FFFFFF!important;border:1.5px solid #C7C7CC!important;border-radius:4px!important;}
+.stCheckbox [role="checkbox"][aria-checked="true"],[data-testid="stCheckbox"] [role="checkbox"][aria-checked="true"]{background:#30D158!important;border-color:#30D158!important;}
+.stCheckbox label p,.stCheckbox label span{color:#1C1C1E!important;font-size:14px!important;font-weight:600;}
+
+/* =========================================
+   Step 4: 1タップ即決タスクカード UI
+   ========================================= */
+.pg-task-card {
+    background: #FFFFFF;
+    border: 2px solid #E5E5EA;
+    border-radius: 16px;
+    padding: 16px;
+    margin-bottom: 20px;
+    text-align: center;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    transition: all 0.2s ease-in-out;
+}
+.pg-task-card:hover {
+    border-color: #007AFF;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0,122,255,0.08);
+}
+
 .stTextInput>div>div>input{border-radius:10px!important;border:1.5px solid #E5E5EA!important;background:#FFFFFF!important;font-size:15px!important;padding:10px 14px!important;color:#1C1C1E!important;}
 .stTextInput>div>div>input::placeholder{color:#C7C7CC!important;opacity:1;}
 .stTextInput>div>div>input:focus{border-color:#007AFF!important;box-shadow:0 0 0 3px rgba(0,122,255,.12)!important;}
@@ -76,38 +126,6 @@ ul[data-baseweb="menu"] li[aria-selected="true"]{background:rgba(0,122,255,0.08)
 .stRadio [role="radio"],[data-testid="stRadio"] [role="radio"]{background:#FFFFFF!important;border:1.5px solid #C7C7CC!important;border-radius:50%!important;}
 .stRadio [role="radio"][aria-checked="true"],[data-testid="stRadio"] [role="radio"][aria-checked="true"]{background:#007AFF!important;border-color:#007AFF!important;}
 .stRadio [data-testid="stWidgetLabel"] p,.stRadio label p,.stRadio label span{font-size:15px!important;color:#1C1C1E!important;}
-
-/* =========================================
-   カード型チェックボックス UIの昇華
-   ========================================= */
-div[data-testid="stCheckbox"] {
-    background: #FFFFFF;
-    border: 2px solid #E5E5EA;
-    border-radius: 12px;
-    padding: 14px 16px;
-    margin-bottom: 8px;
-    transition: all 0.2s ease-in-out;
-    display: flex;
-    align-items: center;
-}
-div[data-testid="stCheckbox"]:hover {
-    border-color: #30D158;
-    box-shadow: 0 4px 14px rgba(48, 209, 88, 0.15);
-    transform: translateY(-1px);
-}
-/* 選択時のハイライト (最新ブラウザ用疑似クラス :has) */
-div[data-testid="stCheckbox"]:has(input:checked) {
-    border-color: #30D158;
-    background: rgba(48, 209, 88, 0.05);
-}
-div[data-testid="stCheckbox"] label {
-    cursor: pointer;
-    width: 100%;
-}
-.stCheckbox [role="checkbox"],[data-testid="stCheckbox"] [role="checkbox"]{background:#FFFFFF!important;border:1.5px solid #C7C7CC!important;border-radius:4px!important;}
-.stCheckbox [role="checkbox"][aria-checked="true"],[data-testid="stCheckbox"] [role="checkbox"][aria-checked="true"]{background:#30D158!important;border-color:#30D158!important;}
-.stCheckbox label p,.stCheckbox label span{color:#1C1C1E!important;font-size:14px!important;font-weight:600;}
-
 .stSlider>div>div>div{background:#007AFF!important;}
 .stSlider [data-testid="stTickBarMin"],.stSlider [data-testid="stTickBarMax"],
 .stSlider [data-testid="stSliderTickBarMin"],.stSlider [data-testid="stSliderTickBarMax"],
@@ -131,13 +149,8 @@ div[role="dialog"] div,div[role="dialog"] strong{color:#1C1C1E!important;backgro
 .pg-progress-fill{height:3px;background:#007AFF;border-radius:100px;transition:width .4s;}
 .pg-task-q{font-size:15px;color:#8E8E93;text-align:center;margin-bottom:4px;}
 .pg-task-book{font-size:22px;font-weight:700;color:#007AFF;text-align:center;letter-spacing:-.3px;margin-bottom:28px;}
-.pg-option-badge{display:inline-block;background:#F2F2F7;color:#3A3A3C;font-size:11px;font-weight:700;letter-spacing:.8px;padding:2px 9px;border-radius:100px;margin-bottom:8px;}
-.pg-result-wrap{text-align:center;padding:40px 0 24px;}
-.pg-result-num{font-size:86px;font-weight:700;letter-spacing:-5px;color:#30D158!important;line-height:1;}
-.pg-result-unit{font-size:32px;font-weight:600;color:#30D158!important;letter-spacing:-1px;}
-.pg-result-caption{font-size:15px;color:#8E8E93!important;margin-top:8px;}
+.pg-option-badge{display:inline-block;background:#007AFF;color:#FFFFFF;font-size:12px;font-weight:700;letter-spacing:.8px;padding:3px 12px;border-radius:100px;margin-bottom:12px;}
 .pg-qr-wrap{text-align:center;padding:20px 0;}
-.pg-qr-caption{font-size:12px;color:#8E8E93;margin-top:10px;font-family:"Menlo","SF Mono",monospace;}
 .stSuccess>div{border-radius:10px!important;border:none!important;background:rgba(48,209,88,0.1)!important;}
 .stSuccess p{color:#1C7A3A!important;font-weight:600!important;font-size:14px!important;}
 @media(max-width:600px){
@@ -238,9 +251,6 @@ def get_display_name(roman_name):
     if not row.empty and row.iloc[0]['著者名']!='不明': return f"『{row.iloc[0]['日本語書籍名']}』"
     return f"『{str(roman_name).split('_')[0]}』"
 
-# ==========================================
-# 非同期データ送信ロジック（バックグラウンド処理）
-# ==========================================
 def async_save_to_sheet(row_data):
     try:
         import gspread
@@ -251,13 +261,9 @@ def async_save_to_sheet(row_data):
             cl = gspread.authorize(cr)
             sh = cl.open_by_url(st.secrets["private_gsheets_url"]).sheet1
             for att in range(3):
-                try:
-                    sh.append_row(row_data)
-                    break
-                except:
-                    time.sleep(2**att + random.uniform(0, 1))
-    except Exception as e:
-        print(f"Async save error: {e}")
+                try: sh.append_row(row_data); break
+                except: time.sleep(2**att + random.uniform(0, 1))
+    except Exception as e: print(f"Async save error: {e}")
 
 if 'session_id' not in st.session_state: st.session_state.session_id=str(uuid.uuid4())
 if 'step' not in st.session_state: st.session_state.step=1
@@ -316,17 +322,12 @@ def render_step1():
 """, unsafe_allow_html=True)
     consent=st.checkbox("上記の内容を理解し、実験への参加に同意します"); hr()
     
-    # 氏名入力を廃止し、3列レイアウトでスマートに配置
     c1,c2,c3=st.columns(3)
-    with c1:
-        age=st.number_input("年齢",min_value=15,max_value=100,value=20,step=1)
-    with c2:
-        gender=st.radio("性別",["男性","女性","その他"],horizontal=True)
-    with c3:
-        major=st.radio("専攻分野",["理数系","文系","芸術・デザイン系","その他"],horizontal=True)
+    with c1: age=st.number_input("年齢",min_value=15,max_value=100,value=20,step=1)
+    with c2: gender=st.radio("性別",["男性","女性","その他"],horizontal=True)
+    with c3: major=st.radio("専攻分野",["理数系","文系","芸術・デザイン系","その他"],horizontal=True)
         
-    rf=st.selectbox("読書頻度",["月に1〜2冊","月に3〜5冊","月に6冊以上","全く読まない"],
-                    index=None,placeholder="選択してください")
+    rf=st.selectbox("読書頻度",["月に1〜2冊","月に3〜5冊","月に6冊以上","全く読まない"],index=None,placeholder="選択してください")
     gn=st.multiselect("よく読むジャンル",["純文学","大衆文学","SF","ラノベ","実用書","その他"])
     syn=st.slider("言葉の響きに色や形を感じるか（1: 全く感じない — 5: 強く感じる）",1,5,3)
     hr(); _,cb=st.columns([1,1])
@@ -335,8 +336,7 @@ def render_step1():
             if not consent: st.error("実験への参加に同意してください。")
             elif rf is None: st.error("読書頻度を選択してください。")
             else:
-                st.session_state.user_data={"age":age,"gender":gender,"major":major,
-                    "reading_freq":rf,"genres":", ".join(gn),"synesthesia_score":syn}
+                st.session_state.user_data={"age":age,"gender":gender,"major":major,"reading_freq":rf,"genres":", ".join(gn),"synesthesia_score":syn}
                 st.session_state.step=2; st.rerun()
 
 def render_step2():
@@ -344,7 +344,7 @@ def render_step2():
     st.markdown('<div class="pg-notice">最低1冊以上選択してください。選択した作品の数だけタスクが出題されます。</div>',unsafe_allow_html=True)
     cs,co,cg=st.columns([2,1.5,1.5])
     with cs: sq=st.text_input("🔍 検索",placeholder="作品名・著者名")
-    with co: sb=st.selectbox("並び替え",["人気・知名度順","五十音順 (作品名)","五十音順 (著者名)","発表年が新しい順","発表年が古い順"])
+    with co: sb=st.selectbox("並び替え", ["人気・知名度順","五十音順 (作品名)","五十音順 (著者名)","発表年が新しい順","発表年が古い順"])
     with cg: 
         ug=["すべて"]+[g for g in BOOK_META_DF['ジャンル'].unique() if g!='不明']
         gf=st.selectbox("ジャンル",ug)
@@ -384,8 +384,7 @@ def render_step2():
                             else: st.caption("詳細情報なし")
 
     hr()
-    if st.session_state.selected_books:
-        st.success(f"現在の選択数: {len(st.session_state.selected_books)} 冊")
+    if st.session_state.selected_books: st.success(f"現在の選択数: {len(st.session_state.selected_books)} 冊")
     cbk,cn=st.columns([1,1])
     with cbk:
         if st.button("戻る",key="s2_back"): st.session_state.step=1; st.rerun()
@@ -425,52 +424,55 @@ def render_step4():
         st.session_state.current_options=opts
     opts=st.session_state.current_options; lbs=["A","B","C","D","E","F"]
     
+    # =========================================
+    # 【UIのBU：1タップ即決タスクカードレイアウト】
+    # =========================================
     for row_start in [0,3]:
         cols=st.columns(3)
         for j in range(3):
             idx_opt=row_start+j
             if idx_opt>=len(opts): break
             with cols[j]:
-                st.markdown(f'<div style="text-align:center"><span class="pg-option-badge">{lbs[idx_opt]}</span></div>',unsafe_allow_html=True)
+                # コンテナ全体を一つの美しいカードとして見せるHTMLラッパー
+                st.markdown(f'<div class="pg-task-card">', unsafe_allow_html=True)
+                st.markdown(f'<span class="pg-option-badge">選択肢 {lbs[idx_opt]}</span>',unsafe_allow_html=True)
                 ip=get_image_path(opts[idx_opt])
                 if ip: st.image(Image.open(ip),use_container_width=True)
                 else: st.markdown('<div style="height:160px;background:#F2F2F7;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#8E8E93;font-size:12px">画像なし</div>',unsafe_allow_html=True)
-    hr()
-    ans=st.radio("選択：",lbs[:len(opts)],horizontal=True,key=f"q_{idx}",label_visibility="collapsed")
-    _,cb4=st.columns([2,1])
-    with cb4:
-        if st.button("次へ",key=f"next_{idx}",type="primary"):
-            ch=opts[lbs.index(ans)]; ic=(ch==tb)
-            st.session_state.results.append({"出題書籍":tb,"被験者回答":ch,"正誤":"正解" if ic else "不正解"})
-            
-            # 【戦略1 & 2】随時非同期送信と累積正答率の算出
-            tot_so_far = len(st.session_state.results)
-            cor_so_far = sum(1 for r in st.session_state.results if r["正誤"]=="正解")
-            acc_so_far = (cor_so_far / tot_so_far) * 100 if tot_so_far > 0 else 0
-            
-            u = st.session_state.user_data
-            JST = timezone(timedelta(hours=9), "JST")
-            ts = datetime.now(JST).strftime("%Y/%m/%d %H:%M:%S")
-            # 【戦略3】HashedNameカラムの互換性を守るダミーデータ
-            hn = f"anon_{st.session_state.session_id[-6:]}" 
-            
-            row_data = [
-                ts, st.session_state.session_id, hn, u.get("age", ""), u.get("gender", ""), u.get("major", ""),
-                u.get("reading_freq", ""), u.get("genres", ""), u.get("synesthesia_score", ""),
-                u.get("q1", ""), u.get("q2", ""), u.get("q3", ""),
-                round(acc_so_far, 1), tb, ch, "正解" if ic else "不正解"
-            ]
-            
-            threading.Thread(target=async_save_to_sheet, args=(row_data,), daemon=True).start()
-            
-            st.session_state.current_q_index+=1; st.session_state.current_options=[]; st.rerun()
+                st.markdown('<div style="margin-top:12px;"></div>', unsafe_allow_html=True)
+                
+                # 画像の直下に密着させた幅いっぱいの「即決選択ボタン」
+                # これを1回押すだけで、選択・記録・次への遷移が完了する
+                if st.button(f"この紋様を選択", key=f"btn_{idx}_{idx_opt}"):
+                    ch=opts[idx_opt]; ic=(ch==tb)
+                    st.session_state.results.append({"出題書籍":tb,"被験者回答":ch,"正誤":"正解" if ic else "不正解"})
+                    
+                    # 累積正答率の算出
+                    tot_so_far = len(st.session_state.results)
+                    cor_so_far = sum(1 for r in st.session_state.results if r["正誤"]=="正解")
+                    acc_so_far = (cor_so_far / tot_so_far) * 100 if tot_so_far > 0 else 0
+                    
+                    u = st.session_state.user_data
+                    JST = timezone(timedelta(hours=9), "JST")
+                    ts = datetime.now(JST).strftime("%Y/%m/%d %H:%M:%S")
+                    hn = f"anon_{st.session_state.session_id[-6:]}" 
+                    
+                    row_data = [
+                        ts, st.session_state.session_id, hn, u.get("age", ""), u.get("gender", ""), u.get("major", ""),
+                        u.get("reading_freq", ""), u.get("genres", ""), u.get("synesthesia_score", ""),
+                        u.get("q1", ""), u.get("q2", ""), u.get("q3", ""),
+                        round(acc_so_far, 1), tb, ch, "正解" if ic else "不正解"
+                    ]
+                    
+                    # 非同期バックグラウンド送信スレッドの起動（ラグ完全隠蔽）
+                    threading.Thread(target=async_save_to_sheet, args=(row_data,), daemon=True).start()
+                    
+                    st.session_state.current_q_index+=1; st.session_state.current_options=[]; st.rerun()
+                st.markdown('</div>', unsafe_allow_html=True)
 
 def render_step5():
     st.balloons()
-    
-    # 【戦略4】正答率を廃止し、スマートな謝辞画面へ
     hd("Step 5 / 5", "実験完了", "すべてのタスクが終了しました。ご協力いただき誠にありがとうございました。")
-    
     st.markdown("""
     <div class="pg-notice" style="background:#FFFFFF; border:2px solid #E5E5EA; padding:32px;">
         <h3 style="color:#007AFF; margin-top:0; margin-bottom:16px;">Phonoglyph 研究プロジェクト</h3>
@@ -478,7 +480,6 @@ def render_step5():
         <p style="font-size:15px; line-height:1.7;">皆様からいただいた直感的な評価データは、本研究のアルゴリズムを検証・発展させるための極めて重要な基礎となります。貴重なお時間を割いていただき、本当にありがとうございました。</p>
     </div>
     """, unsafe_allow_html=True)
-    
     hr()
     qru=f"https://api.qrserver.com/v1/create-qr-code/?size=160x160&data={urllib.parse.quote(DEPLOY_URL)}"
     st.markdown(f'<div class="pg-qr-wrap"><img src="{qru}" width="160" style="border-radius:12px"></div>',unsafe_allow_html=True)
@@ -487,8 +488,7 @@ def render_step5():
     hr()
     cl5,cr5=st.columns(2)
     with cl5:
-        if st.button("トップに戻る",key="restart",type="primary"):
-            reset_session(); st.rerun()
+        if st.button("トップに戻る",key="restart",type="primary"): reset_session(); st.rerun()
     with cr5: st.caption("新しいセッションが始まります。\n別の被験者がすぐに実験を開始できます。")
 
 def render_simulator():
@@ -511,35 +511,26 @@ def main():
     mode=st.query_params.get("mode")
     if isinstance(mode,list): mode=mode[0] if mode else None
     if mode=="admin": st.session_state.is_admin=True
-    if mode=="sim":
-        st.session_state.is_admin=True
-        st.session_state.admin_mode="シミュレーター (デモ用)"
+    if mode=="sim": st.session_state.is_admin=True; st.session_state.admin_mode="シミュレーター (デモ用)"
 
     with st.sidebar:
         st.markdown("### 🌒 Phonoglyph")
         hr()
         if not st.session_state.is_admin:
             st.caption("管理者・研究者向け")
-            if st.button("管理者モードに切り替え",key="admin_on"):
-                st.session_state.is_admin=True; st.rerun()
+            if st.button("管理者モードに切り替え",key="admin_on"): st.session_state.is_admin=True; st.rerun()
         else:
             st.caption("管理者モード 有効")
-            sel=st.radio("表示モード",["実験タスク","シミュレーター"],
-                         index=0 if st.session_state.admin_mode=="実験タスク (被験者用)" else 1)
+            sel=st.radio("表示モード",["実験タスク","シミュレーター"],index=0 if st.session_state.admin_mode=="実験タスク (被験者用)" else 1)
             st.session_state.admin_mode="実験タスク (被験者用)" if sel=="実験タスク" else "シミュレーター (デモ用)"
             hr()
             st.caption(f"読込: {st.session_state.get('debug_target_file','—')}")
             st.caption(f"結合: {st.session_state.get('debug_match_count',0)}/{len(ALL_BOOKS)} 件")
-            if st.button("管理者モードを解除",key="admin_off"):
-                st.session_state.is_admin=False
-                st.session_state.admin_mode="実験タスク (被験者用)"; st.rerun()
+            if st.button("管理者モードを解除",key="admin_off"): st.session_state.is_admin=False; st.session_state.admin_mode="実験タスク (被験者用)"; st.rerun()
 
     render_topbar()
-
     if st.session_state.admin_mode=="実験タスク (被験者用)":
         {1:render_step1,2:render_step2,3:render_step3,4:render_step4,5:render_step5}.get(st.session_state.step,render_step1)()
-    else:
-        render_simulator()
+    else: render_simulator()
 
-if __name__=="__main__":
-    main()
+if __name__=="__main__": main()
