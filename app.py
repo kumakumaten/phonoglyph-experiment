@@ -59,7 +59,7 @@ section[data-testid="stSidebar"] .stSlider>div>div>div{background:#007AFF!import
 .stButton>button:active{transform:scale(.98);}
 
 /* =========================================
-   Step 2: カード型チェックボックス UI
+   カード型チェックボックス UI (ブランドカラー統一版)
    ========================================= */
 div[data-testid="stCheckbox"] {
     background: #FFFFFF;
@@ -72,17 +72,18 @@ div[data-testid="stCheckbox"] {
     align-items: center;
 }
 div[data-testid="stCheckbox"]:hover {
-    border-color: #30D158;
-    box-shadow: 0 4px 14px rgba(48, 209, 88, 0.15);
+    border-color: #007AFF;
+    box-shadow: 0 4px 14px rgba(0, 122, 255, 0.15);
     transform: translateY(-1px);
 }
+/* 選択時のハイライトを青色に統一 */
 div[data-testid="stCheckbox"]:has(input:checked) {
-    border-color: #30D158;
-    background: rgba(48, 209, 88, 0.05);
+    border-color: #007AFF;
+    background: rgba(0, 122, 255, 0.05);
 }
 div[data-testid="stCheckbox"] label { cursor: pointer; width: 100%; }
 .stCheckbox [role="checkbox"],[data-testid="stCheckbox"] [role="checkbox"]{background:#FFFFFF!important;border:1.5px solid #C7C7CC!important;border-radius:4px!important;}
-.stCheckbox [role="checkbox"][aria-checked="true"],[data-testid="stCheckbox"] [role="checkbox"][aria-checked="true"]{background:#30D158!important;border-color:#30D158!important;}
+.stCheckbox [role="checkbox"][aria-checked="true"],[data-testid="stCheckbox"] [role="checkbox"][aria-checked="true"]{background:#007AFF!important;border-color:#007AFF!important;}
 .stCheckbox label p,.stCheckbox label span{color:#1C1C1E!important;font-size:14px!important;font-weight:600;}
 
 /* =========================================
