@@ -413,63 +413,79 @@ def render_step3():
             st.session_state.step=4; st.rerun()
 
 def render_step4():
-    if st.session_state.current_q_index>=len(st.session_state.task_queue):
-        st.session_state.step=5; st.rerun()
-    idx=st.session_state.current_q_index; tot=len(st.session_state.task_queue)
-    st.markdown(f'<div class="pg-progress-track"><div class="pg-progress-fill" style="width:{idx/tot*100:.1f}%"></div></div>',unsafe_allow_html=True)
-    tb=st.session_state.task_queue[idx]; dn=get_display_name(tb)
-    st.markdown(f'<p class="pg-task-q">{idx+1} / {tot} — 音の紋様を選んでください</p><p class="pg-task-book">{dn}</p>',unsafe_allow_html=True)
-    if not st.session_state.current_options:
-        opts=get_dummies(tb); opts.append(tb); random.shuffle(opts)
-        st.session_state.current_options=opts
-    opts=st.session_state.current_options; lbs=["A","B","C","D","E","F"]
+    if st.session_state.current_q_index >= len(st.session_state.task_queue):
+        st.session_state.step = 5
+        st.rerun()
+
+    # セッションステート初期化
+    if 'temp_selected_idx' not in st.session_state:
+        st.session_state.temp_selected_idx = None
+
+    idx = st.session_state.current_q_index
+    tot = len(st.session_state.task_queue)
     
-    # =========================================
-    # 【UIのBU：1タップ即決タスクカードレイアウト】
-    # =========================================
-    for row_start in [0,3]:
-        cols=st.columns(3)
+    st.markdown(f'<div class="pg-progress-track"><div class="pg-progress-fill" style="width:{idx/tot*100:.1f}%"></div></div>', unsafe_allow_html=True)
+    tb = st.session_state.task_queue[idx]
+    dn = get_display_name(tb)
+    
+    st.markdown(f'<p class="pg-task-q">{idx+1} / {tot} — 音の紋様を選んでください</p><p class="pg-task-book">{dn}</p>', unsafe_allow_html=True)
+    
+    if not st.session_state.current_options:
+        opts = get_dummies(tb)
+        opts.append(tb)
+        random.shuffle(opts)
+        st.session_state.current_options = opts
+        st.session_state.temp_selected_idx = None # 新問でリセット
+
+    opts = st.session_state.current_options
+    
+    # 3x2 のグリッドで図形を表示
+    for row_start in [0, 3]:
+        cols = st.columns(3)
         for j in range(3):
-            idx_opt=row_start+j
-            if idx_opt>=len(opts): break
+            opt_idx = row_start + j
+            if opt_idx >= len(opts): break
+            
             with cols[j]:
-                # コンテナ全体を一つの美しいカードとして見せるHTMLラッパー
-                st.markdown(f'<div class="pg-task-card">', unsafe_allow_html=True)
-                st.markdown(f'<span class="pg-option-badge">選択肢 {lbs[idx_opt]}</span>',unsafe_allow_html=True)
-                ip=get_image_path(opts[idx_opt])
-                if ip: st.image(Image.open(ip),use_container_width=True)
-                else: st.markdown('<div style="height:160px;background:#F2F2F7;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#8E8E93;font-size:12px">画像なし</div>',unsafe_allow_html=True)
-                st.markdown('<div style="margin-top:12px;"></div>', unsafe_allow_html=True)
+                # 選択されているか判定
+                is_selected = (st.session_state.temp_selected_idx == opt_idx)
+                card_style = "border: 3px solid #007AFF;" if is_selected else "border: 2px solid #E5E5EA;"
                 
-                # 画像の直下に密着させた幅いっぱいの「即決選択ボタン」
-                # これを1回押すだけで、選択・記録・次への遷移が完了する
-                if st.button(f"この紋様を選択", key=f"btn_{idx}_{idx_opt}"):
-                    ch=opts[idx_opt]; ic=(ch==tb)
-                    st.session_state.results.append({"出題書籍":tb,"被験者回答":ch,"正誤":"正解" if ic else "不正解"})
-                    
-                    # 累積正答率の算出
-                    tot_so_far = len(st.session_state.results)
-                    cor_so_far = sum(1 for r in st.session_state.results if r["正誤"]=="正解")
-                    acc_so_far = (cor_so_far / tot_so_far) * 100 if tot_so_far > 0 else 0
-                    
-                    u = st.session_state.user_data
-                    JST = timezone(timedelta(hours=9), "JST")
-                    ts = datetime.now(JST).strftime("%Y/%m/%d %H:%M:%S")
-                    hn = f"anon_{st.session_state.session_id[-6:]}" 
-                    
-                    row_data = [
-                        ts, st.session_state.session_id, hn, u.get("age", ""), u.get("gender", ""), u.get("major", ""),
-                        u.get("reading_freq", ""), u.get("genres", ""), u.get("synesthesia_score", ""),
-                        u.get("q1", ""), u.get("q2", ""), u.get("q3", ""),
-                        round(acc_so_far, 1), tb, ch, "正解" if ic else "不正解"
-                    ]
-                    
-                    # 非同期バックグラウンド送信スレッドの起動（ラグ完全隠蔽）
-                    threading.Thread(target=async_save_to_sheet, args=(row_data,), daemon=True).start()
-                    
-                    st.session_state.current_q_index+=1; st.session_state.current_options=[]; st.rerun()
+                st.markdown(f'<div class="pg-task-card" style="{card_style}">', unsafe_allow_html=True)
+                ip = get_image_path(opts[opt_idx])
+                if ip: st.image(Image.open(ip), use_container_width=True)
+                
+                # 選択ボタン
+                if st.button(f"選択する", key=f"sel_{idx}_{opt_idx}"):
+                    st.session_state.temp_selected_idx = opt_idx
+                    st.rerun()
                 st.markdown('</div>', unsafe_allow_html=True)
 
+    hr()
+    # 確定ボタン（選択中のみアクティブ）
+    if st.session_state.temp_selected_idx is not None:
+        if st.button("この紋様で確定して次へ", type="primary", use_container_width=True):
+            ch = opts[st.session_state.temp_selected_idx]
+            ic = (ch == tb)
+            
+            # データの準備
+            u = st.session_state.user_data
+            ts = datetime.now(timezone(timedelta(hours=9), "JST")).strftime("%Y/%m/%d %H:%M:%S")
+            hn = f"anon_{st.session_state.session_id[-6:]}"
+            
+            row_data = [ts, st.session_state.session_id, hn, u.get("age",""), u.get("gender",""), u.get("major",""),
+                        u.get("reading_freq",""), u.get("genres",""), u.get("synesthesia_score",""),
+                        u.get("q1",""), u.get("q2",""), u.get("q3",""), 0, tb, ch, "正解" if ic else "不正解"]
+            
+            threading.Thread(target=async_save_to_sheet, args=(row_data,), daemon=True).start()
+            
+            st.session_state.current_q_index += 1
+            st.session_state.current_options = []
+            st.session_state.temp_selected_idx = None
+            st.rerun()
+    else:
+        st.button("選択してください", disabled=True, use_container_width=True)
+        
 def render_step5():
     st.balloons()
     hd("Step 5 / 5", "実験完了", "すべてのタスクが終了しました。ご協力いただき誠にありがとうございました。")
