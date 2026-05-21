@@ -296,8 +296,8 @@ def render_step1():
 <div class="pg-consent-card">
 <div class="pg-consent-section">
   <p class="pg-consent-title">研究の概要</p>
-  <p class="pg-consent-body">本研究は東京電機大学 インタラクティブアート&amp;デザイン研究室（山本研）が実施する学術調査です。<br>
-  <strong style="color:#1C1C1E">目的：</strong>文章の「音の響き（音素）」から生成した抽象図形が、書籍の雰囲気を直感的に伝える指標として機能するかを検証します。</p>
+  <p class="pg-consent-body">本研究は東京電機大学 インタラクティブアート&amp;デザイン研究室が実施する学術調査です。<br>
+  <strong style="color:#1C1C1E">目的：</strong>文章の「音の響き」から生成した抽象図形が、書籍の雰囲気を直感的に伝える指標として機能するかを検証します。</p>
 </div>
 <div class="pg-consent-section">
   <p class="pg-consent-title">参加内容と所要時間</p>
@@ -316,7 +316,7 @@ def render_step1():
 </div>
 <div class="pg-consent-section" style="margin-bottom:0">
   <p class="pg-consent-title">問い合わせ先</p>
-  <p class="pg-consent-body" style="font-size:13px;color:#8E8E93">東京電機大学 システムデザイン工学部 デザイン工学科<br>インタラクティブアート&amp;デザイン研究室（山本研）　担当：熊谷 天</p>
+  <p class="pg-consent-body" style="font-size:13px;color:#8E8E93">東京電機大学 システムデザイン工学部 デザイン工学科<br>インタラクティブアート&amp;デザイン研究室　担当：熊谷 天</p>
 </div>
 </div>
 """, unsafe_allow_html=True)
@@ -485,7 +485,7 @@ def render_step4():
             st.rerun()
     else:
         st.button("選択してください", disabled=True, use_container_width=True)
-        
+
 def render_step5():
     st.balloons()
     hd("Step 5 / 5", "実験完了", "すべてのタスクが終了しました。ご協力いただき誠にありがとうございました。")
