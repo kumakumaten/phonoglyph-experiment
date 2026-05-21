@@ -8,10 +8,14 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from google.oauth2.service_account import Credentials
 import phonoglyph_math
+import threading
 
 st.set_page_config(page_title="Phonoglyph", page_icon="🌒",
                    layout="centered", initial_sidebar_state="collapsed")
 
+# ==========================================
+# 1. カスタムCSS (カード型チェックボックス等を追加)
+# ==========================================
 CSS = """
 <style>
 *,*::before,*::after{-webkit-font-smoothing:antialiased;box-sizing:border-box;}
@@ -72,11 +76,38 @@ ul[data-baseweb="menu"] li[aria-selected="true"]{background:rgba(0,122,255,0.08)
 .stRadio [role="radio"],[data-testid="stRadio"] [role="radio"]{background:#FFFFFF!important;border:1.5px solid #C7C7CC!important;border-radius:50%!important;}
 .stRadio [role="radio"][aria-checked="true"],[data-testid="stRadio"] [role="radio"][aria-checked="true"]{background:#007AFF!important;border-color:#007AFF!important;}
 .stRadio [data-testid="stWidgetLabel"] p,.stRadio label p,.stRadio label span{font-size:15px!important;color:#1C1C1E!important;}
+
+/* =========================================
+   カード型チェックボックス UIの昇華
+   ========================================= */
+div[data-testid="stCheckbox"] {
+    background: #FFFFFF;
+    border: 2px solid #E5E5EA;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 8px;
+    transition: all 0.2s ease-in-out;
+    display: flex;
+    align-items: center;
+}
+div[data-testid="stCheckbox"]:hover {
+    border-color: #30D158;
+    box-shadow: 0 4px 14px rgba(48, 209, 88, 0.15);
+    transform: translateY(-1px);
+}
+/* 選択時のハイライト (最新ブラウザ用疑似クラス :has) */
+div[data-testid="stCheckbox"]:has(input:checked) {
+    border-color: #30D158;
+    background: rgba(48, 209, 88, 0.05);
+}
+div[data-testid="stCheckbox"] label {
+    cursor: pointer;
+    width: 100%;
+}
 .stCheckbox [role="checkbox"],[data-testid="stCheckbox"] [role="checkbox"]{background:#FFFFFF!important;border:1.5px solid #C7C7CC!important;border-radius:4px!important;}
-.stCheckbox [role="checkbox"][aria-checked="true"],[data-testid="stCheckbox"] [role="checkbox"][aria-checked="true"]{background:#007AFF!important;border-color:#007AFF!important;}
-.stCheckbox label p,.stCheckbox label span{color:#1C1C1E!important;font-size:14px!important;}
-.stCheckbox>label{border-radius:8px;padding:5px 6px;transition:background .15s;cursor:pointer;}
-.stCheckbox>label:hover{background:rgba(0,122,255,0.06)!important;}
+.stCheckbox [role="checkbox"][aria-checked="true"],[data-testid="stCheckbox"] [role="checkbox"][aria-checked="true"]{background:#30D158!important;border-color:#30D158!important;}
+.stCheckbox label p,.stCheckbox label span{color:#1C1C1E!important;font-size:14px!important;font-weight:600;}
+
 .stSlider>div>div>div{background:#007AFF!important;}
 .stSlider [data-testid="stTickBarMin"],.stSlider [data-testid="stTickBarMax"],
 .stSlider [data-testid="stSliderTickBarMin"],.stSlider [data-testid="stSliderTickBarMax"],
@@ -119,185 +150,139 @@ div[role="dialog"] div,div[role="dialog"] strong{color:#1C1C1E!important;backgro
 """
 st.markdown(CSS, unsafe_allow_html=True)
 
-IMAGE_DIR="phonoglyphs_v19"; IMG_SUFFIX="_v19.png"
-DB_PATH="features_db.pkl"; DEPLOY_URL="https://phonoglyph-task.streamlit.app/"
+def hd(eb,ti,su=None):
+    st.markdown(f'<p class="pg-eyebrow">{eb}</p><h1 class="pg-title">{ti}</h1>',unsafe_allow_html=True)
+    if su: st.markdown(f'<p class="pg-subtitle">{su}</p>',unsafe_allow_html=True)
+def hr(): st.markdown('<hr class="pg-divider">',unsafe_allow_html=True)
+def reset_session():
+    adm=st.session_state.is_admin; adm_mode=st.session_state.admin_mode; amp=st.session_state.amp_power
+    for k in list(st.session_state.keys()): del st.session_state[k]
+    st.session_state.is_admin=adm; st.session_state.admin_mode=adm_mode; st.session_state.amp_power=amp
+    st.session_state.session_id=str(uuid.uuid4()); st.session_state.step=1; st.session_state.user_data={}
+    st.session_state.selected_books=[]; st.session_state.task_queue=[]; st.session_state.current_q_index=0
+    st.session_state.results=[]; st.session_state.current_options=[]
+
+IMAGE_DIR = "phonoglyphs_v19"
+DB_PATH = "features_db.pkl"
+DEPLOY_URL = "https://phonoglyph-task.streamlit.app/"
 
 @st.cache_data
 def load_database():
     if os.path.exists(DB_PATH):
-        with open(DB_PATH,"rb") as f: return pickle.load(f)
+        with open(DB_PATH, 'rb') as f: return pickle.load(f)
     return {}
 
-@st.cache_data
-def _build_image_cache():
-    cache={}
-    for d in glob.glob(f"{IMAGE_DIR}*"):
-        if os.path.isdir(d):
-            for p in glob.glob(os.path.join(d,"*.png")):
-                cache[os.path.basename(p).replace(IMG_SUFFIX,"")] = p
-    return cache
-
-def get_image_path(n): return _build_image_cache().get(n)
-
-def _fallback_df(b):
-    df=b.copy(); df["ローマ字ファイル名"]=df["SystemKey"]
-    df["日本語書籍名"]=df["SystemKey"].apply(lambda x:str(x).split("_")[0])
-    df["著者名"]="不明"; df["知名度スコア"]=0; df["発表年"]=9999
-    df["ジャンル"]="不明"; df["あらすじ"]="あらすじ情報なし"
+def _get_fallback_df(base_df):
+    df=base_df.copy(); df['ローマ字ファイル名']=df['SystemKey']
+    df['日本語書籍名']=df['SystemKey'].apply(lambda x:str(x).split('_')[0])
+    df['著者名']='不明'; df['知名度スコア']=0; df['発表年']=9999; df['ジャンル']='不明'; df['あらすじ']='あらすじ情報なし'
     return df
 
-@st.cache_data
-def _load_metadata_core(tup):
-    lst=list(tup); base=pd.DataFrame({"SystemKey":lst}); dbg={}
-    files=glob.glob("*book_mapping*.xlsx")
-    if not files: dbg["error"]="book_mapping が見つかりません"; return _fallback_df(base),dbg
-    files.sort(key=os.path.getmtime,reverse=True); tgt=files[0]
-    for f in files:
+def load_book_metadata(all_books_list):
+    all_books_df=pd.DataFrame({'SystemKey':all_books_list})
+    possible_files=glob.glob('*book_mapping*.xlsx')
+    if not possible_files:
+        st.session_state.debug_error="Excelファイルが見つかりません"
+        return _get_fallback_df(all_books_df)
+    possible_files.sort(key=os.path.getmtime,reverse=True)
+    target_file=possible_files[0]
+    for f in possible_files:
         try:
-            if "あらすじ" in pd.read_excel(f,nrows=1).columns: tgt=f; break
+            temp=pd.read_excel(f,nrows=1)
+            if 'あらすじ' in temp.columns: target_file=f; break
         except: pass
-    dbg["target_file"]=tgt
     try:
-        meta=pd.read_excel(tgt)
-        meta.columns=[str(c).strip().replace("﻿","") for c in meta.columns]
-        if "ローマ字ファイル名" not in meta.columns:
-            meta.rename(columns={meta.columns[0]:"ローマ字ファイル名"},inplace=True)
-        s_r=meta["ローマ字ファイル名"].astype(str).str.lower().str.replace(" ","").str.replace("　","")
-        s_ta=(meta.get("日本語書籍名","")+"_"+meta.get("著者名","")).astype(str).str.lower().str.replace(" ","").str.replace("　","")
-        s_t=meta.get("日本語書籍名","").astype(str).str.lower().str.replace(" ","").str.replace("　","")
-        rows=[]
-        for k in lst:
-            kc=str(k).lower().replace(" ","").replace("　",""); kt=kc.split("_")[0]
-            m1=meta[s_r==kc]; m2=meta[s_ta==kc]; m3=meta[s_t==kt]
-            if not m1.empty: rows.append(m1.iloc[0].to_dict())
-            elif not m2.empty: rows.append(m2.iloc[0].to_dict())
-            elif not m3.empty: rows.append(m3.iloc[0].to_dict())
-            else: rows.append({})
-        matched=pd.DataFrame(rows); merged=pd.concat([base,matched],axis=1)
-        merged["ローマ字ファイル名"]=merged["SystemKey"]
-        merged["日本語書籍名"]=merged.get("日本語書籍名",merged["SystemKey"]).fillna(merged["SystemKey"].apply(lambda x:str(x).split("_")[0]))
-        merged["著者名"]=merged.get("著者名","不明").fillna("不明")
-        merged["知名度スコア"]=pd.to_numeric(merged.get("知名度スコア",0),errors="coerce").fillna(0)
-        merged["発表年"]=pd.to_numeric(merged.get("発表年",9999),errors="coerce").fillna(9999)
-        merged["ジャンル"]=merged.get("ジャンル","不明").fillna("不明").astype(str).str.strip()
-        merged["あらすじ"]=merged.get("あらすじ","あらすじ情報なし").fillna("あらすじ情報なし")
-        for col in ["著者名読み","日本語書籍名読み"]:
-            if col in meta.columns:
-                merged[col]=merged.get(col,"").fillna("")
-            else:
-                merged[col]=""
-        dbg.update({"columns":list(meta.columns),"sys_keys":lst[:5],
-                    "meta_keys":meta["ローマ字ファイル名"].tolist()[:5],
-                    "match_count":sum(1 for r in rows if r)})
-        return merged,dbg
+        meta_df=pd.read_excel(target_file)
+        meta_df.columns=[str(c).strip().replace('\ufeff','') for c in meta_df.columns]
+        if 'ローマ字ファイル名' not in meta_df.columns:
+            meta_df.rename(columns={meta_df.columns[0]:'ローマ字ファイル名'},inplace=True)
+        matched_rows=[]
+        romaji_series=meta_df['ローマ字ファイル名'].astype(str).str.lower().str.replace(' ','').str.replace('　','')
+        title_author_series=(meta_df.get('日本語書籍名','')+'_'+meta_df.get('著者名','')).astype(str).str.lower().str.replace(' ','').str.replace('　','')
+        title_only_series=meta_df.get('日本語書籍名','').astype(str).str.lower().str.replace(' ','').str.replace('　','')
+        for sys_key in all_books_list:
+            sys_key_clean=str(sys_key).lower().replace(' ','').replace('　','')
+            sys_title_only=sys_key_clean.split('_')[0]
+            m1=meta_df[romaji_series==sys_key_clean]; m2=meta_df[title_author_series==sys_key_clean]; m3=meta_df[title_only_series==sys_title_only]
+            if not m1.empty: matched_rows.append(m1.iloc[0].to_dict())
+            elif not m2.empty: matched_rows.append(m2.iloc[0].to_dict())
+            elif not m3.empty: matched_rows.append(m3.iloc[0].to_dict())
+            else: matched_rows.append({})
+        matched_df=pd.DataFrame(matched_rows)
+        merged_df=pd.concat([all_books_df,matched_df],axis=1)
+        merged_df['ローマ字ファイル名']=merged_df['SystemKey']
+        merged_df['日本語書籍名']=merged_df.get('日本語書籍名',merged_df['SystemKey']).fillna(merged_df['SystemKey'].apply(lambda x:str(x).split('_')[0]))
+        merged_df['著者名']=merged_df.get('著者名','不明').fillna('不明')
+        merged_df['知名度スコア']=pd.to_numeric(merged_df.get('知名度スコア',0),errors='coerce').fillna(0)
+        merged_df['発表年']=pd.to_numeric(merged_df.get('発表年',9999),errors='coerce').fillna(9999)
+        merged_df['ジャンル']=merged_df.get('ジャンル','不明').fillna('不明').astype(str).str.strip()
+        merged_df['あらすじ']=merged_df.get('あらすじ','あらすじ情報なし').fillna('あらすじ情報なし')
+        st.session_state.debug_target_file=target_file; st.session_state.debug_match_count=sum(1 for d in matched_rows if d)
+        return merged_df
     except Exception as e:
-        dbg["error"]=str(e); return _fallback_df(base),dbg
+        st.session_state.debug_error=str(e)
+        return _get_fallback_df(all_books_df)
 
-def load_book_metadata(lst):
-    df,dbg=_load_metadata_core(tuple(lst))
-    for k,v in dbg.items(): st.session_state[f"debug_{k}"]=v
-    return df
+def get_image_path(book_name):
+    for d in glob.glob(f"{IMAGE_DIR}*"):
+        p=os.path.join(d,f"{book_name}_v19.png")
+        if os.path.exists(p): return p
+    return None
 
-DB_DATA=load_database(); ALL_BOOKS=sorted(list(DB_DATA.keys()))
-BOOK_META_DF=load_book_metadata(ALL_BOOKS)
+DB_DATA = load_database()
+ALL_BOOKS = sorted(list(DB_DATA.keys()))
+BOOK_META_DF = load_book_metadata(ALL_BOOKS)
 
-def get_display_name(r):
-    row=BOOK_META_DF[BOOK_META_DF["ローマ字ファイル名"]==r]
-    if not row.empty and row.iloc[0]["著者名"]!="不明": return f"『{row.iloc[0]['日本語書籍名']}』"
-    return f"『{str(r).split('_')[0]}』"
+def get_display_name(roman_name):
+    row=BOOK_META_DF[BOOK_META_DF['ローマ字ファイル名']==roman_name]
+    if not row.empty and row.iloc[0]['著者名']!='不明': return f"『{row.iloc[0]['日本語書籍名']}』"
+    return f"『{str(roman_name).split('_')[0]}』"
 
-_def={"session_id":str(uuid.uuid4()),"step":1,"user_data":{},"selected_books":[],
-      "task_queue":[],"current_q_index":0,"results":[],"current_options":[],
-      "data_saved":False,"is_admin":False,"admin_mode":"実験タスク (被験者用)","amp_power":0.8}
-for k,v in _def.items():
-    if k not in st.session_state: st.session_state[k]=v
+# ==========================================
+# 非同期データ送信ロジック（バックグラウンド処理）
+# ==========================================
+def async_save_to_sheet(row_data):
+    try:
+        import gspread
+        from google.oauth2.service_account import Credentials
+        if "gcp_service_account" in st.secrets:
+            sc = ["https://www.googleapis.com/auth/spreadsheets", "https://www.googleapis.com/auth/drive"]
+            cr = Credentials.from_service_account_info(dict(st.secrets["gcp_service_account"]), scopes=sc)
+            cl = gspread.authorize(cr)
+            sh = cl.open_by_url(st.secrets["private_gsheets_url"]).sheet1
+            for att in range(3):
+                try:
+                    sh.append_row(row_data)
+                    break
+                except:
+                    time.sleep(2**att + random.uniform(0, 1))
+    except Exception as e:
+        print(f"Async save error: {e}")
 
-def get_dummies(t):
-    """
-    6択・3グループ均等配置のダミー選定（教授指摘対応）
-    鋭い(spiky)・中間(medium)・丸い(round) を各2枚 = 合計6択
-    正解が属するグループからのダミーを1枚にして残り2グループから各2枚
-    → 正解グループ計2枚・他グループ各2枚 = 均等配置
-    """
-    pool=[b for b in ALL_BOOKS if b not in st.session_state.selected_books and b!=t and b in DB_DATA]
+if 'session_id' not in st.session_state: st.session_state.session_id=str(uuid.uuid4())
+if 'step' not in st.session_state: st.session_state.step=1
+if 'user_data' not in st.session_state: st.session_state.user_data={}
+if 'selected_books' not in st.session_state: st.session_state.selected_books=[]
+if 'task_queue' not in st.session_state: st.session_state.task_queue=[]
+if 'current_q_index' not in st.session_state: st.session_state.current_q_index=0
+if 'results' not in st.session_state: st.session_state.results=[]
+if 'current_options' not in st.session_state: st.session_state.current_options=[]
+if 'is_admin' not in st.session_state: st.session_state.is_admin=False
+if 'admin_mode' not in st.session_state: st.session_state.admin_mode="実験タスク (被験者用)"
+if 'amp_power' not in st.session_state: st.session_state.amp_power=0.8
+
+def get_dummies(target_book):
+    pool=[b for b in ALL_BOOKS if b not in st.session_state.selected_books and b!=target_book and b in DB_DATA]
     if len(pool)<5: return random.sample(pool,len(pool))
-
-    # 円形度で昇順ソート（低=鋭利、高=丸い）
-    ps=sorted(pool,key=lambda b:DB_DATA[b][7])
-    n=len(ps); sz=max(2,n//3)
-    spiky_pool  = ps[:sz]
-    round_pool  = ps[-sz:]
-    medium_pool = ps[sz:-sz]
-    if len(medium_pool)<2: medium_pool=ps[sz:sz+max(2,n//5)]
-
-    # 正解の円形度でグループ判定（pool内の分布に対する相対位置）
-    all_circs=sorted([DB_DATA[b][7] for b in ps])
-    lo_thr=all_circs[n//3]
-    hi_thr=all_circs[min(2*n//3, n-1)]
-    tc=DB_DATA[t][7]
-
-    if tc<=lo_thr:   s,m,r=1,2,2  # 正解=spiky  → spiky1+medium2+round2
-    elif tc>=hi_thr: s,m,r=2,2,1  # 正解=round  → spiky2+medium2+round1
-    else:            s,m,r=2,1,2  # 正解=medium → spiky2+medium1+round2
-
-    dummies=[]
-    dummies+=random.sample(spiky_pool,  min(s,len(spiky_pool)))
-    dummies+=random.sample(medium_pool, min(m,len(medium_pool)))
-    dummies+=random.sample(round_pool,  min(r,len(round_pool)))
-
-    # プールが小さい場合の補完
-    while len(dummies)<5:
-        rem=[b for b in pool if b not in dummies]
-        if not rem: break
-        dummies.append(random.choice(rem))
-
-    return dummies[:5]
-
-def reset_session():
-    for k in ["step","user_data","selected_books","task_queue","current_q_index",
-              "results","current_options","data_saved","session_id"]:
-        if k in st.session_state: del st.session_state[k]
-
-def hd(ey,ti,su=""):
-    s=f'<p class="pg-eyebrow">{ey}</p><p class="pg-title">{ti}</p>'
-    if su: s+=f'<p class="pg-subtitle">{su}</p>'
-    st.markdown(s,unsafe_allow_html=True)
-
-def hr(): st.markdown('<hr class="pg-divider">',unsafe_allow_html=True)
+    pool_sorted=sorted(pool,key=lambda b:DB_DATA[b][7])
+    ls=max(2,len(pool_sorted)//5)
+    return random.sample(pool_sorted[:ls],2)+random.sample(pool_sorted[-ls:],3)
 
 def render_topbar():
-    """管理者のみ表示するシミュレーター切り替えバー"""
-    if not st.session_state.is_admin:
-        return  # 被験者には一切表示しない
-    col_l, col_r = st.columns([7, 3])
-    with col_r:
-        if st.session_state.admin_mode == "シミュレーター (デモ用)":
-            if st.button("← 実験タスクに戻る", key="topbar_exp"):
-                st.session_state.admin_mode = "実験タスク (被験者用)"
-                st.rerun()
-        else:
-            if st.button("⚙ シミュレーター", key="topbar_sim"):
-                st.session_state.admin_mode = "シミュレーター (デモ用)"
-                st.rerun()
-
-def _sort_df(df, sb):
-    """五十音順ソート：読み列があれば使用、なければ漢字列で代替"""
-    has_author_yomi = "著者名読み" in df.columns and df["著者名読み"].str.strip().ne("").any()
-    has_title_yomi  = "日本語書籍名読み" in df.columns and df["日本語書籍名読み"].str.strip().ne("").any()
-    if sb == "人気・知名度順":
-        return df.sort_values(["知名度スコア","日本語書籍名"], ascending=[False,True])
-    if sb == "五十音順（作品名）":
-        col = "日本語書籍名読み" if has_title_yomi else "日本語書籍名"
-        return df.sort_values([col,"日本語書籍名"], ascending=[True,True])
-    if sb == "五十音順（著者名）":
-        col1 = "著者名読み"       if has_author_yomi else "著者名"
-        col2 = "日本語書籍名読み" if has_title_yomi  else "日本語書籍名"
-        return df.sort_values([col1,col2], ascending=[True,True])
-    if sb == "発表年が新しい順":
-        return df.sort_values(["発表年","日本語書籍名"], ascending=[False,True])
-    if sb == "発表年が古い順":
-        return df.sort_values(["発表年","日本語書籍名"], ascending=[True,True])
-    return df
+    st.markdown('<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:32px">'
+                '<div style="font-weight:800;font-size:18px;letter-spacing:-.5px;color:#1C1C1E">Phonoglyph</div>'
+                f'<div style="font-size:12px;font-weight:600;color:#007AFF;background:rgba(0,122,255,.1);padding:4px 10px;border-radius:100px">ID: {st.session_state.session_id[:6]}</div>'
+                '</div>',unsafe_allow_html=True)
 
 def render_step1():
     hd("Step 1 / 5","実験への参加","以下の説明をよくお読みのうえ、同意いただける場合は基本情報をご入力ください。")
@@ -315,15 +300,8 @@ def render_step1():
   <p class="pg-consent-item">合計所要時間の目安：5〜15分程度</p>
 </div>
 <div class="pg-consent-section">
-  <p class="pg-consent-title">取得するデータと利用目的</p>
-  <p class="pg-consent-item">基本属性（年齢・性別・専攻・読書頻度など）</p>
-  <p class="pg-consent-item">各タスクへの回答（どの図形を選んだか）</p>
-  <p class="pg-consent-item">これらのデータは研究目的にのみ使用し、学術論文・学会発表での報告に用いることがあります。</p>
-</div>
-<div class="pg-consent-section">
   <p class="pg-consent-title">個人情報の保護</p>
-  <p class="pg-consent-item">入力された氏名は実験中の管理用に使用します。</p>
-  <p class="pg-consent-item">データ保存時に氏名はハッシュ化（不可逆変換）され、氏名そのものが保存・公開されることはありません。</p>
+  <p class="pg-consent-item">入力された情報は研究目的にのみ使用し、氏名などの個人を特定できる情報は収集しません。</p>
   <p class="pg-consent-item">収集データは暗号化された安全な環境で管理され、研究終了後に適切に廃棄されます。</p>
 </div>
 <div class="pg-consent-section">
@@ -337,13 +315,16 @@ def render_step1():
 </div>
 """, unsafe_allow_html=True)
     consent=st.checkbox("上記の内容を理解し、実験への参加に同意します"); hr()
-    c1,c2=st.columns(2)
+    
+    # 氏名入力を廃止し、3列レイアウトでスマートに配置
+    c1,c2,c3=st.columns(3)
     with c1:
-        name=st.text_input("氏名（漢字またはカタカナ）",placeholder="例：山田 太郎")
         age=st.number_input("年齢",min_value=15,max_value=100,value=20,step=1)
     with c2:
         gender=st.radio("性別",["男性","女性","その他"],horizontal=True)
+    with c3:
         major=st.radio("専攻分野",["理数系","文系","芸術・デザイン系","その他"],horizontal=True)
+        
     rf=st.selectbox("読書頻度",["月に1〜2冊","月に3〜5冊","月に6冊以上","全く読まない"],
                     index=None,placeholder="選択してください")
     gn=st.multiselect("よく読むジャンル",["純文学","大衆文学","SF","ラノベ","実用書","その他"])
@@ -352,83 +333,82 @@ def render_step1():
     with cb:
         if st.button("次へ進む",key="s1_next",type="primary"):
             if not consent: st.error("実験への参加に同意してください。")
-            elif not name.strip(): st.error("氏名を入力してください。")
             elif rf is None: st.error("読書頻度を選択してください。")
             else:
-                st.session_state.user_data={"name":name.strip(),"age":age,"gender":gender,"major":major,
+                st.session_state.user_data={"age":age,"gender":gender,"major":major,
                     "reading_freq":rf,"genres":", ".join(gn),"synesthesia_score":syn}
                 st.session_state.step=2; st.rerun()
 
 def render_step2():
-    hd("Step 2 / 5","既読作品の選択","内容を知っている作品にチェックを入れてください。📖 でタイトル・あらすじを確認できます。")
+    hd("Step 2 / 5","既読作品の選択","内容を知っている作品を選択してください。📖ボタンであらすじ等を確認できます。")
+    st.markdown('<div class="pg-notice">最低1冊以上選択してください。選択した作品の数だけタスクが出題されます。</div>',unsafe_allow_html=True)
     cs,co,cg=st.columns([2,1.5,1.5])
-    with cs: q=st.text_input("検索",placeholder="🔍  例：人間失格",label_visibility="collapsed")
-    with co:
-        sb=st.selectbox("並び替え",["人気・知名度順","五十音順（作品名）","五十音順（著者名）","発表年が新しい順","発表年が古い順"],label_visibility="collapsed")
-    with cg:
-        gl=["すべて"]+[g for g in BOOK_META_DF["ジャンル"].unique() if g!="不明"]
-        gf=st.selectbox("ジャンル",gl,label_visibility="collapsed")
+    with cs: sq=st.text_input("🔍 検索",placeholder="作品名・著者名")
+    with co: sb=st.selectbox("並び替え",["人気・知名度順","五十音順 (作品名)","五十音順 (著者名)","発表年が新しい順","発表年が古い順"])
+    with cg: 
+        ug=["すべて"]+[g for g in BOOK_META_DF['ジャンル'].unique() if g!='不明']
+        gf=st.selectbox("ジャンル",ug)
+    
     df=BOOK_META_DF.copy()
-    if q: df=df[df["日本語書籍名"].astype(str).str.contains(q,case=False,na=False)|df["著者名"].astype(str).str.contains(q,case=False,na=False)]
-    if gf!="すべて": df=df[df["ジャンル"].astype(str).str.strip()==gf.strip()]
-    df=_sort_df(df,sb); recs=df.to_dict("records")
-    st.caption(f"{len(recs)} 件表示")
-    for i in range(0,len(recs),3):
+    if sq: df=df[df['日本語書籍名'].astype(str).str.contains(sq,case=False,na=False)|df['著者名'].astype(str).str.contains(sq,case=False,na=False)]
+    if gf!="すべて": df=df[df['ジャンル'].astype(str).str.strip()==gf.strip()]
+    if sb=="人気・知名度順": df=df.sort_values(by=['知名度スコア','日本語書籍名'],ascending=[False,True])
+    elif sb=="五十音順 (作品名)": df=df.sort_values(by='日本語書籍名',ascending=True)
+    elif sb=="五十音順 (著者名)": df=df.sort_values(by=['著者名','日本語書籍名'],ascending=[True,True])
+    elif sb=="発表年が新しい順": df=df.sort_values(by=['発表年','日本語書籍名'],ascending=[False,True])
+    elif sb=="発表年が古い順": df=df.sort_values(by=['発表年','日本語書籍名'],ascending=[True,True])
+
+    dr=df.to_dict('records')
+    st.caption(f"該当: {len(dr)} 件")
+
+    for i in range(0,len(dr),3):
         cols=st.columns(3)
         for j in range(3):
-            if i+j>=len(recs): break
-            row=recs[i+j]; rn=row["ローマ字ファイル名"]; jn=row["日本語書籍名"]; au=row["著者名"]
-            lbl=f"『{jn}』\n({au})" if au!="不明" else f"『{jn}』"
-            with cols[j]:
-                c1,c2=st.columns([5,1])
-                with c1:
-                    ck=rn in st.session_state.selected_books
-                    if st.checkbox(lbl,value=ck,key=f"chk_{rn}"):
-                        if rn not in st.session_state.selected_books: st.session_state.selected_books.append(rn)
-                    else:
-                        if rn in st.session_state.selected_books: st.session_state.selected_books.remove(rn)
-                with c2:
-                    with st.popover("\U0001f4d6",key=f"pop_{rn}"):
-                        if au!="不明":
-                            g=row["ジャンル"]; yr=int(row["発表年"]); syn=row["あらすじ"]
-                            st.markdown(
-                                f'<div style="padding:20px 24px 18px">'
-                                f'<p style="font-size:10px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:#007AFF;margin:0 0 8px">{g} &nbsp;·&nbsp; {yr}年</p>'
-                                f'<p style="font-size:19px;font-weight:700;color:#1C1C1E;letter-spacing:-.3px;line-height:1.25;margin:0 0 4px">{jn}</p>'
-                                f'<p style="font-size:13px;color:#8E8E93;margin:0 0 14px">{au}</p>'
-                                f'<div style="height:1px;background:#F0F0F5;margin-bottom:12px"></div>'
-                                f'<p style="font-size:14px;color:#3A3A3C;line-height:1.7;margin:0">{syn}</p>'
-                                f'</div>',unsafe_allow_html=True)
+            if i+j<len(dr):
+                r=dr[i+j]; rn=r['ローマ字ファイル名']; jp=r['日本語書籍名']; au=r['著者名']
+                dl=f"『{jp}』\n{au}" if au!='不明' else f"『{jp}』"
+                with cols[j]:
+                    cc,cb=st.columns([4,1])
+                    with cc:
+                        ic=rn in st.session_state.selected_books
+                        if st.checkbox(dl,value=ic,key=f"chk_{rn}"):
+                            if rn not in st.session_state.selected_books: st.session_state.selected_books.append(rn)
                         else:
-                            st.markdown(f'<div style="padding:20px 24px 18px"><p style="font-size:19px;font-weight:700;color:#1C1C1E;margin:0 0 6px">{jn}</p><p style="font-size:13px;color:#C7C7CC;margin:0">詳細情報なし</p></div>',unsafe_allow_html=True)
+                            if rn in st.session_state.selected_books: st.session_state.selected_books.remove(rn)
+                    with cb:
+                        with st.popover("📖",key=f"pop_{rn}"):
+                            st.markdown(f'<p style="font-weight:700;font-size:16px;margin-bottom:4px;color:#1C1C1E">『{jp}』</p>',unsafe_allow_html=True)
+                            if au!='不明':
+                                st.caption(f"著者: {au} | {r['ジャンル']} | {r['発表年']}年")
+                                hr(); st.markdown(f'<p style="font-size:14px;line-height:1.6;color:#3A3A3C">{r["あらすじ"]}</p>',unsafe_allow_html=True)
+                            else: st.caption("詳細情報なし")
+
     hr()
-    if st.session_state.is_admin:
-        with st.expander("システム診断",expanded=False):
-            st.json({"読込":st.session_state.get("debug_target_file","不明"),
-                     "結合":f"{st.session_state.get('debug_match_count',0)}/{len(ALL_BOOKS)}"})
-            if "debug_error" in st.session_state: st.error(st.session_state.debug_error)
-    n=len(st.session_state.selected_books)
-    if n>0: st.success(f"✓  {n} 冊を選択中")
-    else: st.caption("作品を選択してください")
-    cb2,cn2=st.columns(2)
-    with cb2:
+    if st.session_state.selected_books:
+        st.success(f"現在の選択数: {len(st.session_state.selected_books)} 冊")
+    cbk,cn=st.columns([1,1])
+    with cbk:
         if st.button("戻る",key="s2_back"): st.session_state.step=1; st.rerun()
-    with cn2:
+    with cn:
         if st.button("次へ進む",key="s2_next",type="primary"):
-            if n==0: st.error("最低 1 冊は選択してください。")
+            if not st.session_state.selected_books: st.error("最低1冊は選択してください。")
             else:
-                q_=st.session_state.selected_books.copy(); random.shuffle(q_)
-                st.session_state.task_queue=q_; st.session_state.step=3; st.rerun()
+                st.session_state.task_queue=st.session_state.selected_books.copy()
+                random.shuffle(st.session_state.task_queue)
+                st.session_state.step=3; st.rerun()
 
 def render_step3():
-    hd("Step 3 / 5","読書体験に関するアンケート","タスク開始前に、以下の 3 問にお答えください。"); hr()
-    q1=st.radio("Q1.  表紙のデザインやイラストに惹かれて本を選んだこと（ジャケ買い）がありますか？",["はい","いいえ"],horizontal=True); hr()
-    q2=st.radio("Q2.  ジャケ買いをした結果、文章の雰囲気が表紙の印象と違って読むのをやめた経験はありますか？",["よくある","たまにある","あまりない","全くない"],horizontal=True); hr()
-    q3=st.radio("Q3.  あらすじや表紙だけでなく「文章の響き・文体」が直感的に分かる指標があれば、本選びの参考にしたいですか？",["思う","やや思う","あまり思わない","思わない"],horizontal=True); hr()
-    cb3,cn3=st.columns(2)
-    with cb3:
+    hd("Step 3 / 5","事前アンケート","マッチングタスクを開始する前に、普段の読書体験についてお答えください。")
+    st.markdown('<div class="pg-notice">質問はすべて<strong>直感</strong>でお答えください。</div>',unsafe_allow_html=True)
+    q1=st.radio("Q1. 表紙のデザインやイラストに惹かれて本を買ったこと（ジャケ買い）はありますか？",["はい","いいえ"],horizontal=True)
+    hr()
+    q2=st.radio("Q2. ジャケ買いをした結果、中身の文章の雰囲気や読みやすさが表紙の印象と違って、読むのをやめたりガッカリした経験はありますか？",["よくある","たまにある","あまりない","全くない"],horizontal=True)
+    hr()
+    q3=st.radio("Q3. あらすじや表紙だけでなく、事前に「文章の響きやリズム（文体）」が直感的に分かる指標があれば、本選びの参考にしたいと思いますか？",["思う","やや思う","あまり思わない","思わない"],horizontal=True)
+    hr(); cbk,cn=st.columns([1,1])
+    with cbk:
         if st.button("戻る",key="s3_back"): st.session_state.step=2; st.rerun()
-    with cn3:
+    with cn:
         if st.button("タスクを開始する",key="s3_start",type="primary"):
             st.session_state.user_data.update({"q1":q1,"q2":q2,"q3":q3})
             st.session_state.step=4; st.rerun()
@@ -444,7 +424,7 @@ def render_step4():
         opts=get_dummies(tb); opts.append(tb); random.shuffle(opts)
         st.session_state.current_options=opts
     opts=st.session_state.current_options; lbs=["A","B","C","D","E","F"]
-    # 3+3 の2段レイアウト（6択均等配置）
+    
     for row_start in [0,3]:
         cols=st.columns(3)
         for j in range(3):
@@ -462,53 +442,54 @@ def render_step4():
         if st.button("次へ",key=f"next_{idx}",type="primary"):
             ch=opts[lbs.index(ans)]; ic=(ch==tb)
             st.session_state.results.append({"出題書籍":tb,"被験者回答":ch,"正誤":"正解" if ic else "不正解"})
+            
+            # 【戦略1 & 2】随時非同期送信と累積正答率の算出
+            tot_so_far = len(st.session_state.results)
+            cor_so_far = sum(1 for r in st.session_state.results if r["正誤"]=="正解")
+            acc_so_far = (cor_so_far / tot_so_far) * 100 if tot_so_far > 0 else 0
+            
+            u = st.session_state.user_data
+            JST = timezone(timedelta(hours=9), "JST")
+            ts = datetime.now(JST).strftime("%Y/%m/%d %H:%M:%S")
+            # 【戦略3】HashedNameカラムの互換性を守るダミーデータ
+            hn = f"anon_{st.session_state.session_id[-6:]}" 
+            
+            row_data = [
+                ts, st.session_state.session_id, hn, u.get("age", ""), u.get("gender", ""), u.get("major", ""),
+                u.get("reading_freq", ""), u.get("genres", ""), u.get("synesthesia_score", ""),
+                u.get("q1", ""), u.get("q2", ""), u.get("q3", ""),
+                round(acc_so_far, 1), tb, ch, "正解" if ic else "不正解"
+            ]
+            
+            threading.Thread(target=async_save_to_sheet, args=(row_data,), daemon=True).start()
+            
             st.session_state.current_q_index+=1; st.session_state.current_options=[]; st.rerun()
 
 def render_step5():
     st.balloons()
-    tot=len(st.session_state.results); cor=sum(1 for r in st.session_state.results if r["正誤"]=="正解")
-    acc=(cor/tot*100) if tot else 0
-    st.markdown(f'<div class="pg-result-wrap"><div><span class="pg-result-num">{acc:.1f}</span><span class="pg-result-unit">%</span></div><p class="pg-result-caption">正答率 — {cor} / {tot} 問正解</p></div>',unsafe_allow_html=True)
-    hr()
-    if not st.session_state.data_saved:
-        u=st.session_state.user_data; JST=timezone(timedelta(hours=9),"JST")
-        ts=datetime.now(JST).strftime("%Y/%m/%d %H:%M:%S")
-        rn=u.get("name","unknown"); hn=hashlib.sha256(rn.encode()).hexdigest()[:16] if rn!="unknown" else "unknown"
-        rows=[]
-        for r in st.session_state.results:
-            rows.append([ts,st.session_state.session_id,hn,u.get("age",""),u.get("gender",""),u.get("major",""),
-                         u.get("reading_freq",""),u.get("genres",""),u.get("synesthesia_score",""),
-                         u.get("q1",""),u.get("q2",""),u.get("q3",""),round(acc,1),r["出題書籍"],r["被験者回答"],r["正誤"]])
-        try:
-            if "gcp_service_account" in st.secrets:
-                sc=["https://www.googleapis.com/auth/spreadsheets","https://www.googleapis.com/auth/drive"]
-                cr=Credentials.from_service_account_info(dict(st.secrets["gcp_service_account"]),scopes=sc)
-                cl=gspread.authorize(cr); sh=cl.open_by_url(st.secrets["private_gsheets_url"]).sheet1
-                sv=False
-                for att in range(3):
-                    try: sh.append_rows(rows); st.session_state.data_saved=True; sv=True; break
-                    except:
-                        if att<2: time.sleep(2**att+random.uniform(0,1))
-                if not sv:
-                    st.warning("データの保存に失敗しました。バックアップをダウンロードしてください。")
-                    hd2="Timestamp,SessionID,HashedName,Age,Gender,Major,ReadingFreq,Genres,Synesthesia,Q1,Q2,Q3,Accuracy,Target,Answer,Correctness\n"
-                    bd="\n".join([",".join(map(str,r)) for r in rows])
-                    st.download_button("バックアップをダウンロード",data=hd2+bd,
-                                       file_name=f"recovery_{st.session_state.session_id}.csv",mime="text/csv",type="primary")
-            else: st.caption("GCP シークレット未設定")
-        except Exception as e: st.error(f"認証エラー: {e}")
+    
+    # 【戦略4】正答率を廃止し、スマートな謝辞画面へ
+    hd("Step 5 / 5", "実験完了", "すべてのタスクが終了しました。ご協力いただき誠にありがとうございました。")
+    
+    st.markdown("""
+    <div class="pg-notice" style="background:#FFFFFF; border:2px solid #E5E5EA; padding:32px;">
+        <h3 style="color:#007AFF; margin-top:0; margin-bottom:16px;">Phonoglyph 研究プロジェクト</h3>
+        <p style="font-size:15px; line-height:1.7;">文章の音の響き（音象徴）から直感的な図形を生成し、未知の書籍との新しい出会いを創出するための研究にご参加いただき、深く感謝申し上げます。</p>
+        <p style="font-size:15px; line-height:1.7;">皆様からいただいた直感的な評価データは、本研究のアルゴリズムを検証・発展させるための極めて重要な基礎となります。貴重なお時間を割いていただき、本当にありがとうございました。</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
     hr()
     qru=f"https://api.qrserver.com/v1/create-qr-code/?size=160x160&data={urllib.parse.quote(DEPLOY_URL)}"
     st.markdown(f'<div class="pg-qr-wrap"><img src="{qru}" width="160" style="border-radius:12px"></div>',unsafe_allow_html=True)
-    # st.code は Streamlit ネイティブのコピーボタン付き（右上のクリップボードアイコン）
-    st.markdown('<p style="text-align:center;font-size:13px;color:#8E8E93;margin:8px 0 4px">右上のアイコンでURLをコピー</p>',unsafe_allow_html=True)
+    st.markdown('<p style="text-align:center;font-size:13px;color:#8E8E93;margin:8px 0 4px">右上のアイコンでURLをコピーしてシェアできます</p>',unsafe_allow_html=True)
     st.code(DEPLOY_URL, language=None)
     hr()
     cl5,cr5=st.columns(2)
     with cl5:
-        if st.button("別の作品で再挑戦する",key="restart",type="primary"):
+        if st.button("トップに戻る",key="restart",type="primary"):
             reset_session(); st.rerun()
-    with cr5: st.caption("新しいセッションが始まります。\n既読作品を再選択して再挑戦できます。")
+    with cr5: st.caption("新しいセッションが始まります。\n別の被験者がすぐに実験を開始できます。")
 
 def render_simulator():
     hd("管理者","Phonoglyph シミュレーター","音素パラメータをリアルタイムで変化させて図形を確認できます。")
