@@ -14,7 +14,7 @@ st.set_page_config(page_title="Phonoglyph", page_icon="🌒",
                    layout="centered", initial_sidebar_state="collapsed")
 
 # ==========================================
-# 1. カスタムCSS (スマホの横幅オーバーフローを完全解消 ＆ カードボタンUI)
+# 1. カスタムCSS
 # ==========================================
 CSS = """
 <style>
@@ -105,7 +105,7 @@ div[data-testid="stVerticalBlock"]:has(> div > div > div > div > span.floating-b
 .bottom-spacer { height: 160px; }
 
 /* =========================================
-   Step 4: タスク図形選択用カードUI（バグ修正版：ボタンベース）
+   Step 4: タスク図形選択用カードUI（ボタンベース）
    ========================================= */
 div[data-testid="stHorizontalBlock"]:has(.pg-task-option) {
     flex-wrap: nowrap !important;
@@ -129,25 +129,11 @@ div[data-testid="stHorizontalBlock"]:has(.pg-task-option) > div[data-testid="col
     max-width: 100% !important; height: auto !important; object-fit: contain !important;
 }
 
-/* 選択状態のカード (Pythonからスタイルを直打ちするが、基本スタイルはここ) */
+/* 選択状態のカード */
 .pg-image-card.selected {
     border-color: #007AFF !important;
     background: rgba(0, 122, 255, 0.05) !important;
     box-shadow: 0 4px 14px rgba(0, 122, 255, 0.15) !important;
-}
-
-/* ボタン（選択肢として機能）のデザイン上書き */
-div[data-testid="column"] .stButton > button.opt-btn {
-    margin-top: 8px; border-radius: 8px; padding: 6px 12px; font-size: 13px;
-    background: #F2F2F7 !important; color: #3A3A3C !important;
-}
-div[data-testid="column"] .stButton > button.opt-btn:hover {
-    background: #007AFF !important; color: #FFFFFF !important;
-}
-/* 選択済みボタン */
-div[data-testid="column"] .stButton > button.opt-btn-selected {
-    margin-top: 8px; border-radius: 8px; padding: 6px 12px; font-size: 13px;
-    background: #007AFF !important; color: #FFFFFF !important;
 }
 
 /* その他汎用UI */
@@ -189,6 +175,8 @@ def hd(eb,ti,su=None):
     st.markdown(f'<p class="pg-eyebrow">{eb}</p><h1 class="pg-title">{ti}</h1>',unsafe_allow_html=True)
     if su: st.markdown(f'<p class="pg-subtitle">{su}</p>',unsafe_allow_html=True)
 def hr(): st.markdown('<hr class="pg-divider">',unsafe_allow_html=True)
+
+# 完全にクリーンなセッションリセット
 def reset_session():
     adm=st.session_state.get('is_admin', False)
     adm_mode=st.session_state.get('admin_mode', "実験タスク (被験者用)")
@@ -282,6 +270,7 @@ def async_save_task_result(row_data):
     except Exception as e:
         print(f"Async save error: {e}")
 
+# 初期起動時のセットアップ
 if 'session_id' not in st.session_state: reset_session()
 
 def get_dummies(target_book):
@@ -444,20 +433,16 @@ def render_step4():
         with cols[col_idx]:
             st.markdown(f'<div class="pg-task-option">', unsafe_allow_html=True)
             
-            # 【バグ修正】Streamlitのボタンでカードを表現する
             is_selected = (st.session_state.step4_selected == opts[idx_opt])
             card_class = "pg-image-card selected" if is_selected else "pg-image-card"
             
-            # 1. HTMLで画像カードを描画
             st.markdown(f'<div class="{card_class}">', unsafe_allow_html=True)
             ip=get_image_path(opts[idx_opt])
             if ip: st.image(Image.open(ip),use_container_width=True)
             else: st.markdown('<div style="height:120px;display:flex;align-items:center;justify-content:center;">画像なし</div>',unsafe_allow_html=True)
             st.markdown('</div>', unsafe_allow_html=True)
             
-            # 2. そのすぐ下に、Streamlitネイティブのボタンを配置して選択状態を更新する
             btn_label = f"選択済み" if is_selected else f"選択肢 {lbs[idx_opt]} を選ぶ"
-            # CSSでボタンのデザインを上書きするためのハック
             st.markdown(f'<style>div[data-testid="column"]:nth-child({col_idx+1}) div[data-testid="stButton"] button {{ margin-top: 8px; border-radius: 8px; background: {"#007AFF" if is_selected else "#F2F2F7"} !important; color: {"#FFFFFF" if is_selected else "#3A3A3C"} !important; }}</style>', unsafe_allow_html=True)
             
             if st.button(btn_label, key=f"btn_sel_{idx}_{idx_opt}", use_container_width=True):
@@ -470,7 +455,6 @@ def render_step4():
     hr()
     _,cb4=st.columns([1,1])
     with cb4:
-        # 選択中のIDが None でなければボタン有効化
         confirm = st.button("確定して次へ",key=f"next_{idx}",type="primary", disabled=(st.session_state.step4_selected is None))
         if confirm:
             ch=st.session_state.step4_selected
@@ -525,8 +509,38 @@ def render_simulator():
         ax.fill(x,y,color="black",alpha=0.05); ax.set_aspect("equal"); ax.axis("off"); st.pyplot(fig)
 
 def main():
-    if not st.session_state.results: reset_session()
+    # URLパラメータからモードを取得
+    mode = st.query_params.get("mode")
+    if isinstance(mode, list): mode = mode[0] if mode else None
+    if mode == "admin": st.session_state.is_admin = True
+    if mode == "sim": st.session_state.is_admin = True; st.session_state.admin_mode = "シミュレーター (デモ用)"
+
+    # 管理者用サイドバー（前回誤って消してしまった部分を完全復元）
+    with st.sidebar:
+        st.markdown("### 🌒 Phonoglyph")
+        hr()
+        if not st.session_state.get('is_admin', False):
+            st.caption("管理者・研究者向け")
+            if st.button("管理者モードに切り替え", key="admin_on"): 
+                st.session_state.is_admin = True
+                st.rerun()
+        else:
+            st.caption("管理者モード 有効")
+            sel = st.radio("表示モード", ["実験タスク", "シミュレーター"], index=0 if st.session_state.get('admin_mode', "実験タスク (被験者用)") == "実験タスク (被験者用)" else 1)
+            st.session_state.admin_mode = "実験タスク (被験者用)" if sel == "実験タスク" else "シミュレーター (デモ用)"
+            hr()
+            st.caption(f"読込: {st.session_state.get('debug_target_file', '—')}")
+            st.caption(f"結合: {st.session_state.get('debug_match_count', 0)}/{len(ALL_BOOKS)} 件")
+            if st.button("管理者モードを解除", key="admin_off"): 
+                st.session_state.is_admin = False
+                st.session_state.admin_mode = "実験タスク (被験者用)"
+                st.rerun()
+
     render_topbar()
-    {1:render_step1,2:render_step2,3:render_step3,4:render_step4,5:render_step5}.get(st.session_state.step,render_step1)()
+    
+    if st.session_state.get('admin_mode', "実験タスク (被験者用)") == "実験タスク (被験者用)":
+        {1:render_step1, 2:render_step2, 3:render_step3, 4:render_step4, 5:render_step5}.get(st.session_state.step, render_step1)()
+    else:
+        render_simulator()
 
 if __name__=="__main__": main()
