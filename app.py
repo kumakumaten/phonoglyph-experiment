@@ -330,15 +330,13 @@ def render_step1():
     major=st.radio("専攻分野",["理数系","文系","芸術・デザイン系","その他"],horizontal=True)
     rf=st.selectbox("読書頻度",["月に1〜2冊","月に3〜5冊","月に6冊以上","全く読まない"],
                     index=None,placeholder="選択してください")
-    gn=st.multiselect("よく読むジャンル",["純文学","大衆文学","SF","ラノベ","実用書","その他"],
-                      index=None,placeholder="選択してください")
+    gn=st.multiselect("よく読むジャンル",["純文学","大衆文学","SF","ラノベ","実用書","その他"])
     syn=st.slider("言葉の響きに色や形を感じるか（1: 全く感じない — 5: 強く感じる）",1,5,3)
     hr(); _,cb=st.columns([1,1])
     with cb:
         if st.button("次へ進む",key="s1_next",type="primary"):
             if not consent: st.error("実験への参加に同意してください。")
             elif rf is None: st.error("読書頻度を選択してください。")
-            elif gn is None: st.error("よく読むジャンルを選択してください。")
             else:
                 st.session_state.user_data={"age":age,"gender":gender,"major":major,
                     "reading_freq":rf,"genres":", ".join(gn),"synesthesia_score":syn}
