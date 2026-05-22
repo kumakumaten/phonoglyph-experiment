@@ -14,12 +14,12 @@ st.set_page_config(page_title="Phonoglyph", page_icon="🌒",
                    layout="centered", initial_sidebar_state="collapsed")
 
 # ==========================================
-# 1. カスタムCSS (スマホ完全最適化・フローティングUI実装)
+# 1. カスタムCSS (スマホの横幅オーバーフローを完全解消)
 # ==========================================
 CSS = """
 <style>
 *,*::before,*::after{-webkit-font-smoothing:antialiased;box-sizing:border-box;}
-html,body,.stApp{font-family:-apple-system,"Helvetica Neue","Hiragino Sans",Arial,sans-serif;background:#F2F2F7;color:#1C1C1E;}
+html,body,.stApp{font-family:-apple-system,"Helvetica Neue","Hiragino Sans",Arial,sans-serif;background:#F2F2F7;color:#1C1C1E; overflow-x: hidden;}
 .block-container{padding:40px 28px 80px;max-width:780px;}
 .stApp p,.stApp li{color:#1C1C1E;}
 [data-testid="stWidgetLabel"] p,[data-testid="stWidgetLabel"] span,
@@ -59,26 +59,27 @@ section[data-testid="stSidebar"] .stSlider>div>div>div{background:#007AFF!import
 .stButton>button:active{transform:scale(.98);}
 
 /* =========================================
-   Step 2: スマホでの「書籍＋あらすじ📖」横並び強制ハック
+   Step 2: 書籍＋あらすじ📖 横並び強制ハック
    ========================================= */
 div[data-testid="stHorizontalBlock"]:has([data-testid="stPopover"]) {
     flex-wrap: nowrap !important;
     align-items: center !important;
+    gap: 4px !important; /* 隙間を詰める */
 }
 div[data-testid="stHorizontalBlock"]:has([data-testid="stPopover"]) > div[data-testid="column"]:first-child {
-    min-width: 0 !important; width: 85% !important; flex: 1 1 auto !important;
+    min-width: 0 !important; width: calc(100% - 40px) !important; flex: 1 1 auto !important;
 }
 div[data-testid="stHorizontalBlock"]:has([data-testid="stPopover"]) > div[data-testid="column"]:last-child {
-    min-width: 0 !important; width: 15% !important; flex: 0 0 auto !important;
+    min-width: 0 !important; width: 40px !important; flex: 0 0 40px !important;
     display: flex; justify-content: flex-end;
 }
-.stPopover button { padding: 4px 8px !important; margin: 0 !important; }
+.stPopover button { padding: 8px !important; margin: 0 !important; width: 100% !important; min-height: 44px !important;}
 
 /* Step 2: カード型チェックボックス UI */
 div[data-testid="stCheckbox"] {
     background: #FFFFFF; border: 2px solid #E5E5EA; border-radius: 12px;
     padding: 12px 14px; margin-bottom: 8px; transition: all 0.2s ease-in-out;
-    display: flex; align-items: center;
+    display: flex; align-items: center; width: 100%;
 }
 div[data-testid="stCheckbox"]:hover {
     border-color: #007AFF; box-shadow: 0 4px 14px rgba(0, 122, 255, 0.15); transform: translateY(-1px);
@@ -87,49 +88,60 @@ div[data-testid="stCheckbox"]:has(input:checked) {
     border-color: #007AFF; background: rgba(0, 122, 255, 0.05);
 }
 div[data-testid="stCheckbox"] label { cursor: pointer; width: 100%; }
-.stCheckbox [role="checkbox"],[data-testid="stCheckbox"] [role="checkbox"]{background:#FFFFFF!important;border:1.5px solid #C7C7CC!important;border-radius:4px!important;}
+.stCheckbox [role="checkbox"],[data-testid="stCheckbox"] [role="checkbox"]{background:#FFFFFF!important;border:1.5px solid #C7C7CC!important;border-radius:4px!important; min-width: 16px;}
 .stCheckbox [role="checkbox"][aria-checked="true"],[data-testid="stCheckbox"] [role="checkbox"][aria-checked="true"]{background:#007AFF!important;border-color:#007AFF!important;}
-.stCheckbox label p,.stCheckbox label span{color:#1C1C1E!important;font-size:14px!important;font-weight:600;}
+.stCheckbox label p,.stCheckbox label span{color:#1C1C1E!important;font-size:14px!important;font-weight:600; white-space: normal !important; word-break: break-word !important;}
 
 /* =========================================
    Step 2: 画面下部フローティング・アクション・バー
    ========================================= */
 div[data-testid="stVerticalBlock"]:has(> div > div > div > div > span.floating-bar-target) {
     position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-    width: calc(100% - 32px); max-width: 740px;
-    background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    padding: 16px 20px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    width: calc(100% - 24px); max-width: 740px;
+    background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    padding: 12px 16px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.15);
     z-index: 1000; border: 1px solid rgba(0,0,0,0.05);
 }
 .bottom-spacer { height: 160px; }
 
 /* =========================================
-   Step 4: スマホでも「横2列・縦3行」を強制するハック
+   Step 4: タスク図形選択用カードUI（はみ出し防止）
    ========================================= */
 div[data-testid="stHorizontalBlock"]:has(.pg-task-option) {
     flex-wrap: nowrap !important;
+    gap: 8px !important; /* カラム間の隙間を詰める */
 }
 div[data-testid="stHorizontalBlock"]:has(.pg-task-option) > div[data-testid="column"] {
     min-width: 0 !important; width: 50% !important; flex: 1 1 50% !important;
 }
 
-/* Step 4: タスク図形選択用カードUI */
-.pg-task-options {display:block;margin-top:10px;}
-.pg-task-option {margin-bottom:12px;position:relative;}
+.pg-task-options {display:block;margin-top:10px; width: 100%;}
+.pg-task-option {margin-bottom:8px;position:relative; width: 100%;}
 
 div[data-testid="column"] .stCheckbox>label {
-    display:block;padding:12px;border:2px solid #E5E5EA;border-radius:16px;background:#FFFFFF;
-    box-shadow:0 1px 3px rgba(0,0,0,.04);transition:all 0.2s;text-align:center;}
+    display:block; padding:8px 4px; border:2px solid #E5E5EA; border-radius:12px; background:#FFFFFF;
+    box-shadow:0 1px 3px rgba(0,0,0,.04); transition:all 0.2s; text-align:center; width:100%; box-sizing: border-box;
+}
 div[data-testid="column"] .stCheckbox>label:hover {
-    border-color:#007AFF;transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,122,255,0.08);}
+    border-color:#007AFF; transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,122,255,0.08);
+}
 div[data-testid="column"] .stCheckbox>label:has([aria-checked="true"]){
-    border-color:#007AFF;background:rgba(0,122,255,0.05);}
+    border-color:#007AFF; background:rgba(0,122,255,0.05);
+}
 
 div[data-testid="column"] .stCheckbox [role="checkbox"] {display:none!important;}
 div[data-testid="column"] .stCheckbox [data-testid="stWidgetLabel"] {
-    margin-left:0!important;padding-left:0!important;width:100%;}
-div[data-testid="column"] .stCheckbox label p {font-size:13px!important;color:#8E8E93!important;}
+    margin-left:0!important; padding-left:0!important; width:100%;
+}
+div[data-testid="column"] .stCheckbox label p {font-size:12px!important; color:#8E8E93!important;}
 div[data-testid="column"] .stCheckbox label:has([aria-checked="true"]) p {color:#007AFF!important;}
+
+/* 画像が親要素を超えないように強制 */
+.pg-task-option img {
+    max-width: 100% !important;
+    height: auto !important;
+    object-fit: contain !important;
+}
 
 /* その他汎用UI */
 .stTextInput>div>div>input{border-radius:10px!important;border:1.5px solid #E5E5EA!important;background:#FFFFFF!important;font-size:15px!important;padding:10px 14px!important;color:#1C1C1E!important;}
@@ -150,11 +162,22 @@ div[data-baseweb="select"]>div:focus-within{border-color:#007AFF!important;box-s
 .pg-qr-wrap{text-align:center;padding:20px 0;}
 .stSuccess>div{border-radius:10px!important;border:none!important;background:rgba(48,209,88,0.1)!important; margin-bottom:12px;}
 .stSuccess p{color:#1C7A3A!important;font-weight:600!important;font-size:14px!important;}
+
+/* スマホ表示時（600px以下）のレイアウト完全調整 */
 @media(max-width:600px){
-    .block-container{padding:24px 12px 60px!important;}
-    /* スマホで横並びを強制したいコンポーネント以外は折り返すようにする */
+    .block-container{padding:16px 12px 100px!important;}
+    
+    /* 基本は折り返す */
     div[data-testid="stHorizontalBlock"]:not(:has([data-testid="stPopover"])):not(:has(.pg-task-option)) { flex-wrap:wrap!important; }
-    div[data-testid="stHorizontalBlock"]:not(:has([data-testid="stPopover"])):not(:has(.pg-task-option)) > div[data-testid="column"] { flex:1 1 260px!important; min-width:0!important; }
+    div[data-testid="stHorizontalBlock"]:not(:has([data-testid="stPopover"])):not(:has(.pg-task-option)) > div[data-testid="column"] { flex:1 1 100%!important; min-width:0!important; margin-bottom:8px!important;}
+    
+    /* Step 2: フローティングバー内のボタンを横並びにする */
+    div[data-testid="stVerticalBlock"]:has(> div > div > div > div > span.floating-bar-target) div[data-testid="stHorizontalBlock"] { flex-wrap: nowrap!important; gap: 8px!important; }
+    div[data-testid="stVerticalBlock"]:has(> div > div > div > div > span.floating-bar-target) div[data-testid="stHorizontalBlock"] > div[data-testid="column"] { flex: 1 1 50%!important; margin-bottom: 0!important; }
+    
+    /* Step 4: タスク画像の隙間を極限まで詰める */
+    div[data-testid="stHorizontalBlock"]:has(.pg-task-option) { gap: 4px !important; }
+    div[data-testid="column"] .stCheckbox>label { padding: 4px !important; }
 }
 #MainMenu,footer,header,.stDeployButton{visibility:hidden;}
 </style>
@@ -208,11 +231,11 @@ def load_book_metadata(all_books_list):
         if 'ローマ字ファイル名' not in meta_df.columns:
             meta_df.rename(columns={meta_df.columns[0]:'ローマ字ファイル名'},inplace=True)
         matched_rows=[]
-        romaji_series=meta_df['ローマ字ファイル名'].astype(str).str.lower().str.replace(' ','').str.replace('　','')
-        title_author_series=(meta_df.get('日本語書籍名','')+'_'+meta_df.get('著者名','')).astype(str).str.lower().str.replace(' ','').str.replace('　','')
-        title_only_series=meta_df.get('日本語書籍名','').astype(str).str.lower().str.replace(' ','').str.replace('　','')
+        romaji_series=meta_df['ローマ字ファイル名'].astype(str).str.lower().str.replace(' ','').str.replace(' ','')
+        title_author_series=(meta_df.get('日本語書籍名','')+'_'+meta_df.get('著者名','')).astype(str).str.lower().str.replace(' ','').str.replace(' ','')
+        title_only_series=meta_df.get('日本語書籍名','').astype(str).str.lower().str.replace(' ','').str.replace(' ','')
         for sys_key in all_books_list:
-            sys_key_clean=str(sys_key).lower().replace(' ','').replace('　','')
+            sys_key_clean=str(sys_key).lower().replace(' ','').replace(' ','')
             sys_title_only=sys_key_clean.split('_')[0]
             m1=meta_df[romaji_series==sys_key_clean]; m2=meta_df[title_author_series==sys_key_clean]; m3=meta_df[title_only_series==sys_title_only]
             if not m1.empty: matched_rows.append(m1.iloc[0].to_dict())
@@ -249,9 +272,6 @@ def get_display_name(roman_name):
     if not row.empty and row.iloc[0]['著者名']!='不明': return f"『{row.iloc[0]['日本語書籍名']}』"
     return f"『{str(roman_name).split('_')[0]}』"
 
-# ==========================================
-# 随時データ送信ロジック（別スレッド実行用）
-# ==========================================
 def async_save_task_result(row_data):
     try:
         sc=["https://www.googleapis.com/auth/spreadsheets","https://www.googleapis.com/auth/drive"]
@@ -298,7 +318,7 @@ def render_step1():
 </div>
 <div class="pg-consent-section" style="margin-bottom:0">
   <p class="pg-consent-title">問い合わせ先</p>
-  <p class="pg-consent-body" style="font-size:13px;color:#8E8E93">東京電機大学 システムデザイン工学部 デザイン工学科<br>インタラクティブアート&amp;デザイン研究室（山本研）　担当：熊谷 天</p>
+  <p class="pg-consent-body" style="font-size:13px;color:#8E8E93">東京電機大学 システムデザイン工学部 デザイン工学科<br>インタラクティブアート&amp;デザイン研究室（山本研） 担当：熊谷 天</p>
 </div>
 </div>
 """, unsafe_allow_html=True)
@@ -349,7 +369,6 @@ def render_step2():
                 r=dr[i+j]; rn=r['ローマ字ファイル名']; jp=r['日本語書籍名']; au=r['著者名']
                 dl=f"『{jp}』\n{au}" if au!='不明' else f"『{jp}』"
                 with cols[j]:
-                    # 【改修】スマホで横並びを維持するDOM構造（CSSハック対応）
                     cc,cb=st.columns([4,1])
                     with cc:
                         ic=rn in st.session_state.selected_books
@@ -365,12 +384,8 @@ def render_step2():
                                 hr(); st.markdown(f'<p style="font-size:14px;line-height:1.6;color:#3A3A3C">{r["あらすじ"]}</p>',unsafe_allow_html=True)
                             else: st.caption("詳細情報なし")
 
-    # ==========================================
-    # 【改修】フローティング・アクション・バー
-    # ==========================================
-    st.markdown('<div class="bottom-spacer"></div>', unsafe_allow_html=True) # スクロール用の余白
+    st.markdown('<div class="bottom-spacer"></div>', unsafe_allow_html=True)
     with st.container():
-        # この span を目印にして、CSSで親コンテナごと画面下部に固定（フローティング化）する
         st.markdown('<span class="floating-bar-target"></span>', unsafe_allow_html=True)
         if st.session_state.selected_books: 
             st.success(f"現在の選択数: {len(st.session_state.selected_books)} 冊")
@@ -420,23 +435,19 @@ def render_step4():
 
     opts=st.session_state.current_options; lbs=["A","B","C","D","E","F"]
     
-    # =========================================
-    # 【改修】スマホで強制的に「横2列・縦3行」を維持するレイアウト
-    # =========================================
     st.markdown('<div class="pg-task-options">', unsafe_allow_html=True)
     cols = st.columns(2)
     
     for idx_opt in range(len(opts)):
         col_idx = idx_opt % 2
         with cols[col_idx]:
-            # スマホ横並び強制用ハックのためのマーカークラス
             st.markdown(f'<div class="pg-task-option">', unsafe_allow_html=True)
             
+            # 画像描画 (CSSで max-width: 100% を強制適用済み)
             ip=get_image_path(opts[idx_opt])
             if ip: st.image(Image.open(ip),use_container_width=True)
             else: st.markdown('<div style="height:120px;background:#F2F2F7;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#8E8E93;font-size:12px">画像なし</div>',unsafe_allow_html=True)
             
-            # 図形タップ選択用ハック（ラジオボタン的な挙動）
             is_selected = (st.session_state.step4_selected == opts[idx_opt])
             if st.checkbox(f"選択肢 {lbs[idx_opt]}", value=is_selected, key=f"opt_{idx}_{idx_opt}"):
                 if st.session_state.step4_selected != opts[idx_opt]:
@@ -451,7 +462,6 @@ def render_step4():
     hr()
     _,cb4=st.columns([1,1])
     with cb4:
-        # 図形が選択されている時のみ「確定して次へ」ボタンを有効化
         confirm = st.button("確定して次へ",key=f"next_{idx}",type="primary", disabled=(st.session_state.step4_selected is None))
         if confirm:
             ch=st.session_state.step4_selected
@@ -506,29 +516,8 @@ def render_simulator():
         ax.fill(x,y,color="black",alpha=0.05); ax.set_aspect("equal"); ax.axis("off"); st.pyplot(fig)
 
 def main():
-    mode=st.query_params.get("mode")
-    if isinstance(mode,list): mode=mode[0] if mode else None
-    if mode=="admin": st.session_state.is_admin=True
-    if mode=="sim": st.session_state.is_admin=True; st.session_state.admin_mode="シミュレーター (デモ用)"
-
-    with st.sidebar:
-        st.markdown("### 🌒 Phonoglyph")
-        hr()
-        if not st.session_state.is_admin:
-            st.caption("管理者・研究者向け")
-            if st.button("管理者モードに切り替え",key="admin_on"): st.session_state.is_admin=True; st.rerun()
-        else:
-            st.caption("管理者モード 有効")
-            sel=st.radio("表示モード",["実験タスク","シミュレーター"],index=0 if st.session_state.admin_mode=="実験タスク (被験者用)" else 1)
-            st.session_state.admin_mode="実験タスク (被験者用)" if sel=="実験タスク" else "シミュレーター (デモ用)"
-            hr()
-            st.caption(f"読込: {st.session_state.get('debug_target_file','—')}")
-            st.caption(f"結合: {st.session_state.get('debug_match_count',0)}/{len(ALL_BOOKS)} 件")
-            if st.button("管理者モードを解除",key="admin_off"): st.session_state.is_admin=False; st.session_state.admin_mode="実験タスク (被験者用)"; st.rerun()
-
+    if not st.session_state.results: reset_session()
     render_topbar()
-    if st.session_state.admin_mode=="実験タスク (被験者用)":
-        {1:render_step1,2:render_step2,3:render_step3,4:render_step4,5:render_step5}.get(st.session_state.step,render_step1)()
-    else: render_simulator()
+    {1:render_step1,2:render_step2,3:render_step3,4:render_step4,5:render_step5}.get(st.session_state.step,render_step1)()
 
 if __name__=="__main__": main()
