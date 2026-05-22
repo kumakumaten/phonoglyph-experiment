@@ -19,8 +19,14 @@ st.set_page_config(page_title="Phonoglyph", page_icon="🌒",
 CSS = """
 <style>
 *,*::before,*::after{-webkit-font-smoothing:antialiased;box-sizing:border-box;}
-html,body,.stApp{font-family:-apple-system,"Helvetica Neue","Hiragino Sans",Arial,sans-serif;background:#F2F2F7;color:#1C1C1E; overflow-x: hidden;}
-.block-container{padding:40px 28px 80px;max-width:780px;}
+html,body,.stApp{
+    font-family:-apple-system,"Helvetica Neue","Hiragino Sans",Arial,sans-serif;
+    background:#F2F2F7;color:#1C1C1E;
+    overflow-x:hidden !important;
+    max-width:100vw;
+}
+.block-container{padding:40px 28px 80px;max-width:780px;overflow-x:hidden !important;}
+[data-testid="stAppViewContainer"],[data-testid="stMain"]{overflow-x:hidden !important;}
 .stApp p,.stApp li{color:#1C1C1E;}
 [data-testid="stWidgetLabel"] p,[data-testid="stWidgetLabel"] span,
 .stTextInput label,.stNumberInput label,.stSelectbox label,
@@ -46,7 +52,7 @@ section[data-testid="stSidebar"] .stSlider>div>div>div{background:#007AFF!import
 .pg-consent-item{font-size:14px;color:#3A3A3C;line-height:1.65;padding-left:1em;margin:2px 0;}
 .pg-consent-item::before{content:"·";margin-right:6px;color:#8E8E93;}
 
-/* ボタン共通のモダンデザイン */
+/* ボタン共通 */
 .stButton>button{border:none;border-radius:22px;font-size:15px;font-weight:600;padding:10px 28px;width:100%;transition:opacity .15s,transform .12s;}
 .stButton>button[kind="primary"],.stButton>button[kind="primary"]:hover,
 .stButton>button[kind="primary"]:focus,.stButton>button[kind="primary"] *
@@ -59,81 +65,74 @@ section[data-testid="stSidebar"] .stSlider>div>div>div{background:#007AFF!import
 .stButton>button:active{transform:scale(.98);}
 
 /* =========================================
-   Step 2: 書籍＋あらすじ📖 横並び強制ハック
+   Step 2: 書籍チェック行（内側2列）の横並び維持
+   ※ > で直接の子を指定し、外側の書籍グリッドに波及させない
    ========================================= */
-div[data-testid="stHorizontalBlock"]:has([data-testid="stPopover"]) {
+div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"] > div > div[data-testid="stPopover"]) {
     flex-wrap: nowrap !important;
     align-items: center !important;
-    gap: 4px !important; 
+    gap: 4px !important;
 }
-div[data-testid="stHorizontalBlock"]:has([data-testid="stPopover"]) > div[data-testid="column"]:first-child {
-    min-width: 0 !important; width: calc(100% - 40px) !important; flex: 1 1 auto !important;
+div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"] > div > div[data-testid="stPopover"]) > div[data-testid="column"]:first-child {
+    min-width: 0 !important; width: calc(100% - 44px) !important; flex: 1 1 auto !important;
 }
-div[data-testid="stHorizontalBlock"]:has([data-testid="stPopover"]) > div[data-testid="column"]:last-child {
+div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"] > div > div[data-testid="stPopover"]) > div[data-testid="column"]:last-child {
     min-width: 0 !important; width: 40px !important; flex: 0 0 40px !important;
     display: flex; justify-content: flex-end;
 }
-.stPopover button { padding: 8px !important; margin: 0 !important; width: 100% !important; min-height: 44px !important;}
+.stPopover button{padding:8px !important;margin:0 !important;width:100% !important;min-height:44px !important;}
 
-/* Step 2: カード型チェックボックス UI */
-div[data-testid="stCheckbox"] {
-    background: #FFFFFF; border: 2px solid #E5E5EA; border-radius: 12px;
-    padding: 12px 14px; margin-bottom: 8px; transition: all 0.2s ease-in-out;
-    display: flex; align-items: center; width: 100%;
+/* Step 2: カード型チェックボックス */
+div[data-testid="stCheckbox"]{
+    background:#FFFFFF;border:2px solid #E5E5EA;border-radius:12px;
+    padding:12px 14px;margin-bottom:8px;transition:all 0.2s ease-in-out;
+    display:flex;align-items:center;width:100%;
 }
-div[data-testid="stCheckbox"]:hover {
-    border-color: #007AFF; box-shadow: 0 4px 14px rgba(0, 122, 255, 0.15); transform: translateY(-1px);
-}
-div[data-testid="stCheckbox"]:has(input:checked) {
-    border-color: #007AFF; background: rgba(0, 122, 255, 0.05);
-}
-div[data-testid="stCheckbox"] label { cursor: pointer; width: 100%; }
-.stCheckbox [role="checkbox"],[data-testid="stCheckbox"] [role="checkbox"]{background:#FFFFFF!important;border:1.5px solid #C7C7CC!important;border-radius:4px!important; min-width: 16px;}
+div[data-testid="stCheckbox"]:hover{border-color:#007AFF;box-shadow:0 4px 14px rgba(0,122,255,0.15);transform:translateY(-1px);}
+div[data-testid="stCheckbox"]:has(input:checked){border-color:#007AFF;background:rgba(0,122,255,0.05);}
+div[data-testid="stCheckbox"] label{cursor:pointer;width:100%;}
+.stCheckbox [role="checkbox"],[data-testid="stCheckbox"] [role="checkbox"]{background:#FFFFFF!important;border:1.5px solid #C7C7CC!important;border-radius:4px!important;min-width:16px;}
 .stCheckbox [role="checkbox"][aria-checked="true"],[data-testid="stCheckbox"] [role="checkbox"][aria-checked="true"]{background:#007AFF!important;border-color:#007AFF!important;}
-.stCheckbox label p,.stCheckbox label span{color:#1C1C1E!important;font-size:14px!important;font-weight:600; white-space: normal !important; word-break: break-word !important;}
+.stCheckbox label p,.stCheckbox label span{color:#1C1C1E!important;font-size:13px!important;font-weight:600;white-space:normal !important;word-break:break-word !important;}
 
 /* =========================================
-   Step 2: 画面下部フローティング・アクション・バー
+   Step 2: フローティングアクションバー
    ========================================= */
-div[data-testid="stVerticalBlock"]:has(> div > div > div > div > span.floating-bar-target) {
-    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-    width: calc(100% - 24px); max-width: 740px;
-    background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-    padding: 12px 16px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-    z-index: 1000; border: 1px solid rgba(0,0,0,0.05);
+div[data-testid="stVerticalBlock"]:has(> div > div > div > div > span.floating-bar-target){
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    width:calc(100% - 24px);max-width:740px;
+    background:rgba(255,255,255,0.9);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+    padding:12px 16px;border-radius:20px;box-shadow:0 10px 40px rgba(0,0,0,0.15);
+    z-index:1000;border:1px solid rgba(0,0,0,0.05);
 }
-.bottom-spacer { height: 160px; }
+.bottom-spacer{height:160px;}
 
 /* =========================================
-   Step 4: タスク図形選択用カードUI（ボタンベース）
+   Step 4: 3列タスク図形グリッド
    ========================================= */
-div[data-testid="stHorizontalBlock"]:has(.pg-task-option) {
-    flex-wrap: nowrap !important;
-    gap: 8px !important; 
+div[data-testid="stHorizontalBlock"]:has(.pg-task-option){
+    flex-wrap:nowrap !important;
+    gap:6px !important;
 }
-div[data-testid="stHorizontalBlock"]:has(.pg-task-option) > div[data-testid="column"] {
-    min-width: 0 !important; width: 50% !important; flex: 1 1 50% !important;
+div[data-testid="stHorizontalBlock"]:has(.pg-task-option) > div[data-testid="column"]{
+    min-width:0 !important;width:33.33% !important;flex:1 1 33.33% !important;
 }
-
-.pg-task-options {display:block;margin-top:10px; width: 100%;}
-.pg-task-option {margin-bottom:8px;position:relative; width: 100%;}
-
-/* 画像カードコンテナ */
-.pg-image-card {
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 8px; border: 2px solid #E5E5EA; border-radius: 12px; background: #FFFFFF;
-    box-shadow: 0 1px 3px rgba(0,0,0,.04); width: 100%; box-sizing: border-box;
-    transition: all 0.2s;
-}
-.pg-image-card img {
-    max-width: 100% !important; height: auto !important; object-fit: contain !important;
+.pg-task-option{
+    display:block;text-align:center;
+    font-size:11px;font-weight:700;color:#8E8E93;
+    margin:0 0 3px !important;
 }
 
-/* 選択状態のカード */
-.pg-image-card.selected {
-    border-color: #007AFF !important;
-    background: rgba(0, 122, 255, 0.05) !important;
-    box-shadow: 0 4px 14px rgba(0, 122, 255, 0.15) !important;
+/* Step 4: 選択ボタン — 隣接セレクタで選択状態を色分け */
+div[data-testid="stMarkdownContainer"]:has(span.pg-btn-sel) + div[data-testid="stButton"] > button {
+    background:#007AFF !important;color:#FFFFFF !important;
+    border-radius:8px !important;font-size:12px !important;
+    padding:5px 4px !important;min-height:32px !important;
+}
+div[data-testid="stMarkdownContainer"]:has(span.pg-btn-unsel) + div[data-testid="stButton"] > button {
+    background:#F2F2F7 !important;color:#8E8E93 !important;
+    border-radius:8px !important;font-size:12px !important;
+    padding:5px 4px !important;min-height:32px !important;
 }
 
 /* その他汎用UI */
@@ -144,27 +143,33 @@ div[data-baseweb="select"]>div{border-radius:10px!important;border:1.5px solid #
 div[data-baseweb="select"]>div:focus-within{border-color:#007AFF!important;box-shadow:0 0 0 3px rgba(0,122,255,.12)!important;}
 .stRadio [role="radio"],[data-testid="stRadio"] [role="radio"]{background:#FFFFFF!important;border:1.5px solid #C7C7CC!important;border-radius:50%!important;}
 .stRadio [role="radio"][aria-checked="true"],[data-testid="stRadio"] [role="radio"][aria-checked="true"]{background:#007AFF!important;border-color:#007AFF!important;}
-[data-testid="stPopoverBody"],[data-testid="stPopoverBody"]>div, div[role="dialog"],div[role="dialog"]>div,div[role="tooltip"], .stPopover div[data-baseweb="popover"]
-{background:#FFFFFF!important; border:none!important;border-radius:20px!important; box-shadow:0 12px 40px rgba(0,0,0,0.10),0 2px 8px rgba(0,0,0,0.06)!important;}
+[data-testid="stPopoverBody"],[data-testid="stPopoverBody"]>div,div[role="dialog"],div[role="dialog"]>div,div[role="tooltip"],.stPopover div[data-baseweb="popover"]
+{background:#FFFFFF!important;border:none!important;border-radius:20px!important;box-shadow:0 12px 40px rgba(0,0,0,0.10),0 2px 8px rgba(0,0,0,0.06)!important;}
 [data-testid="stPopoverBody"]>div>div{padding:12px 16px!important;}
 .stPopover button,[data-testid="stPopover"] button{background:transparent!important;border:none!important;font-size:18px!important;color:#8E8E93!important;line-height:1;}
-.pg-progress-track{height:3px;background:#E5E5EA;border-radius:100px;margin-bottom:40px;overflow:hidden;}
+.pg-progress-track{height:3px;background:#E5E5EA;border-radius:100px;margin-bottom:32px;overflow:hidden;}
 .pg-progress-fill{height:3px;background:#007AFF;border-radius:100px;transition:width .4s;}
 .pg-task-q{font-size:15px;color:#8E8E93;text-align:center;margin-bottom:4px;}
-.pg-task-book{font-size:22px;font-weight:700;color:#007AFF;text-align:center;letter-spacing:-.3px;margin-bottom:28px;}
+.pg-task-book{font-size:20px;font-weight:700;color:#007AFF;text-align:center;letter-spacing:-.3px;margin-bottom:16px;}
 .pg-qr-wrap{text-align:center;padding:20px 0;}
-.stSuccess>div{border-radius:10px!important;border:none!important;background:rgba(48,209,88,0.1)!important; margin-bottom:12px;}
+.stSuccess>div{border-radius:10px!important;border:none!important;background:rgba(48,209,88,0.1)!important;margin-bottom:12px;}
 .stSuccess p{color:#1C7A3A!important;font-weight:600!important;font-size:14px!important;}
 
 @media(max-width:600px){
     .block-container{padding:16px 12px 100px!important;}
-    div[data-testid="stHorizontalBlock"]:not(:has([data-testid="stPopover"])):not(:has(.pg-task-option)) { flex-wrap:wrap!important; }
-    div[data-testid="stHorizontalBlock"]:not(:has([data-testid="stPopover"])):not(:has(.pg-task-option)) > div[data-testid="column"] { flex:1 1 100%!important; min-width:0!important; margin-bottom:8px!important;}
-    
-    div[data-testid="stVerticalBlock"]:has(> div > div > div > div > span.floating-bar-target) div[data-testid="stHorizontalBlock"] { flex-wrap: nowrap!important; gap: 8px!important; }
-    div[data-testid="stVerticalBlock"]:has(> div > div > div > div > span.floating-bar-target) div[data-testid="stHorizontalBlock"] > div[data-testid="column"] { flex: 1 1 50%!important; margin-bottom: 0!important; }
-    
-    div[data-testid="stHorizontalBlock"]:has(.pg-task-option) { gap: 4px !important; }
+    /* 検索・ソート行など一般的な横並びは縦積みに */
+    div[data-testid="stHorizontalBlock"]:not(:has(.pg-task-option)):not(:has(> div[data-testid="column"] > div > div[data-testid="stPopover"])) {
+        flex-wrap:wrap!important;
+    }
+    div[data-testid="stHorizontalBlock"]:not(:has(.pg-task-option)):not(:has(> div[data-testid="column"] > div > div[data-testid="stPopover"])) > div[data-testid="column"] {
+        flex:1 1 100%!important;min-width:0!important;margin-bottom:4px!important;
+    }
+    /* フローティングバー内の戻る/次へ は横並び維持 */
+    div[data-testid="stVerticalBlock"]:has(> div > div > div > div > span.floating-bar-target) div[data-testid="stHorizontalBlock"]{flex-wrap:nowrap!important;gap:8px!important;}
+    div[data-testid="stVerticalBlock"]:has(> div > div > div > div > span.floating-bar-target) div[data-testid="stHorizontalBlock"] > div[data-testid="column"]{flex:1 1 50%!important;margin-bottom:0!important;}
+    /* Step 4: 3列はモバイルでも維持 */
+    div[data-testid="stHorizontalBlock"]:has(.pg-task-option){gap:3px !important;}
+    .pg-task-book{font-size:17px!important;margin-bottom:10px;}
 }
 #MainMenu,footer,header,.stDeployButton{visibility:hidden;}
 </style>
@@ -176,16 +181,15 @@ def hd(eb,ti,su=None):
     if su: st.markdown(f'<p class="pg-subtitle">{su}</p>',unsafe_allow_html=True)
 def hr(): st.markdown('<hr class="pg-divider">',unsafe_allow_html=True)
 
-# 完全にクリーンなセッションリセット
 def reset_session():
-    adm=st.session_state.get('is_admin', False)
-    adm_mode=st.session_state.get('admin_mode', "実験タスク (被験者用)")
-    amp=st.session_state.get('amp_power', 0.8)
+    adm=st.session_state.get('is_admin',False)
+    adm_mode=st.session_state.get('admin_mode',"実験タスク (被験者用)")
+    amp=st.session_state.get('amp_power',0.8)
     for k in list(st.session_state.keys()): del st.session_state[k]
     st.session_state.is_admin=adm; st.session_state.admin_mode=adm_mode; st.session_state.amp_power=amp
     st.session_state.session_id=str(uuid.uuid4()); st.session_state.step=1; st.session_state.user_data={}
     st.session_state.selected_books=[]; st.session_state.task_queue=[]; st.session_state.current_q_index=0
-    st.session_state.results=[]; st.session_state.current_options=[]
+    st.session_state.results=[]; st.session_state.current_options=[]; st.session_state.step4_selected=None
 
 IMAGE_DIR = "phonoglyphs_v19"
 DB_PATH = "features_db.pkl"
@@ -194,7 +198,7 @@ DEPLOY_URL = "https://phonoglyph-task.streamlit.app/"
 @st.cache_data
 def load_database():
     if os.path.exists(DB_PATH):
-        with open(DB_PATH, 'rb') as f: return pickle.load(f)
+        with open(DB_PATH,'rb') as f: return pickle.load(f)
     return {}
 
 def _get_fallback_df(base_df):
@@ -216,7 +220,7 @@ def load_book_metadata(all_books_list):
         except: pass
     try:
         meta_df=pd.read_excel(target_file)
-        meta_df.columns=[str(c).strip().replace('\ufeff','') for c in meta_df.columns]
+        meta_df.columns=[str(c).strip().replace('﻿','') for c in meta_df.columns]
         if 'ローマ字ファイル名' not in meta_df.columns:
             meta_df.rename(columns={meta_df.columns[0]:'ローマ字ファイル名'},inplace=True)
         matched_rows=[]
@@ -270,22 +274,56 @@ def async_save_task_result(row_data):
     except Exception as e:
         print(f"Async save error: {e}")
 
-# 初期起動時のセットアップ
 if 'session_id' not in st.session_state: reset_session()
 
+# ==========================================
+# トポロジー均等配分ダミー選定（6択対応）
+# ==========================================
 def get_dummies(target_book):
+    """6択・3グループ均等配置 — 正解のトポロジーに応じてダミー5冊を 2:2:1 or 2:1:2 or 1:2:2 配分"""
     pool=[b for b in ALL_BOOKS if b not in st.session_state.selected_books and b!=target_book and b in DB_DATA]
     if len(pool)<5: return random.sample(pool,len(pool))
-    pool_sorted=sorted(pool,key=lambda b:DB_DATA[b][7])
-    ls=max(2,len(pool_sorted)//5)
-    return random.sample(pool_sorted[:ls],2)+random.sample(pool_sorted[-ls:],3)
 
+    ps=sorted(pool,key=lambda b:DB_DATA[b][7])  # circularity 昇順
+    n=len(ps); sz=max(2,n//3)
+    spiky_pool=ps[:sz]
+    round_pool=ps[-sz:]
+    medium_pool=ps[sz:-sz] if len(ps[sz:-sz])>=2 else ps[sz:sz+max(2,n//5)]
+
+    all_circs=sorted([DB_DATA[b][7] for b in ps])
+    lo_thr=all_circs[n//3]; hi_thr=all_circs[min(2*n//3,n-1)]
+    tc=DB_DATA[target_book][7]
+
+    if tc<=lo_thr:   s,m,r=1,2,2   # 正解=spiky → 全体で spiky×2, medium×2, round×2
+    elif tc>=hi_thr: s,m,r=2,2,1   # 正解=round
+    else:            s,m,r=2,1,2   # 正解=medium
+
+    dummies=[]
+    dummies+=random.sample(spiky_pool, min(s,len(spiky_pool)))
+    dummies+=random.sample(medium_pool,min(m,len(medium_pool)))
+    dummies+=random.sample(round_pool, min(r,len(round_pool)))
+    while len(dummies)<5:
+        rem=[b for b in pool if b not in dummies]
+        if not rem: break
+        dummies.append(random.choice(rem))
+    return dummies[:5]
+
+# ==========================================
+# トップバー（管理者のみ表示）
+# ==========================================
 def render_topbar():
-    st.markdown('<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:32px">'
-                '<div style="font-weight:800;font-size:18px;letter-spacing:-.5px;color:#1C1C1E">Phonoglyph</div>'
-                f'<div style="font-size:12px;font-weight:600;color:#007AFF;background:rgba(0,122,255,.1);padding:4px 10px;border-radius:100px">ID: {st.session_state.session_id[:6]}</div>'
-                '</div>',unsafe_allow_html=True)
+    if not st.session_state.get('is_admin',False):
+        return
+    st.markdown(
+        f'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">'
+        f'<div style="font-weight:800;font-size:18px;letter-spacing:-.5px;color:#1C1C1E">Phonoglyph</div>'
+        f'<div style="font-size:12px;font-weight:600;color:#007AFF;background:rgba(0,122,255,.1);padding:4px 10px;border-radius:100px">'
+        f'ID: {st.session_state.session_id[:6]}</div>'
+        f'</div>',unsafe_allow_html=True)
 
+# ==========================================
+# Step 1: インフォームドコンセント
+# ==========================================
 def render_step1():
     hd("Step 1 / 5","実験への参加","以下の説明をよくお読みのうえ、同意いただける場合は基本情報をご入力ください。")
     st.markdown("""
@@ -331,30 +369,40 @@ def render_step1():
                     "reading_freq":rf,"genres":", ".join(gn),"synesthesia_score":syn}
                 st.session_state.step=2; st.rerun()
 
+# ==========================================
+# Step 2: 既読作品選択（2列グリッド — モバイル対応）
+# ==========================================
 def render_step2():
     hd("Step 2 / 5","既読作品の選択","内容を知っている作品を選択してください。📖ボタンであらすじ等を確認できます。")
     cs,co,cg=st.columns([2,1.5,1.5])
     with cs: sq=st.text_input("🔍 検索",placeholder="作品名・著者名")
-    with co: sb=st.selectbox("並び替え", ["人気・知名度順","五十音順 (作品名)","五十音順 (著者名)","発表年が新しい順","発表年が古い順"])
-    with cg: 
+    with co: sb=st.selectbox("並び替え",["人気・知名度順","五十音順 (作品名)","五十音順 (著者名)","発表年が新しい順","発表年が古い順"])
+    with cg:
         ug=["すべて"]+[g for g in BOOK_META_DF['ジャンル'].unique() if g!='不明']
         gf=st.selectbox("ジャンル絞り込み",ug)
-    
+
     df=BOOK_META_DF.copy()
     if sq: df=df[df['日本語書籍名'].astype(str).str.contains(sq,case=False,na=False)|df['著者名'].astype(str).str.contains(sq,case=False,na=False)]
     if gf!="すべて": df=df[df['ジャンル'].astype(str).str.strip()==gf.strip()]
+
+    # ソート（よみ列があれば五十音順に使用）
+    has_ty="日本語書籍名読み" in df.columns and df["日本語書籍名読み"].astype(str).str.strip().ne("").any()
+    has_ay="著者名読み" in df.columns and df["著者名読み"].astype(str).str.strip().ne("").any()
     if sb=="人気・知名度順": df=df.sort_values(by=['知名度スコア','日本語書籍名'],ascending=[False,True])
-    elif sb=="五十音順 (作品名)": df=df.sort_values(by='日本語書籍名',ascending=True)
-    elif sb=="五十音順 (著者名)": df=df.sort_values(by=['著者名','日本語書籍名'],ascending=[True,True])
+    elif sb=="五十音順 (作品名)": df=df.sort_values(by="日本語書籍名読み" if has_ty else "日本語書籍名",ascending=True)
+    elif sb=="五十音順 (著者名)":
+        ca="著者名読み" if has_ay else "著者名"; ct="日本語書籍名読み" if has_ty else "日本語書籍名"
+        df=df.sort_values(by=[ca,ct],ascending=[True,True])
     elif sb=="発表年が新しい順": df=df.sort_values(by=['発表年','日本語書籍名'],ascending=[False,True])
     elif sb=="発表年が古い順": df=df.sort_values(by=['発表年','日本語書籍名'],ascending=[True,True])
 
     dr=df.to_dict('records')
     st.caption(f"該当: {len(dr)} 件")
 
-    for i in range(0,len(dr),3):
-        cols=st.columns(3)
-        for j in range(3):
+    # ★ 2列グリッド（3列から変更 — モバイルで横はみ出し解消）
+    for i in range(0,len(dr),2):
+        cols=st.columns(2)
+        for j in range(2):
             if i+j<len(dr):
                 r=dr[i+j]; rn=r['ローマ字ファイル名']; jp=r['日本語書籍名']; au=r['著者名']
                 dl=f"『{jp}』\n{au}" if au!='不明' else f"『{jp}』"
@@ -374,12 +422,11 @@ def render_step2():
                                 hr(); st.markdown(f'<p style="font-size:14px;line-height:1.6;color:#3A3A3C">{r["あらすじ"]}</p>',unsafe_allow_html=True)
                             else: st.caption("詳細情報なし")
 
-    st.markdown('<div class="bottom-spacer"></div>', unsafe_allow_html=True)
+    st.markdown('<div class="bottom-spacer"></div>',unsafe_allow_html=True)
     with st.container():
-        st.markdown('<span class="floating-bar-target"></span>', unsafe_allow_html=True)
-        if st.session_state.selected_books: 
+        st.markdown('<span class="floating-bar-target"></span>',unsafe_allow_html=True)
+        if st.session_state.selected_books:
             st.success(f"現在の選択数: {len(st.session_state.selected_books)} 冊")
-        
         cbk,cn=st.columns([1,1])
         with cbk:
             if st.button("戻る",key="s2_back"): st.session_state.step=1; st.rerun()
@@ -391,6 +438,9 @@ def render_step2():
                     random.shuffle(st.session_state.task_queue)
                     st.session_state.step=3; st.rerun()
 
+# ==========================================
+# Step 3: 事前アンケート
+# ==========================================
 def render_step3():
     hd("Step 3 / 5","事前アンケート","マッチングタスクを開始する前に、普段の読書体験についてお答えください。")
     st.markdown('<div class="pg-notice">質問はすべて<strong>直感</strong>でお答えください。</div>',unsafe_allow_html=True)
@@ -407,91 +457,95 @@ def render_step3():
             st.session_state.user_data.update({"q1":q1,"q2":q2,"q3":q3})
             st.session_state.step=4; st.rerun()
 
+# ==========================================
+# Step 4: マッチングタスク（3列×2行 — 全6択スクロールなし）
+# ==========================================
 def render_step4():
     if st.session_state.current_q_index>=len(st.session_state.task_queue):
         st.session_state.step=5; st.rerun()
+
     idx=st.session_state.current_q_index; tot=len(st.session_state.task_queue)
     st.markdown(f'<div class="pg-progress-track"><div class="pg-progress-fill" style="width:{idx/tot*100:.1f}%"></div></div>',unsafe_allow_html=True)
+
     tb=st.session_state.task_queue[idx]; dn=get_display_name(tb)
     st.markdown(f'<p class="pg-task-q">{idx+1} / {tot} — 音の紋様を選んでください</p><p class="pg-task-book">{dn}</p>',unsafe_allow_html=True)
-    
+
     if 'step4_selected' not in st.session_state:
-        st.session_state.step4_selected = None
+        st.session_state.step4_selected=None
 
     if not st.session_state.current_options:
         opts=get_dummies(tb); opts.append(tb); random.shuffle(opts)
         st.session_state.current_options=opts
-        st.session_state.step4_selected = None
+        st.session_state.step4_selected=None
 
     opts=st.session_state.current_options; lbs=["A","B","C","D","E","F"]
-    
-    st.markdown('<div class="pg-task-options">', unsafe_allow_html=True)
-    cols = st.columns(2)
-    
-    for idx_opt in range(len(opts)):
-        col_idx = idx_opt % 2
-        with cols[col_idx]:
-            st.markdown(f'<div class="pg-task-option">', unsafe_allow_html=True)
-            
-            is_selected = (st.session_state.step4_selected == opts[idx_opt])
-            card_class = "pg-image-card selected" if is_selected else "pg-image-card"
-            
-            st.markdown(f'<div class="{card_class}">', unsafe_allow_html=True)
-            ip=get_image_path(opts[idx_opt])
-            if ip: st.image(Image.open(ip),use_container_width=True)
-            else: st.markdown('<div style="height:120px;display:flex;align-items:center;justify-content:center;">画像なし</div>',unsafe_allow_html=True)
-            st.markdown('</div>', unsafe_allow_html=True)
-            
-            btn_label = f"選択済み" if is_selected else f"選択肢 {lbs[idx_opt]} を選ぶ"
-            st.markdown(f'<style>div[data-testid="column"]:nth-child({col_idx+1}) div[data-testid="stButton"] button {{ margin-top: 8px; border-radius: 8px; background: {"#007AFF" if is_selected else "#F2F2F7"} !important; color: {"#FFFFFF" if is_selected else "#3A3A3C"} !important; }}</style>', unsafe_allow_html=True)
-            
-            if st.button(btn_label, key=f"btn_sel_{idx}_{idx_opt}", use_container_width=True):
-                st.session_state.step4_selected = opts[idx_opt]
-                st.rerun()
-                
-            st.markdown('</div>', unsafe_allow_html=True)
-    st.markdown('</div>', unsafe_allow_html=True)
-    
+
+    # ★ 3列 × 2行グリッド（全6択が画面内に収まる）
+    for row_start in [0,3]:
+        cols=st.columns(3)
+        for j in range(3):
+            idx_opt=row_start+j
+            if idx_opt>=len(opts): break
+            with cols[j]:
+                # ラベルバッジ（.pg-task-option でCSSセレクタを機能させる）
+                st.markdown(f'<span class="pg-task-option">{lbs[idx_opt]}</span>',unsafe_allow_html=True)
+                # 図形画像
+                ip=get_image_path(opts[idx_opt])
+                if ip:
+                    st.image(Image.open(ip),use_container_width=True)
+                else:
+                    st.markdown('<div style="height:70px;background:#F2F2F7;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#8E8E93">画像なし</div>',unsafe_allow_html=True)
+                # 選択ボタン（隣接セレクタCSSハックで選択状態を色分け）
+                is_sel=(st.session_state.step4_selected==opts[idx_opt])
+                st.markdown(f'<span class="{"pg-btn-sel" if is_sel else "pg-btn-unsel"}"></span>',unsafe_allow_html=True)
+                if st.button("✓" if is_sel else lbs[idx_opt],key=f"btn_{idx}_{idx_opt}",use_container_width=True):
+                    st.session_state.step4_selected=opts[idx_opt]; st.rerun()
+
     hr()
     _,cb4=st.columns([1,1])
     with cb4:
-        confirm = st.button("確定して次へ",key=f"next_{idx}",type="primary", disabled=(st.session_state.step4_selected is None))
+        confirm=st.button("確定して次へ",key=f"next_{idx}",type="primary",
+                          disabled=(st.session_state.step4_selected is None))
         if confirm:
-            ch=st.session_state.step4_selected
-            ic=(ch==tb)
+            ch=st.session_state.step4_selected; ic=(ch==tb)
             st.session_state.results.append({"出題書籍":tb,"被験者回答":ch,"正誤":"正解" if ic else "不正解"})
-            
             u=st.session_state.user_data; JST=timezone(timedelta(hours=9),"JST")
             ts=datetime.now(JST).strftime("%Y/%m/%d %H:%M:%S")
-            hn=f"anon_{st.session_state.session_id[-6:]}" 
+            hn=f"anon_{st.session_state.session_id[-6:]}"
             row_data=[ts,st.session_state.session_id,hn,u.get("age",""),u.get("gender",""),u.get("major",""),
-                        u.get("reading_freq",""),u.get("genres",""),u.get("synesthesia_score",""),
-                        u.get("q1",""),u.get("q2",""),u.get("q3",""),0,tb,ch,"正解" if ic else "不正解"]
+                      u.get("reading_freq",""),u.get("genres",""),u.get("synesthesia_score",""),
+                      u.get("q1",""),u.get("q2",""),u.get("q3",""),0,tb,ch,"正解" if ic else "不正解"]
             threading.Thread(target=async_save_task_result,args=(row_data,),daemon=True).start()
-            
-            st.session_state.current_q_index+=1; st.session_state.current_options=[]; st.session_state.step4_selected=None; st.rerun()
+            st.session_state.current_q_index+=1; st.session_state.current_options=[]
+            st.session_state.step4_selected=None; st.rerun()
 
+# ==========================================
+# Step 5: 実験完了
+# ==========================================
 def render_step5():
     st.balloons()
-    hd("Step 5 / 5", "実験完了", "すべてのタスクが終了しました。ご協力いただき誠にありがとうございました。")
+    hd("Step 5 / 5","実験完了","すべてのタスクが終了しました。ご協力いただき誠にありがとうございました。")
     st.markdown("""
-    <div class="pg-notice" style="background:#FFFFFF; border:2px solid #E5E5EA; padding:32px;">
-        <h3 style="color:#007AFF; margin-top:0; margin-bottom:16px;">Phonoglyph 研究プロジェクト</h3>
-        <p style="font-size:15px; line-height:1.7;">文章の音の響き（音象徴）から直感的な図形を生成し、未知の書籍との新しい出会いを創出するための研究にご参加いただき、深く感謝申し上げます。</p>
-        <p style="font-size:15px; line-height:1.7;">皆様からいただいた直感的な評価データは、本研究のアルゴリズムを検証・発展させるための極めて重要な基礎となります。貴重なお時間を割いていただき、本当にありがとうございました。</p>
+    <div class="pg-notice" style="background:#FFFFFF;border:2px solid #E5E5EA;padding:32px;">
+        <h3 style="color:#007AFF;margin-top:0;margin-bottom:16px;">Phonoglyph 研究プロジェクト</h3>
+        <p style="font-size:15px;line-height:1.7;">文章の音の響き（音象徴）から直感的な図形を生成し、未知の書籍との新しい出会いを創出するための研究にご参加いただき、深く感謝申し上げます。</p>
+        <p style="font-size:15px;line-height:1.7;">皆様からいただいた直感的な評価データは、本研究のアルゴリズムを検証・発展させるための極めて重要な基礎となります。貴重なお時間を割いていただき、本当にありがとうございました。</p>
     </div>
-    """, unsafe_allow_html=True)
+    """,unsafe_allow_html=True)
     hr()
     qru=f"https://api.qrserver.com/v1/create-qr-code/?size=160x160&data={urllib.parse.quote(DEPLOY_URL)}"
     st.markdown(f'<div class="pg-qr-wrap"><img src="{qru}" width="160" style="border-radius:12px"></div>',unsafe_allow_html=True)
-    st.markdown('<p style="text-align:center;font-size:13px;color:#8E8E93;margin:8px 0 4px">右上のアイコンでURLをコピーしてシェアできます</p>',unsafe_allow_html=True)
-    st.code(DEPLOY_URL, language=None)
+    st.markdown('<p style="text-align:center;font-size:13px;color:#8E8E93;margin:8px 0 4px">URLをコピーしてシェアできます</p>',unsafe_allow_html=True)
+    st.code(DEPLOY_URL,language=None)
     hr()
     _,cr5=st.columns([1,1])
     with cr5:
         if st.button("トップに戻る",key="restart",type="primary"):
             reset_session(); st.rerun()
 
+# ==========================================
+# シミュレーター（管理者専用）
+# ==========================================
 def render_simulator():
     hd("管理者","Phonoglyph シミュレーター","音素パラメータをリアルタイムで変化させて図形を確認できます。")
     BL=phonoglyph_math.BASELINE; cp,cv=st.columns([1,1.5])
@@ -508,38 +562,36 @@ def render_simulator():
         ax.plot(x,y,color="black",linewidth=lw,solid_joinstyle="round")
         ax.fill(x,y,color="black",alpha=0.05); ax.set_aspect("equal"); ax.axis("off"); st.pyplot(fig)
 
+# ==========================================
+# メイン
+# ==========================================
 def main():
-    # URLパラメータからモードを取得
-    mode = st.query_params.get("mode")
-    if isinstance(mode, list): mode = mode[0] if mode else None
-    if mode == "admin": st.session_state.is_admin = True
-    if mode == "sim": st.session_state.is_admin = True; st.session_state.admin_mode = "シミュレーター (デモ用)"
+    mode=st.query_params.get("mode")
+    if isinstance(mode,list): mode=mode[0] if mode else None
+    if mode=="admin": st.session_state.is_admin=True
+    if mode=="sim": st.session_state.is_admin=True; st.session_state.admin_mode="シミュレーター (デモ用)"
 
-    # 管理者用サイドバー（前回誤って消してしまった部分を完全復元）
     with st.sidebar:
-        st.markdown("### 🌒 Phonoglyph")
-        hr()
-        if not st.session_state.get('is_admin', False):
+        st.markdown("### 🌒 Phonoglyph"); hr()
+        if not st.session_state.get('is_admin',False):
             st.caption("管理者・研究者向け")
-            if st.button("管理者モードに切り替え", key="admin_on"): 
-                st.session_state.is_admin = True
-                st.rerun()
+            if st.button("管理者モードに切り替え",key="admin_on"):
+                st.session_state.is_admin=True; st.rerun()
         else:
             st.caption("管理者モード 有効")
-            sel = st.radio("表示モード", ["実験タスク", "シミュレーター"], index=0 if st.session_state.get('admin_mode', "実験タスク (被験者用)") == "実験タスク (被験者用)" else 1)
-            st.session_state.admin_mode = "実験タスク (被験者用)" if sel == "実験タスク" else "シミュレーター (デモ用)"
+            sel=st.radio("表示モード",["実験タスク","シミュレーター"],
+                         index=0 if st.session_state.get('admin_mode',"実験タスク (被験者用)")=="実験タスク (被験者用)" else 1)
+            st.session_state.admin_mode="実験タスク (被験者用)" if sel=="実験タスク" else "シミュレーター (デモ用)"
             hr()
-            st.caption(f"読込: {st.session_state.get('debug_target_file', '—')}")
-            st.caption(f"結合: {st.session_state.get('debug_match_count', 0)}/{len(ALL_BOOKS)} 件")
-            if st.button("管理者モードを解除", key="admin_off"): 
-                st.session_state.is_admin = False
-                st.session_state.admin_mode = "実験タスク (被験者用)"
-                st.rerun()
+            st.caption(f"読込: {st.session_state.get('debug_target_file','—')}")
+            st.caption(f"結合: {st.session_state.get('debug_match_count',0)}/{len(ALL_BOOKS)} 件")
+            if st.button("管理者モードを解除",key="admin_off"):
+                st.session_state.is_admin=False; st.session_state.admin_mode="実験タスク (被験者用)"; st.rerun()
 
     render_topbar()
-    
-    if st.session_state.get('admin_mode', "実験タスク (被験者用)") == "実験タスク (被験者用)":
-        {1:render_step1, 2:render_step2, 3:render_step3, 4:render_step4, 5:render_step5}.get(st.session_state.step, render_step1)()
+
+    if st.session_state.get('admin_mode',"実験タスク (被験者用)")=="実験タスク (被験者用)":
+        {1:render_step1,2:render_step2,3:render_step3,4:render_step4,5:render_step5}.get(st.session_state.step,render_step1)()
     else:
         render_simulator()
 
