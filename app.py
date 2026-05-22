@@ -14,7 +14,7 @@ st.set_page_config(page_title="Phonoglyph", page_icon="🌒",
                    layout="centered", initial_sidebar_state="collapsed")
 
 # ==========================================
-# 1. カスタムCSS (カード型UI・スマホ最適化レイアウトを追加)
+# 1. カスタムCSS (スマホ完全最適化・フローティングUI実装)
 # ==========================================
 CSS = """
 <style>
@@ -45,6 +45,8 @@ section[data-testid="stSidebar"] .stSlider>div>div>div{background:#007AFF!import
 .pg-consent-body{font-size:14px;color:#3A3A3C;line-height:1.65;margin:0;}
 .pg-consent-item{font-size:14px;color:#3A3A3C;line-height:1.65;padding-left:1em;margin:2px 0;}
 .pg-consent-item::before{content:"·";margin-right:6px;color:#8E8E93;}
+
+/* ボタン共通のモダンデザイン */
 .stButton>button{border:none;border-radius:22px;font-size:15px;font-weight:600;padding:10px 28px;width:100%;transition:opacity .15s,transform .12s;}
 .stButton>button[kind="primary"],.stButton>button[kind="primary"]:hover,
 .stButton>button[kind="primary"]:focus,.stButton>button[kind="primary"] *
@@ -53,54 +55,68 @@ section[data-testid="stSidebar"] .stSlider>div>div>div{background:#007AFF!import
 .stButton>button[kind="secondary"],.stButton>button:not([kind]),
 .stButton>button[kind="secondary"] *,.stButton>button:not([kind]) *
 {background:#E8E8ED!important;color:#1C1C1E!important;}
+.stButton>button:not([kind]):hover{background:#007AFF!important;color:#FFFFFF!important;}
 .stButton>button:active{transform:scale(.98);}
-.stTextInput>div>div>input{border-radius:10px!important;border:1.5px solid #E5E5EA!important;background:#FFFFFF!important;font-size:15px!important;padding:10px 14px!important;color:#1C1C1E!important;}
-.stTextInput>div>div>input::placeholder{color:#C7C7CC!important;opacity:1;}
-.stTextInput>div>div>input:focus{border-color:#007AFF!important;box-shadow:0 0 0 3px rgba(0,122,255,.12)!important;}
-.stNumberInput>div,.stNumberInput div[data-baseweb="input"],.stNumberInput div[data-baseweb="base-input"]{background:#FFFFFF!important;border:1.5px solid #E5E5EA!important;border-radius:10px!important;}
-.stNumberInput input{background:#FFFFFF!important;color:#1C1C1E!important;font-size:15px!important;}
-.stNumberInput button{background:transparent!important;color:#3A3A3C!important;border:none!important;}
-.stNumberInput button svg{fill:#3A3A3C!important;}
-div[data-baseweb="select"]>div{border-radius:10px!important;border:1.5px solid #E5E5EA!important;background:#FFFFFF!important;}
-div[data-baseweb="select"]>div:focus-within{border-color:#007AFF!important;box-shadow:0 0 0 3px rgba(0,122,255,.12)!important;}
-div[data-baseweb="select"] span,div[data-baseweb="select"] div,div[data-baseweb="select"] p,
-div[data-baseweb="select"] *:not(svg):not(path):not([data-baseweb="tag"]){color:#1C1C1E!important;}
-div[data-baseweb="select"] input::placeholder{color:#C7C7CC!important;}
-div[data-baseweb="tag"]{background:rgba(0,122,255,0.1)!important;border:none!important;border-radius:100px!important;}
-div[data-baseweb="tag"] span,div[data-baseweb="tag"] div{color:#007AFF!important;}
-ul[data-baseweb="menu"],div[data-baseweb="popover"]>div[role="listbox"]{background:#FFFFFF!important;border:1px solid #E5E5EA!important;border-radius:12px!important;box-shadow:0 4px 20px rgba(0,0,0,0.1)!important;}
-ul[data-baseweb="menu"] li{background:#FFFFFF!important;color:#1C1C1E!important;}
-ul[data-baseweb="menu"] li *{color:#1C1C1E!important;}
-ul[data-baseweb="menu"] li:hover{background:#F2F2F7!important;}
-ul[data-baseweb="menu"] li[aria-selected="true"]{background:rgba(0,122,255,0.08)!important;}
-.stRadio [role="radio"],[data-testid="stRadio"] [role="radio"]{background:#FFFFFF!important;border:1.5px solid #C7C7CC!important;border-radius:50%!important;}
-.stRadio [role="radio"][aria-checked="true"],[data-testid="stRadio"] [role="radio"][aria-checked="true"]{background:#007AFF!important;border-color:#007AFF!important;}
-.stRadio [data-testid="stWidgetLabel"] p,.stRadio label p,.stRadio label span{font-size:15px!important;color:#1C1C1E!important;}
 
 /* =========================================
-   Step 1/2: カード型チェックボックス UI
+   Step 2: スマホでの「書籍＋あらすじ📖」横並び強制ハック
    ========================================= */
-.stCheckbox>label{
-    background:#FFFFFF;border:2px solid #E5E5EA;border-radius:12px;
-    padding:12px 16px;margin-bottom:8px;cursor:pointer;
-    transition:all 0.2s ease-in-out;display:flex;align-items:center;}
-.stCheckbox>label:hover{
-    border-color:#007AFF;box-shadow:0 4px 14px rgba(0,122,255,0.1);transform:translateY(-1px);}
-.stCheckbox [role="checkbox"]{
-    background:#FFFFFF!important;border:1.5px solid #C7C7CC!important;border-radius:4px!important;}
-.stCheckbox [role="checkbox"][aria-checked="true"]{
-    background:#007AFF!important;border-color:#007AFF!important;}
-.stCheckbox>label:has([aria-checked="true"]){
-    border-color:#007AFF;background:rgba(0,122,255,0.05);}
+div[data-testid="stHorizontalBlock"]:has([data-testid="stPopover"]) {
+    flex-wrap: nowrap !important;
+    align-items: center !important;
+}
+div[data-testid="stHorizontalBlock"]:has([data-testid="stPopover"]) > div[data-testid="column"]:first-child {
+    min-width: 0 !important; width: 85% !important; flex: 1 1 auto !important;
+}
+div[data-testid="stHorizontalBlock"]:has([data-testid="stPopover"]) > div[data-testid="column"]:last-child {
+    min-width: 0 !important; width: 15% !important; flex: 0 0 auto !important;
+    display: flex; justify-content: flex-end;
+}
+.stPopover button { padding: 4px 8px !important; margin: 0 !important; }
+
+/* Step 2: カード型チェックボックス UI */
+div[data-testid="stCheckbox"] {
+    background: #FFFFFF; border: 2px solid #E5E5EA; border-radius: 12px;
+    padding: 12px 14px; margin-bottom: 8px; transition: all 0.2s ease-in-out;
+    display: flex; align-items: center;
+}
+div[data-testid="stCheckbox"]:hover {
+    border-color: #007AFF; box-shadow: 0 4px 14px rgba(0, 122, 255, 0.15); transform: translateY(-1px);
+}
+div[data-testid="stCheckbox"]:has(input:checked) {
+    border-color: #007AFF; background: rgba(0, 122, 255, 0.05);
+}
+div[data-testid="stCheckbox"] label { cursor: pointer; width: 100%; }
+.stCheckbox [role="checkbox"],[data-testid="stCheckbox"] [role="checkbox"]{background:#FFFFFF!important;border:1.5px solid #C7C7CC!important;border-radius:4px!important;}
+.stCheckbox [role="checkbox"][aria-checked="true"],[data-testid="stCheckbox"] [role="checkbox"][aria-checked="true"]{background:#007AFF!important;border-color:#007AFF!important;}
 .stCheckbox label p,.stCheckbox label span{color:#1C1C1E!important;font-size:14px!important;font-weight:600;}
 
 /* =========================================
-   Step 4: タスク図形選択用・スマホ最適化カードUI
+   Step 2: 画面下部フローティング・アクション・バー
    ========================================= */
-.pg-task-options {display:block;margin-top:20px;}
+div[data-testid="stVerticalBlock"]:has(> div > div > div > div > span.floating-bar-target) {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    width: calc(100% - 32px); max-width: 740px;
+    background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    padding: 16px 20px; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    z-index: 1000; border: 1px solid rgba(0,0,0,0.05);
+}
+.bottom-spacer { height: 160px; }
+
+/* =========================================
+   Step 4: スマホでも「横2列・縦3行」を強制するハック
+   ========================================= */
+div[data-testid="stHorizontalBlock"]:has(.pg-task-option) {
+    flex-wrap: nowrap !important;
+}
+div[data-testid="stHorizontalBlock"]:has(.pg-task-option) > div[data-testid="column"] {
+    min-width: 0 !important; width: 50% !important; flex: 1 1 50% !important;
+}
+
+/* Step 4: タスク図形選択用カードUI */
+.pg-task-options {display:block;margin-top:10px;}
 .pg-task-option {margin-bottom:12px;position:relative;}
 
-/* 各選択肢のカラムコンテナをカードにするCSSハック */
 div[data-testid="column"] .stCheckbox>label {
     display:block;padding:12px;border:2px solid #E5E5EA;border-radius:16px;background:#FFFFFF;
     box-shadow:0 1px 3px rgba(0,0,0,.04);transition:all 0.2s;text-align:center;}
@@ -109,44 +125,36 @@ div[data-testid="column"] .stCheckbox>label:hover {
 div[data-testid="column"] .stCheckbox>label:has([aria-checked="true"]){
     border-color:#007AFF;background:rgba(0,122,255,0.05);}
 
-/* チェックボックスの丸ポチを非表示にし、画像全体を選択可能に */
 div[data-testid="column"] .stCheckbox [role="checkbox"] {display:none!important;}
 div[data-testid="column"] .stCheckbox [data-testid="stWidgetLabel"] {
     margin-left:0!important;padding-left:0!important;width:100%;}
 div[data-testid="column"] .stCheckbox label p {font-size:13px!important;color:#8E8E93!important;}
 div[data-testid="column"] .stCheckbox label:has([aria-checked="true"]) p {color:#007AFF!important;}
 
-.stSlider>div>div>div{background:#007AFF!important;}
-.stSlider [data-testid="stTickBarMin"],.stSlider [data-testid="stTickBarMax"],
-.stSlider [data-testid="stSliderTickBarMin"],.stSlider [data-testid="stSliderTickBarMax"],
-.stSlider p{color:#3A3A3C!important;}
-[data-testid="stPopoverBody"],[data-testid="stPopoverBody"]>div,
-div[role="dialog"],div[role="dialog"]>div,div[role="tooltip"],
-.stPopover div[data-baseweb="popover"]
-{background:#FFFFFF!important;background-color:#FFFFFF!important;
- border:none!important;border-radius:20px!important;
- box-shadow:0 12px 40px rgba(0,0,0,0.10),0 2px 8px rgba(0,0,0,0.06)!important;}
-[data-testid="stPopoverBody"] *,div[role="dialog"] p,div[role="dialog"] span,
-div[role="dialog"] div,div[role="dialog"] strong{color:#1C1C1E!important;background-color:transparent;}
+/* その他汎用UI */
+.stTextInput>div>div>input{border-radius:10px!important;border:1.5px solid #E5E5EA!important;background:#FFFFFF!important;font-size:15px!important;padding:10px 14px!important;color:#1C1C1E!important;}
+.stTextInput>div>div>input:focus{border-color:#007AFF!important;box-shadow:0 0 0 3px rgba(0,122,255,.12)!important;}
+.stNumberInput>div,.stNumberInput div[data-baseweb="input"],.stNumberInput div[data-baseweb="base-input"]{background:#FFFFFF!important;border:1.5px solid #E5E5EA!important;border-radius:10px!important;}
+div[data-baseweb="select"]>div{border-radius:10px!important;border:1.5px solid #E5E5EA!important;background:#FFFFFF!important;}
+div[data-baseweb="select"]>div:focus-within{border-color:#007AFF!important;box-shadow:0 0 0 3px rgba(0,122,255,.12)!important;}
+.stRadio [role="radio"],[data-testid="stRadio"] [role="radio"]{background:#FFFFFF!important;border:1.5px solid #C7C7CC!important;border-radius:50%!important;}
+.stRadio [role="radio"][aria-checked="true"],[data-testid="stRadio"] [role="radio"][aria-checked="true"]{background:#007AFF!important;border-color:#007AFF!important;}
+[data-testid="stPopoverBody"],[data-testid="stPopoverBody"]>div, div[role="dialog"],div[role="dialog"]>div,div[role="tooltip"], .stPopover div[data-baseweb="popover"]
+{background:#FFFFFF!important; border:none!important;border-radius:20px!important; box-shadow:0 12px 40px rgba(0,0,0,0.10),0 2px 8px rgba(0,0,0,0.06)!important;}
 [data-testid="stPopoverBody"]>div>div{padding:12px 16px!important;}
 .stPopover button,[data-testid="stPopover"] button{background:transparent!important;border:none!important;font-size:18px!important;color:#8E8E93!important;line-height:1;}
-[data-testid="stExpander"]{border:1px solid #E5E5EA!important;border-radius:12px!important;background:#FFFFFF!important;overflow:hidden;}
-[data-testid="stExpander"] summary{background:#FFFFFF!important;padding:12px 16px!important;}
-[data-testid="stExpander"] summary p,[data-testid="stExpander"] summary span,
-[data-testid="stExpanderToggleIcon"]{color:#1C1C1E!important;}
-[data-testid="stExpander"]>div:last-child{background:#FFFFFF!important;padding:4px 16px 16px!important;}
 .pg-progress-track{height:3px;background:#E5E5EA;border-radius:100px;margin-bottom:40px;overflow:hidden;}
 .pg-progress-fill{height:3px;background:#007AFF;border-radius:100px;transition:width .4s;}
 .pg-task-q{font-size:15px;color:#8E8E93;text-align:center;margin-bottom:4px;}
 .pg-task-book{font-size:22px;font-weight:700;color:#007AFF;text-align:center;letter-spacing:-.3px;margin-bottom:28px;}
-.pg-option-badge{display:inline-block;background:#F2F2F7;color:#3A3A3C;font-size:11px;font-weight:700;letter-spacing:.8px;padding:2px 9px;border-radius:100px;margin-bottom:8px;}
 .pg-qr-wrap{text-align:center;padding:20px 0;}
-.stSuccess>div{border-radius:10px!important;border:none!important;background:rgba(48,209,88,0.1)!important;}
+.stSuccess>div{border-radius:10px!important;border:none!important;background:rgba(48,209,88,0.1)!important; margin-bottom:12px;}
 .stSuccess p{color:#1C7A3A!important;font-weight:600!important;font-size:14px!important;}
 @media(max-width:600px){
     .block-container{padding:24px 12px 60px!important;}
-    div[data-testid="stHorizontalBlock"]{flex-wrap:wrap!important;}
-    div[data-testid="column"]{flex:1 1 260px!important;min-width:0!important;}
+    /* スマホで横並びを強制したいコンポーネント以外は折り返すようにする */
+    div[data-testid="stHorizontalBlock"]:not(:has([data-testid="stPopover"])):not(:has(.pg-task-option)) { flex-wrap:wrap!important; }
+    div[data-testid="stHorizontalBlock"]:not(:has([data-testid="stPopover"])):not(:has(.pg-task-option)) > div[data-testid="column"] { flex:1 1 260px!important; min-width:0!important; }
 }
 #MainMenu,footer,header,.stDeployButton{visibility:hidden;}
 </style>
@@ -158,7 +166,11 @@ def hd(eb,ti,su=None):
     if su: st.markdown(f'<p class="pg-subtitle">{su}</p>',unsafe_allow_html=True)
 def hr(): st.markdown('<hr class="pg-divider">',unsafe_allow_html=True)
 def reset_session():
+    adm=st.session_state.get('is_admin', False)
+    adm_mode=st.session_state.get('admin_mode', "実験タスク (被験者用)")
+    amp=st.session_state.get('amp_power', 0.8)
     for k in list(st.session_state.keys()): del st.session_state[k]
+    st.session_state.is_admin=adm; st.session_state.admin_mode=adm_mode; st.session_state.amp_power=amp
     st.session_state.session_id=str(uuid.uuid4()); st.session_state.step=1; st.session_state.user_data={}
     st.session_state.selected_books=[]; st.session_state.task_queue=[]; st.session_state.current_q_index=0
     st.session_state.results=[]; st.session_state.current_options=[]
@@ -216,8 +228,11 @@ def load_book_metadata(all_books_list):
         merged_df['発表年']=pd.to_numeric(merged_df.get('発表年',9999),errors='coerce').fillna(9999)
         merged_df['ジャンル']=merged_df.get('ジャンル','不明').fillna('不明').astype(str).str.strip()
         merged_df['あらすじ']=merged_df.get('あらすじ','あらすじ情報なし').fillna('あらすじ情報なし')
+        st.session_state.debug_target_file=target_file; st.session_state.debug_match_count=sum(1 for d in matched_rows if d)
         return merged_df
-    except: return _get_fallback_df(all_books_df)
+    except Exception as e:
+        st.session_state.debug_error=str(e)
+        return _get_fallback_df(all_books_df)
 
 def get_image_path(book_name):
     for d in glob.glob(f"{IMAGE_DIR}*"):
@@ -238,19 +253,15 @@ def get_display_name(roman_name):
 # 随時データ送信ロジック（別スレッド実行用）
 # ==========================================
 def async_save_task_result(row_data):
-    sc=["https://www.googleapis.com/auth/spreadsheets","https://www.googleapis.com/auth/drive"]
-    cr=Credentials.from_service_account_info(dict(st.secrets["gcp_service_account"]),scopes=sc)
-    cl=gspread.authorize(cr); sh=cl.open_by_url(st.secrets["private_gsheets_url"]).sheet1
-    sh.append_row(row_data)
+    try:
+        sc=["https://www.googleapis.com/auth/spreadsheets","https://www.googleapis.com/auth/drive"]
+        cr=Credentials.from_service_account_info(dict(st.secrets["gcp_service_account"]),scopes=sc)
+        cl=gspread.authorize(cr); sh=cl.open_by_url(st.secrets["private_gsheets_url"]).sheet1
+        sh.append_row(row_data)
+    except Exception as e:
+        print(f"Async save error: {e}")
 
-if 'session_id' not in st.session_state: st.session_state.session_id=str(uuid.uuid4())
-if 'step' not in st.session_state: st.session_state.step=1
-if 'user_data' not in st.session_state: st.session_state.user_data={}
-if 'selected_books' not in st.session_state: st.session_state.selected_books=[]
-if 'task_queue' not in st.session_state: st.session_state.task_queue=[]
-if 'current_q_index' not in st.session_state: st.session_state.current_q_index=0
-if 'results' not in st.session_state: st.session_state.results=[]
-if 'current_options' not in st.session_state: st.session_state.current_options=[]
+if 'session_id' not in st.session_state: reset_session()
 
 def get_dummies(target_book):
     pool=[b for b in ALL_BOOKS if b not in st.session_state.selected_books and b!=target_book and b in DB_DATA]
@@ -338,6 +349,7 @@ def render_step2():
                 r=dr[i+j]; rn=r['ローマ字ファイル名']; jp=r['日本語書籍名']; au=r['著者名']
                 dl=f"『{jp}』\n{au}" if au!='不明' else f"『{jp}』"
                 with cols[j]:
+                    # 【改修】スマホで横並びを維持するDOM構造（CSSハック対応）
                     cc,cb=st.columns([4,1])
                     with cc:
                         ic=rn in st.session_state.selected_books
@@ -353,18 +365,26 @@ def render_step2():
                                 hr(); st.markdown(f'<p style="font-size:14px;line-height:1.6;color:#3A3A3C">{r["あらすじ"]}</p>',unsafe_allow_html=True)
                             else: st.caption("詳細情報なし")
 
-    hr()
-    if st.session_state.selected_books: st.success(f"現在の選択数: {len(st.session_state.selected_books)} 冊")
-    cbk,cn=st.columns([1,1])
-    with cbk:
-        if st.button("戻る",key="s2_back"): st.session_state.step=1; st.rerun()
-    with cn:
-        if st.button("次へ進む",key="s2_next",type="primary"):
-            if not st.session_state.selected_books: st.error("最低1冊は選択してください。")
-            else:
-                st.session_state.task_queue=st.session_state.selected_books.copy()
-                random.shuffle(st.session_state.task_queue)
-                st.session_state.step=3; st.rerun()
+    # ==========================================
+    # 【改修】フローティング・アクション・バー
+    # ==========================================
+    st.markdown('<div class="bottom-spacer"></div>', unsafe_allow_html=True) # スクロール用の余白
+    with st.container():
+        # この span を目印にして、CSSで親コンテナごと画面下部に固定（フローティング化）する
+        st.markdown('<span class="floating-bar-target"></span>', unsafe_allow_html=True)
+        if st.session_state.selected_books: 
+            st.success(f"現在の選択数: {len(st.session_state.selected_books)} 冊")
+        
+        cbk,cn=st.columns([1,1])
+        with cbk:
+            if st.button("戻る",key="s2_back"): st.session_state.step=1; st.rerun()
+        with cn:
+            if st.button("次へ進む",key="s2_next",type="primary"):
+                if not st.session_state.selected_books: st.error("最低1冊は選択してください。")
+                else:
+                    st.session_state.task_queue=st.session_state.selected_books.copy()
+                    random.shuffle(st.session_state.task_queue)
+                    st.session_state.step=3; st.rerun()
 
 def render_step3():
     hd("Step 3 / 5","事前アンケート","マッチングタスクを開始する前に、普段の読書体験についてお答えください。")
@@ -390,79 +410,65 @@ def render_step4():
     tb=st.session_state.task_queue[idx]; dn=get_display_name(tb)
     st.markdown(f'<p class="pg-task-q">{idx+1} / {tot} — 音の紋様を選んでください</p><p class="pg-task-book">{dn}</p>',unsafe_allow_html=True)
     
-    # セッションステートで Mutual Exclusion ロジック用のIDを管理
     if 'step4_selected' not in st.session_state:
         st.session_state.step4_selected = None
 
     if not st.session_state.current_options:
         opts=get_dummies(tb); opts.append(tb); random.shuffle(opts)
         st.session_state.current_options=opts
-        # 新しい問題が出たら選択状態をリセット
         st.session_state.step4_selected = None
 
     opts=st.session_state.current_options; lbs=["A","B","C","D","E","F"]
     
     # =========================================
-    # 【改修】横2列縦3行のカード型UIレイアウト
+    # 【改修】スマホで強制的に「横2列・縦3行」を維持するレイアウト
     # =========================================
     st.markdown('<div class="pg-task-options">', unsafe_allow_html=True)
-    
-    # Streamlitの st.columns をループ内で正しく使う
-    cols = st.columns(2) # 2列作成
+    cols = st.columns(2)
     
     for idx_opt in range(len(opts)):
-        col_idx = idx_opt % 2 # 0, 1, 0, 1...
+        col_idx = idx_opt % 2
         with cols[col_idx]:
-            # 図形を表示するカラム内コンテナにクラスを付与 (CSSハック用)
+            # スマホ横並び強制用ハックのためのマーカークラス
             st.markdown(f'<div class="pg-task-option">', unsafe_allow_html=True)
             
             ip=get_image_path(opts[idx_opt])
             if ip: st.image(Image.open(ip),use_container_width=True)
             else: st.markdown('<div style="height:120px;background:#F2F2F7;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#8E8E93;font-size:12px">画像なし</div>',unsafe_allow_html=True)
             
-            # 【UX改修】図形に触れると選択。st.checkbox をCSSでカード化する。
-            # Python側のMutual Exclusion ロジック
+            # 図形タップ選択用ハック（ラジオボタン的な挙動）
             is_selected = (st.session_state.step4_selected == opts[idx_opt])
-            
             if st.checkbox(f"選択肢 {lbs[idx_opt]}", value=is_selected, key=f"opt_{idx}_{idx_opt}"):
-                # チェックされたら、他のチェックを外す（単一選択）
                 if st.session_state.step4_selected != opts[idx_opt]:
                     st.session_state.step4_selected = opts[idx_opt]
-                    st.rerun() # リロードして他のチェックを外す
+                    st.rerun() 
             else:
-                # アンチェックされたらステートをクリア
                 if st.session_state.step4_selected == opts[idx_opt]:
                     st.session_state.step4_selected = None
-            
             st.markdown('</div>', unsafe_allow_html=True)
-    
     st.markdown('</div>', unsafe_allow_html=True)
     
     hr()
-    # 以前のようなアルファベットによる記号接地（A〜F）を廃止。
-    # 選択されている図形ID（書籍ハッシュ名）から正誤判定を行う。
     _,cb4=st.columns([1,1])
     with cb4:
-        # 選択中のみボタンを有効化
+        # 図形が選択されている時のみ「確定して次へ」ボタンを有効化
         confirm = st.button("確定して次へ",key=f"next_{idx}",type="primary", disabled=(st.session_state.step4_selected is None))
         if confirm:
             ch=st.session_state.step4_selected
             ic=(ch==tb)
             st.session_state.results.append({"出題書籍":tb,"被験者回答":ch,"正誤":"正解" if ic else "不正解"})
             
-            # 【随時送信】1問随時バックグラウンド送信 (以前のラリー実装継承)
             u=st.session_state.user_data; JST=timezone(timedelta(hours=9),"JST")
             ts=datetime.now(JST).strftime("%Y/%m/%d %H:%M:%S")
             hn=f"anon_{st.session_state.session_id[-6:]}" 
             row_data=[ts,st.session_state.session_id,hn,u.get("age",""),u.get("gender",""),u.get("major",""),
                         u.get("reading_freq",""),u.get("genres",""),u.get("synesthesia_score",""),
-                        u.get("q1",""),u.get("q2",""),u.get("q3",""),0,tb,ch,"正解" if ic else "不正解"] # Accuracyは0で随時
+                        u.get("q1",""),u.get("q2",""),u.get("q3",""),0,tb,ch,"正解" if ic else "不正解"]
             threading.Thread(target=async_save_task_result,args=(row_data,),daemon=True).start()
             
             st.session_state.current_q_index+=1; st.session_state.current_options=[]; st.rerun()
 
 def render_step5():
-    # 以前のラリーで実装した謝辞画面 (提供画像旧版からの転換)
     st.balloons()
     hd("Step 5 / 5", "実験完了", "すべてのタスクが終了しました。ご協力いただき誠にありがとうございました。")
     st.markdown("""
@@ -473,10 +479,9 @@ def render_step5():
     </div>
     """, unsafe_allow_html=True)
     hr()
-    # QRコード等は以前のラリー継承
     qru=f"https://api.qrserver.com/v1/create-qr-code/?size=160x160&data={urllib.parse.quote(DEPLOY_URL)}"
     st.markdown(f'<div class="pg-qr-wrap"><img src="{qru}" width="160" style="border-radius:12px"></div>',unsafe_allow_html=True)
-    # st.code は Streamlit ネイティブ継承
+    st.markdown('<p style="text-align:center;font-size:13px;color:#8E8E93;margin:8px 0 4px">右上のアイコンでURLをコピーしてシェアできます</p>',unsafe_allow_html=True)
     st.code(DEPLOY_URL, language=None)
     hr()
     _,cr5=st.columns([1,1])
@@ -484,9 +489,46 @@ def render_step5():
         if st.button("トップに戻る",key="restart",type="primary"):
             reset_session(); st.rerun()
 
+def render_simulator():
+    hd("管理者","Phonoglyph シミュレーター","音素パラメータをリアルタイムで変化させて図形を確認できます。")
+    BL=phonoglyph_math.BASELINE; cp,cv=st.columns([1,1.5])
+    with cp:
+        vf=st.slider("前舌母音 VF",0.0,50.0,BL["vf"]); vb=st.slider("後舌母音 VB",0.0,50.0,BL["vb"])
+        obs=st.slider("阻害音 OBS",0.0,50.0,BL["obs"]); son=st.slider("共鳴音 SON",0.0,50.0,BL["son"])
+        hr(); st.caption("有声音 VD（交絡変数排除のため固定）")
+        vd=st.slider("VD",0.0,20.0,BL["vd"],disabled=True,label_visibility="collapsed")
+        hr(); st.caption("増幅係数 β")
+        st.session_state.amp_power=st.slider("β",0.1,2.0,st.session_state.amp_power,0.1,label_visibility="collapsed")
+    with cv:
+        x,y,lw=phonoglyph_math.calculate_phonoglyph_coordinates(vf,vb,obs,son,vd,amp_power=st.session_state.amp_power)
+        fig,ax=plt.subplots(figsize=(5,5),facecolor="white")
+        ax.plot(x,y,color="black",linewidth=lw,solid_joinstyle="round")
+        ax.fill(x,y,color="black",alpha=0.05); ax.set_aspect("equal"); ax.axis("off"); st.pyplot(fig)
+
 def main():
-    if not st.session_state.results: reset_session()
+    mode=st.query_params.get("mode")
+    if isinstance(mode,list): mode=mode[0] if mode else None
+    if mode=="admin": st.session_state.is_admin=True
+    if mode=="sim": st.session_state.is_admin=True; st.session_state.admin_mode="シミュレーター (デモ用)"
+
+    with st.sidebar:
+        st.markdown("### 🌒 Phonoglyph")
+        hr()
+        if not st.session_state.is_admin:
+            st.caption("管理者・研究者向け")
+            if st.button("管理者モードに切り替え",key="admin_on"): st.session_state.is_admin=True; st.rerun()
+        else:
+            st.caption("管理者モード 有効")
+            sel=st.radio("表示モード",["実験タスク","シミュレーター"],index=0 if st.session_state.admin_mode=="実験タスク (被験者用)" else 1)
+            st.session_state.admin_mode="実験タスク (被験者用)" if sel=="実験タスク" else "シミュレーター (デモ用)"
+            hr()
+            st.caption(f"読込: {st.session_state.get('debug_target_file','—')}")
+            st.caption(f"結合: {st.session_state.get('debug_match_count',0)}/{len(ALL_BOOKS)} 件")
+            if st.button("管理者モードを解除",key="admin_off"): st.session_state.is_admin=False; st.session_state.admin_mode="実験タスク (被験者用)"; st.rerun()
+
     render_topbar()
-    {1:render_step1,2:render_step2,3:render_step3,4:render_step4,5:render_step5}.get(st.session_state.step,render_step1)()
+    if st.session_state.admin_mode=="実験タスク (被験者用)":
+        {1:render_step1,2:render_step2,3:render_step3,4:render_step4,5:render_step5}.get(st.session_state.step,render_step1)()
+    else: render_simulator()
 
 if __name__=="__main__": main()
