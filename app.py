@@ -1,5 +1,5 @@
 import streamlit as st
-import os, glob, random, pickle
+import os, glob, random, pickle, base64, io
 import numpy as np
 from PIL import Image
 from datetime import datetime, timedelta, timezone
@@ -66,12 +66,9 @@ section[data-testid="stSidebar"] .stSlider>div>div>div{background:#007AFF!import
 
 /* =========================================
    Step 2: 書籍チェック行（内側2列）の横並び維持
-   ※ > で直接の子を指定し、外側の書籍グリッドに波及させない
    ========================================= */
 div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"] > div > div[data-testid="stPopover"]) {
-    flex-wrap: nowrap !important;
-    align-items: center !important;
-    gap: 4px !important;
+    flex-wrap: nowrap !important; align-items: center !important; gap: 4px !important;
 }
 div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"] > div > div[data-testid="stPopover"]) > div[data-testid="column"]:first-child {
     min-width: 0 !important; width: calc(100% - 44px) !important; flex: 1 1 auto !important;
@@ -108,31 +105,68 @@ div[data-testid="stVerticalBlock"]:has(> div > div > div > div > span.floating-b
 .bottom-spacer{height:160px;}
 
 /* =========================================
-   Step 4: 3列タスク図形グリッド
+   Step 4: カルーセルUI
    ========================================= */
-div[data-testid="stHorizontalBlock"]:has(.pg-task-option){
-    flex-wrap:nowrap !important;
-    gap:6px !important;
+.pg-cw{
+    overflow-x:scroll;
+    scroll-snap-type:x mandatory;
+    -webkit-overflow-scrolling:touch;
+    display:flex;
+    gap:10px;
+    padding:0 4px 8px;
+    scrollbar-width:none;
+    -ms-overflow-style:none;
+    margin-bottom:4px;
 }
-div[data-testid="stHorizontalBlock"]:has(.pg-task-option) > div[data-testid="column"]{
-    min-width:0 !important;width:33.33% !important;flex:1 1 33.33% !important;
+.pg-cw::-webkit-scrollbar{display:none;}
+.pg-cp{
+    scroll-snap-align:start;
+    flex:0 0 82%;
+    min-width:0;
 }
-.pg-task-option{
-    display:block;text-align:center;
-    font-size:11px;font-weight:700;color:#8E8E93;
-    margin:0 0 3px !important;
+.pg-cc{
+    border:2.5px solid #E5E5EA;
+    border-radius:16px;
+    background:#FFFFFF;
+    padding:10px 10px 6px;
+    box-shadow:0 2px 8px rgba(0,0,0,.05);
+    position:relative;
+    transition:border-color .2s, background .2s;
+}
+.pg-cl{
+    display:block;
+    text-align:center;
+    font-weight:800;
+    font-size:13px;
+    margin-bottom:5px;
+}
+.pg-sel-badge{
+    position:absolute;top:8px;right:10px;
+    font-size:11px;font-weight:700;color:#007AFF;
+    background:rgba(0,122,255,.1);
+    padding:2px 7px;border-radius:100px;
+}
+.pg-dots{
+    display:flex;
+    justify-content:center;
+    gap:5px;
+    margin:4px 0 14px;
+}
+.pg-dot{
+    width:6px;height:6px;border-radius:3px;
+    background:#C7C7CC;transition:all .2s;
 }
 
-/* Step 4: 選択ボタン — 隣接セレクタで選択状態を色分け */
+/* Step 4: A〜Fチップボタン（隣接セレクタで選択状態色分け） */
 div[data-testid="stMarkdownContainer"]:has(span.pg-btn-sel) + div[data-testid="stButton"] > button {
     background:#007AFF !important;color:#FFFFFF !important;
-    border-radius:8px !important;font-size:12px !important;
-    padding:5px 4px !important;min-height:32px !important;
+    border-radius:10px !important;font-size:15px !important;font-weight:800 !important;
+    padding:8px 2px !important;min-height:40px !important;letter-spacing:0 !important;
 }
 div[data-testid="stMarkdownContainer"]:has(span.pg-btn-unsel) + div[data-testid="stButton"] > button {
     background:#F2F2F7 !important;color:#8E8E93 !important;
-    border-radius:8px !important;font-size:12px !important;
-    padding:5px 4px !important;min-height:32px !important;
+    border-radius:10px !important;font-size:15px !important;font-weight:800 !important;
+    padding:8px 2px !important;min-height:40px !important;letter-spacing:0 !important;
 }
 
 /* その他汎用UI */
@@ -147,29 +181,26 @@ div[data-baseweb="select"]>div:focus-within{border-color:#007AFF!important;box-s
 {background:#FFFFFF!important;border:none!important;border-radius:20px!important;box-shadow:0 12px 40px rgba(0,0,0,0.10),0 2px 8px rgba(0,0,0,0.06)!important;}
 [data-testid="stPopoverBody"]>div>div{padding:12px 16px!important;}
 .stPopover button,[data-testid="stPopover"] button{background:transparent!important;border:none!important;font-size:18px!important;color:#8E8E93!important;line-height:1;}
-.pg-progress-track{height:3px;background:#E5E5EA;border-radius:100px;margin-bottom:32px;overflow:hidden;}
+.pg-progress-track{height:3px;background:#E5E5EA;border-radius:100px;margin-bottom:28px;overflow:hidden;}
 .pg-progress-fill{height:3px;background:#007AFF;border-radius:100px;transition:width .4s;}
 .pg-task-q{font-size:15px;color:#8E8E93;text-align:center;margin-bottom:4px;}
-.pg-task-book{font-size:20px;font-weight:700;color:#007AFF;text-align:center;letter-spacing:-.3px;margin-bottom:16px;}
+.pg-task-book{font-size:20px;font-weight:700;color:#007AFF;text-align:center;letter-spacing:-.3px;margin-bottom:14px;}
 .pg-qr-wrap{text-align:center;padding:20px 0;}
 .stSuccess>div{border-radius:10px!important;border:none!important;background:rgba(48,209,88,0.1)!important;margin-bottom:12px;}
 .stSuccess p{color:#1C7A3A!important;font-weight:600!important;font-size:14px!important;}
 
 @media(max-width:600px){
     .block-container{padding:16px 12px 100px!important;}
-    /* 検索・ソート行など一般的な横並びは縦積みに */
-    div[data-testid="stHorizontalBlock"]:not(:has(.pg-task-option)):not(:has(> div[data-testid="column"] > div > div[data-testid="stPopover"])) {
+    div[data-testid="stHorizontalBlock"]:not(:has(.pg-cw)):not(:has(> div[data-testid="column"] > div > div[data-testid="stPopover"])) {
         flex-wrap:wrap!important;
     }
-    div[data-testid="stHorizontalBlock"]:not(:has(.pg-task-option)):not(:has(> div[data-testid="column"] > div > div[data-testid="stPopover"])) > div[data-testid="column"] {
+    div[data-testid="stHorizontalBlock"]:not(:has(.pg-cw)):not(:has(> div[data-testid="column"] > div > div[data-testid="stPopover"])) > div[data-testid="column"] {
         flex:1 1 100%!important;min-width:0!important;margin-bottom:4px!important;
     }
-    /* フローティングバー内の戻る/次へ は横並び維持 */
     div[data-testid="stVerticalBlock"]:has(> div > div > div > div > span.floating-bar-target) div[data-testid="stHorizontalBlock"]{flex-wrap:nowrap!important;gap:8px!important;}
     div[data-testid="stVerticalBlock"]:has(> div > div > div > div > span.floating-bar-target) div[data-testid="stHorizontalBlock"] > div[data-testid="column"]{flex:1 1 50%!important;margin-bottom:0!important;}
-    /* Step 4: 3列はモバイルでも維持 */
-    div[data-testid="stHorizontalBlock"]:has(.pg-task-option){gap:3px !important;}
-    .pg-task-book{font-size:17px!important;margin-bottom:10px;}
+    .pg-task-book{font-size:17px!important;}
+    .pg-cp{flex:0 0 78%;}
 }
 #MainMenu,footer,header,.stDeployButton{visibility:hidden;}
 </style>
@@ -200,6 +231,20 @@ def load_database():
     if os.path.exists(DB_PATH):
         with open(DB_PATH,'rb') as f: return pickle.load(f)
     return {}
+
+@st.cache_data
+def load_image_b64(path, max_size=480):
+    """画像をbase64エンコード（表示用にリサイズ・キャッシュ）"""
+    if not path or not os.path.exists(path):
+        return ""
+    try:
+        img = Image.open(path).convert("RGBA")
+        img.thumbnail((max_size, max_size), Image.LANCZOS)
+        buf = io.BytesIO()
+        img.save(buf, format='PNG', optimize=True)
+        return base64.b64encode(buf.getvalue()).decode()
+    except:
+        return ""
 
 def _get_fallback_df(base_df):
     df=base_df.copy(); df['ローマ字ファイル名']=df['SystemKey']
@@ -280,28 +325,23 @@ if 'session_id' not in st.session_state: reset_session()
 # トポロジー均等配分ダミー選定（6択対応）
 # ==========================================
 def get_dummies(target_book):
-    """6択・3グループ均等配置 — 正解のトポロジーに応じてダミー5冊を 2:2:1 or 2:1:2 or 1:2:2 配分"""
+    """6択・3グループ均等配置 — 正解のトポロジーに応じてダミー5冊を調整"""
     pool=[b for b in ALL_BOOKS if b not in st.session_state.selected_books and b!=target_book and b in DB_DATA]
     if len(pool)<5: return random.sample(pool,len(pool))
-
-    ps=sorted(pool,key=lambda b:DB_DATA[b][7])  # circularity 昇順
+    ps=sorted(pool,key=lambda b:DB_DATA[b][7])
     n=len(ps); sz=max(2,n//3)
-    spiky_pool=ps[:sz]
-    round_pool=ps[-sz:]
+    spiky_pool=ps[:sz]; round_pool=ps[-sz:]
     medium_pool=ps[sz:-sz] if len(ps[sz:-sz])>=2 else ps[sz:sz+max(2,n//5)]
-
     all_circs=sorted([DB_DATA[b][7] for b in ps])
     lo_thr=all_circs[n//3]; hi_thr=all_circs[min(2*n//3,n-1)]
     tc=DB_DATA[target_book][7]
-
-    if tc<=lo_thr:   s,m,r=1,2,2   # 正解=spiky → 全体で spiky×2, medium×2, round×2
-    elif tc>=hi_thr: s,m,r=2,2,1   # 正解=round
-    else:            s,m,r=2,1,2   # 正解=medium
-
+    if tc<=lo_thr:   s,m,r=1,2,2
+    elif tc>=hi_thr: s,m,r=2,2,1
+    else:            s,m,r=2,1,2
     dummies=[]
-    dummies+=random.sample(spiky_pool, min(s,len(spiky_pool)))
+    dummies+=random.sample(spiky_pool,min(s,len(spiky_pool)))
     dummies+=random.sample(medium_pool,min(m,len(medium_pool)))
-    dummies+=random.sample(round_pool, min(r,len(round_pool)))
+    dummies+=random.sample(round_pool,min(r,len(round_pool)))
     while len(dummies)<5:
         rem=[b for b in pool if b not in dummies]
         if not rem: break
@@ -312,8 +352,7 @@ def get_dummies(target_book):
 # トップバー（管理者のみ表示）
 # ==========================================
 def render_topbar():
-    if not st.session_state.get('is_admin',False):
-        return
+    if not st.session_state.get('is_admin',False): return
     st.markdown(
         f'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">'
         f'<div style="font-weight:800;font-size:18px;letter-spacing:-.5px;color:#1C1C1E">Phonoglyph</div>'
@@ -370,7 +409,7 @@ def render_step1():
                 st.session_state.step=2; st.rerun()
 
 # ==========================================
-# Step 2: 既読作品選択（2列グリッド — モバイル対応）
+# Step 2: 既読作品選択（2列グリッド）
 # ==========================================
 def render_step2():
     hd("Step 2 / 5","既読作品の選択","内容を知っている作品を選択してください。📖ボタンであらすじ等を確認できます。")
@@ -380,12 +419,9 @@ def render_step2():
     with cg:
         ug=["すべて"]+[g for g in BOOK_META_DF['ジャンル'].unique() if g!='不明']
         gf=st.selectbox("ジャンル絞り込み",ug)
-
     df=BOOK_META_DF.copy()
     if sq: df=df[df['日本語書籍名'].astype(str).str.contains(sq,case=False,na=False)|df['著者名'].astype(str).str.contains(sq,case=False,na=False)]
     if gf!="すべて": df=df[df['ジャンル'].astype(str).str.strip()==gf.strip()]
-
-    # ソート（よみ列があれば五十音順に使用）
     has_ty="日本語書籍名読み" in df.columns and df["日本語書籍名読み"].astype(str).str.strip().ne("").any()
     has_ay="著者名読み" in df.columns and df["著者名読み"].astype(str).str.strip().ne("").any()
     if sb=="人気・知名度順": df=df.sort_values(by=['知名度スコア','日本語書籍名'],ascending=[False,True])
@@ -395,11 +431,8 @@ def render_step2():
         df=df.sort_values(by=[ca,ct],ascending=[True,True])
     elif sb=="発表年が新しい順": df=df.sort_values(by=['発表年','日本語書籍名'],ascending=[False,True])
     elif sb=="発表年が古い順": df=df.sort_values(by=['発表年','日本語書籍名'],ascending=[True,True])
-
     dr=df.to_dict('records')
     st.caption(f"該当: {len(dr)} 件")
-
-    # ★ 2列グリッド（3列から変更 — モバイルで横はみ出し解消）
     for i in range(0,len(dr),2):
         cols=st.columns(2)
         for j in range(2):
@@ -421,7 +454,6 @@ def render_step2():
                                 st.caption(f"著者: {au} | {r['ジャンル']} | {r['発表年']}年")
                                 hr(); st.markdown(f'<p style="font-size:14px;line-height:1.6;color:#3A3A3C">{r["あらすじ"]}</p>',unsafe_allow_html=True)
                             else: st.caption("詳細情報なし")
-
     st.markdown('<div class="bottom-spacer"></div>',unsafe_allow_html=True)
     with st.container():
         st.markdown('<span class="floating-bar-target"></span>',unsafe_allow_html=True)
@@ -458,7 +490,7 @@ def render_step3():
             st.session_state.step=4; st.rerun()
 
 # ==========================================
-# Step 4: マッチングタスク（3列×2行 — 全6択スクロールなし）
+# Step 4: マッチングタスク（横スワイプカルーセル）
 # ==========================================
 def render_step4():
     if st.session_state.current_q_index>=len(st.session_state.task_queue):
@@ -479,27 +511,60 @@ def render_step4():
         st.session_state.step4_selected=None
 
     opts=st.session_state.current_options; lbs=["A","B","C","D","E","F"]
+    sel_idx=opts.index(st.session_state.step4_selected) if st.session_state.step4_selected and st.session_state.step4_selected in opts else -1
 
-    # ★ 3列 × 2行グリッド（全6択が画面内に収まる）
-    for row_start in [0,3]:
-        cols=st.columns(3)
-        for j in range(3):
-            idx_opt=row_start+j
-            if idx_opt>=len(opts): break
-            with cols[j]:
-                # ラベルバッジ（.pg-task-option でCSSセレクタを機能させる）
-                st.markdown(f'<span class="pg-task-option">{lbs[idx_opt]}</span>',unsafe_allow_html=True)
-                # 図形画像
-                ip=get_image_path(opts[idx_opt])
-                if ip:
-                    st.image(Image.open(ip),use_container_width=True)
-                else:
-                    st.markdown('<div style="height:70px;background:#F2F2F7;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#8E8E93">画像なし</div>',unsafe_allow_html=True)
-                # 選択ボタン（隣接セレクタCSSハックで選択状態を色分け）
-                is_sel=(st.session_state.step4_selected==opts[idx_opt])
-                st.markdown(f'<span class="{"pg-btn-sel" if is_sel else "pg-btn-unsel"}"></span>',unsafe_allow_html=True)
-                if st.button("✓" if is_sel else lbs[idx_opt],key=f"btn_{idx}_{idx_opt}",use_container_width=True):
-                    st.session_state.step4_selected=opts[idx_opt]; st.rerun()
+    # カルーセルパネルHTML（base64画像）
+    panels_html=""
+    for i,(opt,lb) in enumerate(zip(opts,lbs)):
+        ip=get_image_path(opt)
+        b64=load_image_b64(ip) if ip else ""
+        is_sel=(i==sel_idx)
+        bc="#007AFF" if is_sel else "#E5E5EA"
+        bg="rgba(0,122,255,0.04)" if is_sel else "#FFFFFF"
+        lc="#007AFF" if is_sel else "#8E8E93"
+        badge='<span class="pg-sel-badge">✓ 選択中</span>' if is_sel else ""
+        img_html=f'<img src="data:image/png;base64,{b64}" style="width:100%;height:auto;max-height:56vw;object-fit:contain;display:block">' if b64 else f'<div style="height:56vw;display:flex;align-items:center;justify-content:center;color:#C7C7CC;font-size:12px">画像なし</div>'
+        panels_html+=f'<div class="pg-cp" data-idx="{i}"><div class="pg-cc" style="border-color:{bc};background:{bg}">{badge}<span class="pg-cl" style="color:{lc}">{lb}</span>{img_html}</div></div>'
+
+    # インジケータードット
+    dots_html='<div class="pg-dots">'+''.join([f'<div class="pg-dot" id="pgdot{idx}_{i}"></div>' for i in range(len(opts))])+'</div>'
+
+    # カルーセルJS（ドット更新 + 選択パネルへ自動スクロール）
+    js=f"""<script>
+(function(){{
+  const wrap=document.querySelector('.pg-cw');
+  if(!wrap)return;
+  const panels=wrap.querySelectorAll('.pg-cp');
+  const dots=[{','.join([f'document.getElementById("pgdot{idx}_{i}")' for i in range(len(opts))])}];
+  const selIdx={sel_idx};
+  function setDot(i){{dots.forEach((d,j)=>{{if(!d)return;d.style.width=j===i?'14px':'6px';d.style.background=j===i?'#007AFF':'#C7C7CC';}});}}
+  // 初期ドット
+  setDot(Math.max(0,selIdx));
+  // 選択済みパネルへスクロール
+  if(selIdx>=0&&panels[selIdx]){{setTimeout(()=>{{panels[selIdx].scrollIntoView({{behavior:'instant',block:'nearest',inline:'start'}});}},80);}}
+  // スクロール中のドット更新
+  const obs=new IntersectionObserver((entries)=>{{entries.forEach(e=>{{if(e.isIntersecting&&e.intersectionRatio>0.5){{setDot(parseInt(e.target.getAttribute('data-idx')));}}}})}},{{root:wrap,threshold:0.5}});
+  panels.forEach(p=>obs.observe(p));
+}})();
+</script>"""
+
+    st.markdown(f'<div class="pg-cw">{panels_html}</div>{dots_html}{js}',unsafe_allow_html=True)
+
+    # A〜Fチップ選択ボタン（6列）
+    cols=st.columns(len(opts))
+    for i,opt in enumerate(opts):
+        with cols[i]:
+            is_sel=(opt==st.session_state.step4_selected)
+            st.markdown(f'<span class="{"pg-btn-sel" if is_sel else "pg-btn-unsel"}"></span>',unsafe_allow_html=True)
+            if st.button(lbs[i],key=f"btn_{idx}_{i}",use_container_width=True):
+                st.session_state.step4_selected=opt; st.rerun()
+
+    # 選択状態の説明テキスト
+    if st.session_state.step4_selected:
+        sel_lb=lbs[opts.index(st.session_state.step4_selected)]
+        st.markdown(f'<p style="text-align:center;font-size:13px;color:#007AFF;margin:6px 0 0;font-weight:600">{sel_lb} を選択中 — 確定して次へ進んでください</p>',unsafe_allow_html=True)
+    else:
+        st.markdown('<p style="text-align:center;font-size:13px;color:#8E8E93;margin:6px 0 0">スワイプして図形を比較し、A〜F から選んでください</p>',unsafe_allow_html=True)
 
     hr()
     _,cb4=st.columns([1,1])
@@ -570,7 +635,6 @@ def main():
     if isinstance(mode,list): mode=mode[0] if mode else None
     if mode=="admin": st.session_state.is_admin=True
     if mode=="sim": st.session_state.is_admin=True; st.session_state.admin_mode="シミュレーター (デモ用)"
-
     with st.sidebar:
         st.markdown("### 🌒 Phonoglyph"); hr()
         if not st.session_state.get('is_admin',False):
@@ -587,9 +651,7 @@ def main():
             st.caption(f"結合: {st.session_state.get('debug_match_count',0)}/{len(ALL_BOOKS)} 件")
             if st.button("管理者モードを解除",key="admin_off"):
                 st.session_state.is_admin=False; st.session_state.admin_mode="実験タスク (被験者用)"; st.rerun()
-
     render_topbar()
-
     if st.session_state.get('admin_mode',"実験タスク (被験者用)")=="実験タスク (被験者用)":
         {1:render_step1,2:render_step2,3:render_step3,4:render_step4,5:render_step5}.get(st.session_state.step,render_step1)()
     else:
