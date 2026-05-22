@@ -14,7 +14,7 @@ st.set_page_config(page_title="Phonoglyph", page_icon="🌒",
                    layout="centered", initial_sidebar_state="collapsed")
 
 # ==========================================
-# 1. カスタムCSS (スマホの横幅オーバーフローを完全解消)
+# 1. カスタムCSS (スマホの横幅オーバーフローを完全解消 ＆ カードボタンUI)
 # ==========================================
 CSS = """
 <style>
@@ -64,7 +64,7 @@ section[data-testid="stSidebar"] .stSlider>div>div>div{background:#007AFF!import
 div[data-testid="stHorizontalBlock"]:has([data-testid="stPopover"]) {
     flex-wrap: nowrap !important;
     align-items: center !important;
-    gap: 4px !important; /* 隙間を詰める */
+    gap: 4px !important; 
 }
 div[data-testid="stHorizontalBlock"]:has([data-testid="stPopover"]) > div[data-testid="column"]:first-child {
     min-width: 0 !important; width: calc(100% - 40px) !important; flex: 1 1 auto !important;
@@ -105,11 +105,11 @@ div[data-testid="stVerticalBlock"]:has(> div > div > div > div > span.floating-b
 .bottom-spacer { height: 160px; }
 
 /* =========================================
-   Step 4: タスク図形選択用カードUI（はみ出し防止）
+   Step 4: タスク図形選択用カードUI（バグ修正版：ボタンベース）
    ========================================= */
 div[data-testid="stHorizontalBlock"]:has(.pg-task-option) {
     flex-wrap: nowrap !important;
-    gap: 8px !important; /* カラム間の隙間を詰める */
+    gap: 8px !important; 
 }
 div[data-testid="stHorizontalBlock"]:has(.pg-task-option) > div[data-testid="column"] {
     min-width: 0 !important; width: 50% !important; flex: 1 1 50% !important;
@@ -118,29 +118,36 @@ div[data-testid="stHorizontalBlock"]:has(.pg-task-option) > div[data-testid="col
 .pg-task-options {display:block;margin-top:10px; width: 100%;}
 .pg-task-option {margin-bottom:8px;position:relative; width: 100%;}
 
-div[data-testid="column"] .stCheckbox>label {
-    display:block; padding:8px 4px; border:2px solid #E5E5EA; border-radius:12px; background:#FFFFFF;
-    box-shadow:0 1px 3px rgba(0,0,0,.04); transition:all 0.2s; text-align:center; width:100%; box-sizing: border-box;
+/* 画像カードコンテナ */
+.pg-image-card {
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 8px; border: 2px solid #E5E5EA; border-radius: 12px; background: #FFFFFF;
+    box-shadow: 0 1px 3px rgba(0,0,0,.04); width: 100%; box-sizing: border-box;
+    transition: all 0.2s;
 }
-div[data-testid="column"] .stCheckbox>label:hover {
-    border-color:#007AFF; transform:translateY(-2px); box-shadow:0 6px 20px rgba(0,122,255,0.08);
-}
-div[data-testid="column"] .stCheckbox>label:has([aria-checked="true"]){
-    border-color:#007AFF; background:rgba(0,122,255,0.05);
+.pg-image-card img {
+    max-width: 100% !important; height: auto !important; object-fit: contain !important;
 }
 
-div[data-testid="column"] .stCheckbox [role="checkbox"] {display:none!important;}
-div[data-testid="column"] .stCheckbox [data-testid="stWidgetLabel"] {
-    margin-left:0!important; padding-left:0!important; width:100%;
+/* 選択状態のカード (Pythonからスタイルを直打ちするが、基本スタイルはここ) */
+.pg-image-card.selected {
+    border-color: #007AFF !important;
+    background: rgba(0, 122, 255, 0.05) !important;
+    box-shadow: 0 4px 14px rgba(0, 122, 255, 0.15) !important;
 }
-div[data-testid="column"] .stCheckbox label p {font-size:12px!important; color:#8E8E93!important;}
-div[data-testid="column"] .stCheckbox label:has([aria-checked="true"]) p {color:#007AFF!important;}
 
-/* 画像が親要素を超えないように強制 */
-.pg-task-option img {
-    max-width: 100% !important;
-    height: auto !important;
-    object-fit: contain !important;
+/* ボタン（選択肢として機能）のデザイン上書き */
+div[data-testid="column"] .stButton > button.opt-btn {
+    margin-top: 8px; border-radius: 8px; padding: 6px 12px; font-size: 13px;
+    background: #F2F2F7 !important; color: #3A3A3C !important;
+}
+div[data-testid="column"] .stButton > button.opt-btn:hover {
+    background: #007AFF !important; color: #FFFFFF !important;
+}
+/* 選択済みボタン */
+div[data-testid="column"] .stButton > button.opt-btn-selected {
+    margin-top: 8px; border-radius: 8px; padding: 6px 12px; font-size: 13px;
+    background: #007AFF !important; color: #FFFFFF !important;
 }
 
 /* その他汎用UI */
@@ -163,21 +170,15 @@ div[data-baseweb="select"]>div:focus-within{border-color:#007AFF!important;box-s
 .stSuccess>div{border-radius:10px!important;border:none!important;background:rgba(48,209,88,0.1)!important; margin-bottom:12px;}
 .stSuccess p{color:#1C7A3A!important;font-weight:600!important;font-size:14px!important;}
 
-/* スマホ表示時（600px以下）のレイアウト完全調整 */
 @media(max-width:600px){
     .block-container{padding:16px 12px 100px!important;}
-    
-    /* 基本は折り返す */
     div[data-testid="stHorizontalBlock"]:not(:has([data-testid="stPopover"])):not(:has(.pg-task-option)) { flex-wrap:wrap!important; }
     div[data-testid="stHorizontalBlock"]:not(:has([data-testid="stPopover"])):not(:has(.pg-task-option)) > div[data-testid="column"] { flex:1 1 100%!important; min-width:0!important; margin-bottom:8px!important;}
     
-    /* Step 2: フローティングバー内のボタンを横並びにする */
     div[data-testid="stVerticalBlock"]:has(> div > div > div > div > span.floating-bar-target) div[data-testid="stHorizontalBlock"] { flex-wrap: nowrap!important; gap: 8px!important; }
     div[data-testid="stVerticalBlock"]:has(> div > div > div > div > span.floating-bar-target) div[data-testid="stHorizontalBlock"] > div[data-testid="column"] { flex: 1 1 50%!important; margin-bottom: 0!important; }
     
-    /* Step 4: タスク画像の隙間を極限まで詰める */
     div[data-testid="stHorizontalBlock"]:has(.pg-task-option) { gap: 4px !important; }
-    div[data-testid="column"] .stCheckbox>label { padding: 4px !important; }
 }
 #MainMenu,footer,header,.stDeployButton{visibility:hidden;}
 </style>
@@ -231,11 +232,11 @@ def load_book_metadata(all_books_list):
         if 'ローマ字ファイル名' not in meta_df.columns:
             meta_df.rename(columns={meta_df.columns[0]:'ローマ字ファイル名'},inplace=True)
         matched_rows=[]
-        romaji_series=meta_df['ローマ字ファイル名'].astype(str).str.lower().str.replace(' ','').str.replace(' ','')
-        title_author_series=(meta_df.get('日本語書籍名','')+'_'+meta_df.get('著者名','')).astype(str).str.lower().str.replace(' ','').str.replace(' ','')
-        title_only_series=meta_df.get('日本語書籍名','').astype(str).str.lower().str.replace(' ','').str.replace(' ','')
+        romaji_series=meta_df['ローマ字ファイル名'].astype(str).str.lower().str.replace(' ','').str.replace('　','')
+        title_author_series=(meta_df.get('日本語書籍名','')+'_'+meta_df.get('著者名','')).astype(str).str.lower().str.replace(' ','').str.replace('　','')
+        title_only_series=meta_df.get('日本語書籍名','').astype(str).str.lower().str.replace(' ','').str.replace('　','')
         for sys_key in all_books_list:
-            sys_key_clean=str(sys_key).lower().replace(' ','').replace(' ','')
+            sys_key_clean=str(sys_key).lower().replace(' ','').replace('　','')
             sys_title_only=sys_key_clean.split('_')[0]
             m1=meta_df[romaji_series==sys_key_clean]; m2=meta_df[title_author_series==sys_key_clean]; m3=meta_df[title_only_series==sys_title_only]
             if not m1.empty: matched_rows.append(m1.iloc[0].to_dict())
@@ -318,7 +319,7 @@ def render_step1():
 </div>
 <div class="pg-consent-section" style="margin-bottom:0">
   <p class="pg-consent-title">問い合わせ先</p>
-  <p class="pg-consent-body" style="font-size:13px;color:#8E8E93">東京電機大学 システムデザイン工学部 デザイン工学科<br>インタラクティブアート&amp;デザイン研究室（山本研） 担当：熊谷 天</p>
+  <p class="pg-consent-body" style="font-size:13px;color:#8E8E93">東京電機大学 システムデザイン工学部 デザイン工学科<br>インタラクティブアート&amp;デザイン研究室（山本研）　担当：熊谷 天</p>
 </div>
 </div>
 """, unsafe_allow_html=True)
@@ -329,7 +330,7 @@ def render_step1():
     major=st.radio("専攻分野",["理数系","文系","芸術・デザイン系","その他"],horizontal=True)
     rf=st.selectbox("読書頻度",["月に1〜2冊","月に3〜5冊","月に6冊以上","全く読まない"],
                     index=None,placeholder="選択してください")
-    gn=st.multiselect("よく読むジャンル",["純文学","大衆文学","SF","ラノベ","実用書","その他"])
+    gn=st.multiselect("よく読むジャンル",["純文学","大衆文学","SF","ラノベ","実用書","その他"],index=None,placeholder="選択してください")
     syn=st.slider("言葉の響きに色や形を感じるか（1: 全く感じない — 5: 強く感じる）",1,5,3)
     hr(); _,cb=st.columns([1,1])
     with cb:
@@ -443,25 +444,33 @@ def render_step4():
         with cols[col_idx]:
             st.markdown(f'<div class="pg-task-option">', unsafe_allow_html=True)
             
-            # 画像描画 (CSSで max-width: 100% を強制適用済み)
+            # 【バグ修正】Streamlitのボタンでカードを表現する
+            is_selected = (st.session_state.step4_selected == opts[idx_opt])
+            card_class = "pg-image-card selected" if is_selected else "pg-image-card"
+            
+            # 1. HTMLで画像カードを描画
+            st.markdown(f'<div class="{card_class}">', unsafe_allow_html=True)
             ip=get_image_path(opts[idx_opt])
             if ip: st.image(Image.open(ip),use_container_width=True)
-            else: st.markdown('<div style="height:120px;background:#F2F2F7;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#8E8E93;font-size:12px">画像なし</div>',unsafe_allow_html=True)
+            else: st.markdown('<div style="height:120px;display:flex;align-items:center;justify-content:center;">画像なし</div>',unsafe_allow_html=True)
+            st.markdown('</div>', unsafe_allow_html=True)
             
-            is_selected = (st.session_state.step4_selected == opts[idx_opt])
-            if st.checkbox(f"選択肢 {lbs[idx_opt]}", value=is_selected, key=f"opt_{idx}_{idx_opt}"):
-                if st.session_state.step4_selected != opts[idx_opt]:
-                    st.session_state.step4_selected = opts[idx_opt]
-                    st.rerun() 
-            else:
-                if st.session_state.step4_selected == opts[idx_opt]:
-                    st.session_state.step4_selected = None
+            # 2. そのすぐ下に、Streamlitネイティブのボタンを配置して選択状態を更新する
+            btn_label = f"選択済み" if is_selected else f"選択肢 {lbs[idx_opt]} を選ぶ"
+            # CSSでボタンのデザインを上書きするためのハック
+            st.markdown(f'<style>div[data-testid="column"]:nth-child({col_idx+1}) div[data-testid="stButton"] button {{ margin-top: 8px; border-radius: 8px; background: {"#007AFF" if is_selected else "#F2F2F7"} !important; color: {"#FFFFFF" if is_selected else "#3A3A3C"} !important; }}</style>', unsafe_allow_html=True)
+            
+            if st.button(btn_label, key=f"btn_sel_{idx}_{idx_opt}", use_container_width=True):
+                st.session_state.step4_selected = opts[idx_opt]
+                st.rerun()
+                
             st.markdown('</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
     
     hr()
     _,cb4=st.columns([1,1])
     with cb4:
+        # 選択中のIDが None でなければボタン有効化
         confirm = st.button("確定して次へ",key=f"next_{idx}",type="primary", disabled=(st.session_state.step4_selected is None))
         if confirm:
             ch=st.session_state.step4_selected
@@ -476,7 +485,7 @@ def render_step4():
                         u.get("q1",""),u.get("q2",""),u.get("q3",""),0,tb,ch,"正解" if ic else "不正解"]
             threading.Thread(target=async_save_task_result,args=(row_data,),daemon=True).start()
             
-            st.session_state.current_q_index+=1; st.session_state.current_options=[]; st.rerun()
+            st.session_state.current_q_index+=1; st.session_state.current_options=[]; st.session_state.step4_selected=None; st.rerun()
 
 def render_step5():
     st.balloons()
