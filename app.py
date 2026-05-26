@@ -531,8 +531,7 @@ def render_step2():
                     random.shuffle(st.session_state.task_queue)
                     st.session_state.step=3; st.rerun()
 
-    # ★ JS: フローティングバー固定 + 書籍行の横並び
-    # すべてのプロパティを setProperty('important') で指定し Streamlit の !important を確実に上書き
+    # ★ JS: フローティングバー固定 + 書籍行の横並び（ボタンは縦並びのまま）
     components.html("""
 <script>
 (function(){
@@ -544,7 +543,7 @@ def render_step2():
     var block=el.closest('[data-testid="stVerticalBlock"]');
     if(!block)return false;
 
-    /* ── フローティングバー本体（全プロパティを !important で上書き） ── */
+    /* ── フローティングバー本体 ── */
     sp(block,'position','fixed');
     sp(block,'bottom','20px');
     sp(block,'left','12px');
@@ -561,29 +560,11 @@ def render_step2():
     sp(block,'z-index','1000');
     sp(block,'border','1px solid rgba(0,0,0,0.05)');
     sp(block,'box-sizing','border-box');
-    sp(block,'overflow','hidden');
-
-    /* ── 戻る／次へ ボタン行を横並び ── */
-    var hb=block.querySelector('[data-testid="stHorizontalBlock"]');
-    if(hb){
-      sp(hb,'display','flex');
-      sp(hb,'flex-wrap','nowrap');
-      sp(hb,'gap','8px');
-      sp(hb,'width','100%');
-      sp(hb,'box-sizing','border-box');
-      hb.querySelectorAll(':scope > [data-testid="column"]').forEach(function(col){
-        sp(col,'flex','1 1 calc(50% - 4px)');
-        sp(col,'max-width','calc(50% - 4px)');
-        sp(col,'min-width','0');
-        sp(col,'box-sizing','border-box');
-        sp(col,'overflow','hidden');
-      });
-    }
 
     /* ── 書籍行（チェックボックス＋あらすじアイコン）を横並び ──
-       stPopoverを1つだけ含む行 = 内側[4,1]の行と判定            */
+       stPopoverを1つだけ含む行 = 内側[4,1]の行と判定
+       アイコン列に margin-right でアイコン1個分以上の右余白を確保  */
     par.querySelectorAll('[data-testid="stHorizontalBlock"]').forEach(function(row){
-      if(row===hb)return;
       if(row.querySelectorAll('[data-testid="stPopover"]').length!==1)return;
       sp(row,'flex-wrap','nowrap');
       sp(row,'align-items','center');
@@ -597,7 +578,7 @@ def render_step2():
         sp(last,'flex','0 0 44px');
         sp(last,'width','44px');
         sp(last,'min-width','44px');
-        sp(last,'padding-right','8px'); /* 右端から少し内側に */
+        sp(last,'margin-right','44px'); /* アイコン1個分の右余白 */
       }
     });
 
