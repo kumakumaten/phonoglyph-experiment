@@ -188,46 +188,8 @@ div[data-testid="stVerticalBlock"]:has(> div > div > div > div > span.floating-b
 .bottom-spacer{height:160px;}
 
 /* =========================================
-   Step 4: 2列×3行グリッド（画像縮小）
+   Step 4: タスクグリッドはHTML display:gridのため専用CSSなし
    ========================================= */
-div[data-testid="stHorizontalBlock"]:has(.pg-task-label) {
-    flex-wrap: nowrap !important;
-    gap: 8px !important;
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow: hidden !important;
-    box-sizing: border-box !important;
-}
-div[data-testid="stHorizontalBlock"]:has(.pg-task-label) > div[data-testid="column"] {
-    min-width: 0 !important;
-    width: calc(50% - 4px) !important;
-    flex: 0 0 calc(50% - 4px) !important;
-    max-width: calc(50% - 4px) !important;
-    overflow: hidden !important;
-}
-/* 画像高さをCSS最大値で制限（スマホで2列×3行が画面内に収まる） */
-div[data-testid="stHorizontalBlock"]:has(.pg-task-label) img {
-    max-height: 26vw !important;
-    width: 100% !important;
-    object-fit: contain !important;
-    display: block !important;
-}
-.pg-task-label{
-    display:block;text-align:center;
-    font-size:11px;font-weight:700;color:#8E8E93;
-    margin:0 0 3px;
-}
-/* 選択ボタン（隣接セレクタで色分け） */
-div[data-testid="stMarkdownContainer"]:has(span.pg-btn-sel) + div[data-testid="stButton"] > button {
-    background:#007AFF !important;color:#FFFFFF !important;
-    border-radius:8px !important;font-size:12px !important;font-weight:700 !important;
-    padding:5px 4px !important;min-height:32px !important;
-}
-div[data-testid="stMarkdownContainer"]:has(span.pg-btn-unsel) + div[data-testid="stButton"] > button {
-    background:#F2F2F7 !important;color:#8E8E93 !important;
-    border-radius:8px !important;font-size:12px !important;font-weight:700 !important;
-    padding:5px 4px !important;min-height:32px !important;
-}
 
 /* =========================================
    その他汎用UI
@@ -616,34 +578,52 @@ def render_step4():
 
     opts=st.session_state.current_options; lbs=["A","B","C","D","E","F"]
 
-    # ★ 2列×3行グリッド（max-height:26vwのCSSで全6択が画面内に収まる）
-    for row_start in [0, 3]:
-        cols=st.columns(2)
-        for j in range(2):
-            idx_opt=row_start+j
-            if idx_opt>=len(opts): break
-            with cols[j]:
-                ip=get_image_path(opts[idx_opt])
-                b64=load_image_b64(ip) if ip else ""
-                # ラベル（.pg-task-label でCSSセレクタを機能させる）
-                st.markdown(f'<span class="pg-task-label">{lbs[idx_opt]}</span>',unsafe_allow_html=True)
-                # 画像（base64埋め込み、max-height:26vwはCSSで制御）
-                if b64:
-                    st.markdown(f'<img src="data:image/png;base64,{b64}" style="width:100%;max-height:26vw;object-fit:contain;display:block;border-radius:8px;background:#FFF">',unsafe_allow_html=True)
-                else:
-                    st.markdown('<div style="height:26vw;background:#F2F2F7;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#C7C7CC">画像なし</div>',unsafe_allow_html=True)
-                # 選択ボタン（隣接セレクタCSSハックで色分け）
-                is_sel=(st.session_state.step4_selected==opts[idx_opt])
-                st.markdown(f'<span class="{"pg-btn-sel" if is_sel else "pg-btn-unsel"}"></span>',unsafe_allow_html=True)
-                if st.button("✓" if is_sel else lbs[idx_opt],key=f"btn_{idx}_{idx_opt}",use_container_width=True):
-                    st.session_state.step4_selected=opts[idx_opt]; st.rerun()
+    # ラジオキー（問題ごとにユニークにして前の選択が残らないようにする）
+    radio_key=f"radio_step4_{idx}"
 
-    # 選択状態テキスト
-    if st.session_state.step4_selected:
-        sel_lb=lbs[opts.index(st.session_state.step4_selected)]
-        st.markdown(f'<p style="text-align:center;font-size:13px;color:#007AFF;margin:8px 0 0;font-weight:600">{sel_lb} を選択中</p>',unsafe_allow_html=True)
-    else:
-        st.markdown('<p style="text-align:center;font-size:12px;color:#8E8E93;margin:8px 0 0">A〜F から1つ選んでください</p>',unsafe_allow_html=True)
+    # ラジオの選択値をグリッド描画より先に session_state へ反映
+    # （Streamlitはwidgetのkeyをスクリプト実行前にsession_stateへ書き込むため先読み可能）
+    if st.session_state.get(radio_key) is not None:
+        sel_label=st.session_state[radio_key]
+        if sel_label in lbs[:len(opts)]:
+            st.session_state.step4_selected=opts[lbs.index(sel_label)]
+
+    sel_opt=st.session_state.step4_selected
+
+    # ★ 2列×3行グリッド（pure HTML display:grid — Streamlitカラム不使用）
+    cells=[]
+    for i,opt in enumerate(opts):
+        ip=get_image_path(opt)
+        b64=load_image_b64(ip) if ip else ""
+        is_sel=(opt==sel_opt)
+        border="2px solid #007AFF" if is_sel else "2px solid #E5E5EA"
+        bg="rgba(0,122,255,0.06)" if is_sel else "#FFFFFF"
+        lbl_col="#007AFF" if is_sel else "#8E8E93"
+        img_tag=(f'<img src="data:image/png;base64,{b64}" '
+                 f'style="width:100%;max-height:28vw;object-fit:contain;display:block;">'
+                 if b64 else
+                 f'<div style="width:100%;height:28vw;background:#F2F2F7;border-radius:6px;"></div>')
+        cells.append(
+            f'<div style="border:{border};border-radius:10px;background:{bg};'
+            f'padding:6px 4px 4px;text-align:center;box-sizing:border-box;">'
+            f'<div style="font-size:11px;font-weight:700;color:{lbl_col};margin-bottom:4px;">{lbs[i]}</div>'
+            f'{img_tag}</div>'
+        )
+    grid_html=(
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;'
+        'width:100%;box-sizing:border-box;margin-bottom:14px;">'
+        +''.join(cells)+'</div>'
+    )
+    st.markdown(grid_html,unsafe_allow_html=True)
+
+    # ★ ラジオボタン（A〜F 横並び）
+    st.radio(
+        "A〜Fから1つ選んでください",
+        options=lbs[:len(opts)],
+        horizontal=True,
+        key=radio_key,
+        index=None,
+    )
 
     hr()
     _,cb4=st.columns([1,1])
