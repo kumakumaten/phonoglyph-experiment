@@ -531,10 +531,12 @@ def render_step2():
                     random.shuffle(st.session_state.task_queue)
                     st.session_state.step=3; st.rerun()
 
-    # ★ JS: フローティングバー固定 + 書籍行の横並び（iOS Safari :has() 問題を回避）
+    # ★ JS: フローティングバー固定 + 書籍行の横並び
+    # すべてのプロパティを setProperty('important') で指定し Streamlit の !important を確実に上書き
     components.html("""
 <script>
 (function(){
+  function sp(el,prop,val){el.style.setProperty(prop,val,'important');}
   function fix(){
     var par=window.parent.document;
     var el=par.querySelector('.floating-bar-target');
@@ -542,58 +544,60 @@ def render_step2():
     var block=el.closest('[data-testid="stVerticalBlock"]');
     if(!block)return false;
 
-    /* ── フローティングバー本体 ── */
-    block.style.position='fixed';
-    block.style.bottom='20px';
-    block.style.left='50%';
-    block.style.transform='translateX(-50%)';
-    block.style.width='calc(100% - 24px)';
-    block.style.maxWidth='740px';
-    block.style.background='rgba(255,255,255,0.92)';
-    block.style.backdropFilter='blur(12px)';
-    block.style.webkitBackdropFilter='blur(12px)';
-    block.style.padding='12px 16px';
-    block.style.borderRadius='20px';
-    block.style.boxShadow='0 10px 40px rgba(0,0,0,0.15)';
-    block.style.zIndex='1000';
-    block.style.border='1px solid rgba(0,0,0,0.05)';
-    block.style.setProperty('box-sizing','border-box','important');
-    block.style.setProperty('overflow','hidden','important');
+    /* ── フローティングバー本体（全プロパティを !important で上書き） ── */
+    sp(block,'position','fixed');
+    sp(block,'bottom','20px');
+    sp(block,'left','12px');
+    sp(block,'right','12px');
+    sp(block,'width','auto');
+    sp(block,'max-width','740px');
+    sp(block,'transform','none');
+    sp(block,'background','rgba(255,255,255,0.92)');
+    sp(block,'backdrop-filter','blur(12px)');
+    sp(block,'-webkit-backdrop-filter','blur(12px)');
+    sp(block,'padding','12px 16px');
+    sp(block,'border-radius','20px');
+    sp(block,'box-shadow','0 10px 40px rgba(0,0,0,0.15)');
+    sp(block,'z-index','1000');
+    sp(block,'border','1px solid rgba(0,0,0,0.05)');
+    sp(block,'box-sizing','border-box');
+    sp(block,'overflow','hidden');
 
     /* ── 戻る／次へ ボタン行を横並び ── */
     var hb=block.querySelector('[data-testid="stHorizontalBlock"]');
     if(hb){
-      hb.style.setProperty('display','flex','important');
-      hb.style.setProperty('flex-wrap','nowrap','important');
-      hb.style.setProperty('gap','8px','important');
-      hb.style.setProperty('width','100%','important');
-      hb.style.setProperty('box-sizing','border-box','important');
-      var bcols=hb.querySelectorAll(':scope > [data-testid="column"]');
-      bcols.forEach(function(col){
-        col.style.setProperty('flex','1 1 0','important');
-        col.style.setProperty('min-width','0','important');
-        col.style.setProperty('max-width','50%','important');
-        col.style.setProperty('box-sizing','border-box','important');
-        col.style.setProperty('overflow','hidden','important');
+      sp(hb,'display','flex');
+      sp(hb,'flex-wrap','nowrap');
+      sp(hb,'gap','8px');
+      sp(hb,'width','100%');
+      sp(hb,'box-sizing','border-box');
+      hb.querySelectorAll(':scope > [data-testid="column"]').forEach(function(col){
+        sp(col,'flex','1 1 calc(50% - 4px)');
+        sp(col,'max-width','calc(50% - 4px)');
+        sp(col,'min-width','0');
+        sp(col,'box-sizing','border-box');
+        sp(col,'overflow','hidden');
       });
     }
 
-    /* ── 書籍行（チェックボックス + あらすじアイコン）を横並び ──
-       stPopoverを1つだけ含む行 = 内側[4,1]の行と判定              */
+    /* ── 書籍行（チェックボックス＋あらすじアイコン）を横並び ──
+       stPopoverを1つだけ含む行 = 内側[4,1]の行と判定            */
     par.querySelectorAll('[data-testid="stHorizontalBlock"]').forEach(function(row){
       if(row===hb)return;
       if(row.querySelectorAll('[data-testid="stPopover"]').length!==1)return;
-      row.style.setProperty('flex-wrap','nowrap','important');
-      row.style.setProperty('align-items','center','important');
-      row.style.setProperty('gap','4px','important');
+      sp(row,'flex-wrap','nowrap');
+      sp(row,'align-items','center');
+      sp(row,'gap','4px');
       var rcols=row.querySelectorAll(':scope > [data-testid="column"]');
       if(rcols.length>=2){
-        rcols[0].style.setProperty('flex','1 1 auto','important');
-        rcols[0].style.setProperty('min-width','0','important');
-        rcols[0].style.setProperty('overflow','hidden','important');
-        rcols[rcols.length-1].style.setProperty('flex','0 0 44px','important');
-        rcols[rcols.length-1].style.setProperty('width','44px','important');
-        rcols[rcols.length-1].style.setProperty('min-width','44px','important');
+        sp(rcols[0],'flex','1 1 auto');
+        sp(rcols[0],'min-width','0');
+        sp(rcols[0],'overflow','hidden');
+        var last=rcols[rcols.length-1];
+        sp(last,'flex','0 0 44px');
+        sp(last,'width','44px');
+        sp(last,'min-width','44px');
+        sp(last,'padding-right','8px'); /* 右端から少し内側に */
       }
     });
 
