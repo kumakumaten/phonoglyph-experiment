@@ -555,9 +555,18 @@ def render_step2():
     block.style.boxShadow='0 10px 40px rgba(0,0,0,0.15)';
     block.style.zIndex='1000';
     block.style.border='1px solid rgba(0,0,0,0.05)';
-    // 内側のボタン列を横並び維持
+    // 内側のボタン列を横並び維持（!importantを上書きするためsetPropertyを使用）
     var hb=block.querySelector('[data-testid="stHorizontalBlock"]');
-    if(hb){hb.style.flexWrap='nowrap';hb.style.gap='8px';}
+    if(hb){
+      hb.style.setProperty('flex-wrap','nowrap','important');
+      hb.style.setProperty('gap','8px','important');
+      // 各カラムを均等幅に
+      hb.querySelectorAll('[data-testid="column"]').forEach(function(col){
+        col.style.setProperty('flex','1 1 50%','important');
+        col.style.setProperty('min-width','0','important');
+        col.style.setProperty('margin-bottom','0','important');
+      });
+    }
     return true;
   }
   var n=0;
