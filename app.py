@@ -193,9 +193,17 @@ div[data-testid="stVerticalBlock"]:has(> div > div > div > div > span.floating-b
 div[data-testid="stHorizontalBlock"]:has(.pg-task-label) {
     flex-wrap: nowrap !important;
     gap: 8px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
 }
 div[data-testid="stHorizontalBlock"]:has(.pg-task-label) > div[data-testid="column"] {
-    min-width: 0 !important; width: 50% !important; flex: 1 1 50% !important;
+    min-width: 0 !important;
+    width: calc(50% - 4px) !important;
+    flex: 0 0 calc(50% - 4px) !important;
+    max-width: calc(50% - 4px) !important;
+    overflow: hidden !important;
 }
 /* 画像高さをCSS最大値で制限（スマホで2列×3行が画面内に収まる） */
 div[data-testid="stHorizontalBlock"]:has(.pg-task-label) img {
@@ -469,11 +477,11 @@ def render_step1():
 </div>
 <div class="pg-consent-section" style="margin-bottom:0">
   <p class="pg-consent-title">問い合わせ先</p>
-  <p class="pg-consent-body" style="font-size:13px">
+  <p class="pg-consent-body">
     東京電機大学 システムデザイン工学部 デザイン工学科<br>
     インタラクティブアート&amp;デザイン研究室
   </p>
-  <p class="pg-consent-body" style="font-size:13px;margin-top:8px">
+  <p class="pg-consent-body" style="margin-top:8px">
     研究責任者：山本景子 准教授<br>
     研究従事者：熊谷 天（<a href="mailto:23ad049@ms.dendai.ac.jp" style="color:#007AFF">23ad049@ms.dendai.ac.jp</a>）
   </p>
