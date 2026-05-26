@@ -22,8 +22,7 @@ CSS = """
 html,body,.stApp{
     font-family:-apple-system,"Helvetica Neue","Hiragino Sans",Arial,sans-serif;
     background:#F2F2F7;color:#1C1C1E;
-    overflow-x:hidden !important;
-    max-width:100vw;
+    overflow-x:hidden !important;max-width:100vw;
 }
 .block-container{padding:40px 28px 80px;max-width:780px;overflow-x:hidden !important;}
 [data-testid="stAppViewContainer"],[data-testid="stMain"]{overflow-x:hidden !important;}
@@ -38,12 +37,47 @@ section[data-testid="stSidebar"] p,section[data-testid="stSidebar"] span,
 section[data-testid="stSidebar"] label,
 section[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p{color:#EBEBF5!important;}
 section[data-testid="stSidebar"] .stSlider>div>div>div{background:#007AFF!important;}
+
+/* =========================================
+   ページ上部ステップインジケーター
+   ========================================= */
+.pg-stepper{
+    display:flex;align-items:flex-start;
+    justify-content:center;
+    margin-bottom:24px;
+    gap:0;
+}
+.pg-step-item{display:flex;flex-direction:column;align-items:center;gap:5px;}
+.pg-step-circle{
+    width:30px;height:30px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    font-size:13px;font-weight:700;flex-shrink:0;
+}
+.pg-step-done{background:#007AFF;color:#FFFFFF;}
+.pg-step-active{background:#007AFF;color:#FFFFFF;box-shadow:0 0 0 4px rgba(0,122,255,.18);}
+.pg-step-todo{background:#FFFFFF;border:2px solid #C7C7CC;color:#8E8E93;}
+.pg-step-label{font-size:10px;font-weight:600;white-space:nowrap;color:#8E8E93;text-align:center;}
+.pg-step-label-active{color:#007AFF!important;}
+.pg-step-connector{
+    flex:1;min-width:14px;max-width:40px;
+    height:2px;margin:14px 3px 0;
+}
+.pg-step-connector-done{background:#007AFF;}
+.pg-step-connector-todo{background:#E5E5EA;}
+
+/* =========================================
+   テキスト・見出し
+   ========================================= */
 .pg-eyebrow{font-size:12px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:#007AFF;margin-bottom:6px;}
-.pg-title{font-size:28px;font-weight:700;letter-spacing:-0.5px;color:#1C1C1E;margin:0 0 6px;line-height:1.2;}
-.pg-subtitle{font-size:15px;color:#8E8E93;margin:0 0 32px;line-height:1.5;}
+.pg-title{font-size:26px;font-weight:700;letter-spacing:-0.5px;color:#1C1C1E;margin:0 0 6px;line-height:1.2;}
+.pg-subtitle{font-size:14px;color:#8E8E93;margin:0 0 24px;line-height:1.5;}
 .pg-notice{background:rgba(0,122,255,.07);border-radius:12px;padding:14px 18px;font-size:14px;color:#3A3A3C!important;line-height:1.55;margin-bottom:20px;}
 .pg-notice strong{color:#007AFF!important;}
 .pg-divider{height:1px;background:#E5E5EA;margin:24px 0;border:none;}
+
+/* =========================================
+   インフォームドコンセントカード
+   ========================================= */
 .pg-consent-card{background:#FFFFFF;border-radius:16px;padding:24px 28px;margin-bottom:20px;
  box-shadow:0 1px 3px rgba(0,0,0,.07),0 4px 12px rgba(0,0,0,.04);}
 .pg-consent-section{margin-bottom:18px;}
@@ -52,7 +86,9 @@ section[data-testid="stSidebar"] .stSlider>div>div>div{background:#007AFF!import
 .pg-consent-item{font-size:14px;color:#3A3A3C;line-height:1.65;padding-left:1em;margin:2px 0;}
 .pg-consent-item::before{content:"·";margin-right:6px;color:#8E8E93;}
 
-/* ボタン共通 */
+/* =========================================
+   ボタン共通
+   ========================================= */
 .stButton>button{border:none;border-radius:22px;font-size:15px;font-weight:600;padding:10px 28px;width:100%;transition:opacity .15s,transform .12s;}
 .stButton>button[kind="primary"],.stButton>button[kind="primary"]:hover,
 .stButton>button[kind="primary"]:focus,.stButton>button[kind="primary"] *
@@ -63,6 +99,66 @@ section[data-testid="stSidebar"] .stSlider>div>div>div{background:#007AFF!import
 {background:#E8E8ED!important;color:#1C1C1E!important;}
 .stButton>button:not([kind]):hover{background:#007AFF!important;color:#FFFFFF!important;}
 .stButton>button:active{transform:scale(.98);}
+
+/* =========================================
+   チェックボックス — 枠線のみ→選択時青塗り（SVG非表示）
+   ========================================= */
+/* カード枠（Step 2 書籍リスト用） */
+div[data-testid="stCheckbox"]{
+    background:#FFFFFF;border:2px solid #E5E5EA;border-radius:12px;
+    padding:12px 14px;margin-bottom:8px;transition:all 0.2s ease-in-out;
+    display:flex;align-items:center;width:100%;
+}
+div[data-testid="stCheckbox"]:hover{border-color:#007AFF;box-shadow:0 4px 14px rgba(0,122,255,0.15);transform:translateY(-1px);}
+div[data-testid="stCheckbox"]:has(input:checked){border-color:#007AFF;background:rgba(0,122,255,0.05);}
+div[data-testid="stCheckbox"] label{cursor:pointer;width:100%;}
+/* インジケーター本体 */
+[data-testid="stCheckbox"] [role="checkbox"]{
+    background:#FFFFFF !important;
+    border:2px solid #C7C7CC !important;
+    border-radius:4px !important;
+    width:18px !important;height:18px !important;
+    min-width:18px !important;flex-shrink:0 !important;
+    position:relative !important;
+}
+[data-testid="stCheckbox"] [role="checkbox"] svg{display:none !important;}
+[data-testid="stCheckbox"] [role="checkbox"][aria-checked="true"]{
+    background:#007AFF !important;border-color:#007AFF !important;
+}
+/* 白チェックマーク（CSSのみ） */
+[data-testid="stCheckbox"] [role="checkbox"][aria-checked="true"]::after{
+    content:"";position:absolute;
+    top:50%;left:50%;
+    transform:translate(-50%,-62%) rotate(45deg);
+    width:5px;height:9px;
+    border-right:2.5px solid #FFFFFF;
+    border-bottom:2.5px solid #FFFFFF;
+}
+.stCheckbox label p,.stCheckbox label span{color:#1C1C1E!important;font-size:13px!important;font-weight:600;white-space:normal !important;word-break:break-word !important;}
+
+/* =========================================
+   ラジオボタン — 枠線のみ→選択時内側青ドット（SVG非表示）
+   ========================================= */
+[data-testid="stRadio"] [role="radio"]{
+    background:#FFFFFF !important;
+    border:2px solid #C7C7CC !important;
+    border-radius:50% !important;
+    width:18px !important;height:18px !important;
+    min-width:18px !important;flex-shrink:0 !important;
+    position:relative !important;
+}
+[data-testid="stRadio"] [role="radio"] svg{display:none !important;}
+[data-testid="stRadio"] [role="radio"][aria-checked="true"]{
+    border-color:#007AFF !important;background:#FFFFFF !important;
+}
+/* 内側青ドット */
+[data-testid="stRadio"] [role="radio"][aria-checked="true"]::after{
+    content:"";position:absolute;
+    top:50%;left:50%;
+    transform:translate(-50%,-50%);
+    width:10px;height:10px;
+    border-radius:50%;background:#007AFF;
+}
 
 /* =========================================
    Step 2: 書籍チェック行（内側2列）の横並び維持
@@ -79,19 +175,6 @@ div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"] > div > div
 }
 .stPopover button{padding:8px !important;margin:0 !important;width:100% !important;min-height:44px !important;}
 
-/* Step 2: カード型チェックボックス */
-div[data-testid="stCheckbox"]{
-    background:#FFFFFF;border:2px solid #E5E5EA;border-radius:12px;
-    padding:12px 14px;margin-bottom:8px;transition:all 0.2s ease-in-out;
-    display:flex;align-items:center;width:100%;
-}
-div[data-testid="stCheckbox"]:hover{border-color:#007AFF;box-shadow:0 4px 14px rgba(0,122,255,0.15);transform:translateY(-1px);}
-div[data-testid="stCheckbox"]:has(input:checked){border-color:#007AFF;background:rgba(0,122,255,0.05);}
-div[data-testid="stCheckbox"] label{cursor:pointer;width:100%;}
-.stCheckbox [role="checkbox"],[data-testid="stCheckbox"] [role="checkbox"]{background:#FFFFFF!important;border:1.5px solid #C7C7CC!important;border-radius:4px!important;min-width:16px;}
-.stCheckbox [role="checkbox"][aria-checked="true"],[data-testid="stCheckbox"] [role="checkbox"][aria-checked="true"]{background:#007AFF!important;border-color:#007AFF!important;}
-.stCheckbox label p,.stCheckbox label span{color:#1C1C1E!important;font-size:13px!important;font-weight:600;white-space:normal !important;word-break:break-word !important;}
-
 /* =========================================
    Step 2: フローティングアクションバー
    ========================================= */
@@ -105,113 +188,113 @@ div[data-testid="stVerticalBlock"]:has(> div > div > div > div > span.floating-b
 .bottom-spacer{height:160px;}
 
 /* =========================================
-   Step 4: カルーセルUI
+   Step 4: 2列×3行グリッド（画像縮小）
    ========================================= */
-.pg-cw{
-    overflow-x:scroll;
-    scroll-snap-type:x mandatory;
-    -webkit-overflow-scrolling:touch;
-    display:flex;
-    gap:10px;
-    padding:0 4px 8px;
-    scrollbar-width:none;
-    -ms-overflow-style:none;
-    margin-bottom:4px;
+div[data-testid="stHorizontalBlock"]:has(.pg-task-label) {
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
 }
-.pg-cw::-webkit-scrollbar{display:none;}
-.pg-cp{
-    scroll-snap-align:start;
-    flex:0 0 82%;
-    min-width:0;
+div[data-testid="stHorizontalBlock"]:has(.pg-task-label) > div[data-testid="column"] {
+    min-width: 0 !important; width: 50% !important; flex: 1 1 50% !important;
 }
-.pg-cc{
-    border:2.5px solid #E5E5EA;
-    border-radius:16px;
-    background:#FFFFFF;
-    padding:10px 10px 6px;
-    box-shadow:0 2px 8px rgba(0,0,0,.05);
-    position:relative;
-    transition:border-color .2s, background .2s;
+/* 画像高さをCSS最大値で制限（スマホで2列×3行が画面内に収まる） */
+div[data-testid="stHorizontalBlock"]:has(.pg-task-label) img {
+    max-height: 26vw !important;
+    width: 100% !important;
+    object-fit: contain !important;
+    display: block !important;
 }
-.pg-cl{
-    display:block;
-    text-align:center;
-    font-weight:800;
-    font-size:13px;
-    margin-bottom:5px;
+.pg-task-label{
+    display:block;text-align:center;
+    font-size:11px;font-weight:700;color:#8E8E93;
+    margin:0 0 3px;
 }
-.pg-sel-badge{
-    position:absolute;top:8px;right:10px;
-    font-size:11px;font-weight:700;color:#007AFF;
-    background:rgba(0,122,255,.1);
-    padding:2px 7px;border-radius:100px;
-}
-.pg-dots{
-    display:flex;
-    justify-content:center;
-    gap:5px;
-    margin:4px 0 14px;
-}
-.pg-dot{
-    width:6px;height:6px;border-radius:3px;
-    background:#C7C7CC;transition:all .2s;
-}
-
-/* Step 4: A〜Fチップボタン（隣接セレクタで選択状態色分け） */
+/* 選択ボタン（隣接セレクタで色分け） */
 div[data-testid="stMarkdownContainer"]:has(span.pg-btn-sel) + div[data-testid="stButton"] > button {
     background:#007AFF !important;color:#FFFFFF !important;
-    border-radius:10px !important;font-size:15px !important;font-weight:800 !important;
-    padding:8px 2px !important;min-height:40px !important;letter-spacing:0 !important;
+    border-radius:8px !important;font-size:12px !important;font-weight:700 !important;
+    padding:5px 4px !important;min-height:32px !important;
 }
 div[data-testid="stMarkdownContainer"]:has(span.pg-btn-unsel) + div[data-testid="stButton"] > button {
     background:#F2F2F7 !important;color:#8E8E93 !important;
-    border-radius:10px !important;font-size:15px !important;font-weight:800 !important;
-    padding:8px 2px !important;min-height:40px !important;letter-spacing:0 !important;
+    border-radius:8px !important;font-size:12px !important;font-weight:700 !important;
+    padding:5px 4px !important;min-height:32px !important;
 }
 
-/* その他汎用UI */
+/* =========================================
+   その他汎用UI
+   ========================================= */
 .stTextInput>div>div>input{border-radius:10px!important;border:1.5px solid #E5E5EA!important;background:#FFFFFF!important;font-size:15px!important;padding:10px 14px!important;color:#1C1C1E!important;}
 .stTextInput>div>div>input:focus{border-color:#007AFF!important;box-shadow:0 0 0 3px rgba(0,122,255,.12)!important;}
 .stNumberInput>div,.stNumberInput div[data-baseweb="input"],.stNumberInput div[data-baseweb="base-input"]{background:#FFFFFF!important;border:1.5px solid #E5E5EA!important;border-radius:10px!important;}
 div[data-baseweb="select"]>div{border-radius:10px!important;border:1.5px solid #E5E5EA!important;background:#FFFFFF!important;}
 div[data-baseweb="select"]>div:focus-within{border-color:#007AFF!important;box-shadow:0 0 0 3px rgba(0,122,255,.12)!important;}
-.stRadio [role="radio"],[data-testid="stRadio"] [role="radio"]{background:#FFFFFF!important;border:1.5px solid #C7C7CC!important;border-radius:50%!important;}
-.stRadio [role="radio"][aria-checked="true"],[data-testid="stRadio"] [role="radio"][aria-checked="true"]{background:#007AFF!important;border-color:#007AFF!important;}
 [data-testid="stPopoverBody"],[data-testid="stPopoverBody"]>div,div[role="dialog"],div[role="dialog"]>div,div[role="tooltip"],.stPopover div[data-baseweb="popover"]
 {background:#FFFFFF!important;border:none!important;border-radius:20px!important;box-shadow:0 12px 40px rgba(0,0,0,0.10),0 2px 8px rgba(0,0,0,0.06)!important;}
 [data-testid="stPopoverBody"]>div>div{padding:12px 16px!important;}
 .stPopover button,[data-testid="stPopover"] button{background:transparent!important;border:none!important;font-size:18px!important;color:#8E8E93!important;line-height:1;}
-.pg-progress-track{height:3px;background:#E5E5EA;border-radius:100px;margin-bottom:28px;overflow:hidden;}
+.pg-progress-track{height:3px;background:#E5E5EA;border-radius:100px;margin-bottom:24px;overflow:hidden;}
 .pg-progress-fill{height:3px;background:#007AFF;border-radius:100px;transition:width .4s;}
-.pg-task-q{font-size:15px;color:#8E8E93;text-align:center;margin-bottom:4px;}
-.pg-task-book{font-size:20px;font-weight:700;color:#007AFF;text-align:center;letter-spacing:-.3px;margin-bottom:14px;}
+.pg-task-q{font-size:14px;color:#8E8E93;text-align:center;margin-bottom:3px;}
+.pg-task-book{font-size:19px;font-weight:700;color:#007AFF;text-align:center;letter-spacing:-.3px;margin-bottom:12px;}
 .pg-qr-wrap{text-align:center;padding:20px 0;}
 .stSuccess>div{border-radius:10px!important;border:none!important;background:rgba(48,209,88,0.1)!important;margin-bottom:12px;}
 .stSuccess p{color:#1C7A3A!important;font-weight:600!important;font-size:14px!important;}
 
 @media(max-width:600px){
     .block-container{padding:16px 12px 100px!important;}
-    div[data-testid="stHorizontalBlock"]:not(:has(.pg-cw)):not(:has(> div[data-testid="column"] > div > div[data-testid="stPopover"])) {
+    div[data-testid="stHorizontalBlock"]:not(:has(.pg-task-label)):not(:has(> div[data-testid="column"] > div > div[data-testid="stPopover"])) {
         flex-wrap:wrap!important;
     }
-    div[data-testid="stHorizontalBlock"]:not(:has(.pg-cw)):not(:has(> div[data-testid="column"] > div > div[data-testid="stPopover"])) > div[data-testid="column"] {
+    div[data-testid="stHorizontalBlock"]:not(:has(.pg-task-label)):not(:has(> div[data-testid="column"] > div > div[data-testid="stPopover"])) > div[data-testid="column"] {
         flex:1 1 100%!important;min-width:0!important;margin-bottom:4px!important;
     }
     div[data-testid="stVerticalBlock"]:has(> div > div > div > div > span.floating-bar-target) div[data-testid="stHorizontalBlock"]{flex-wrap:nowrap!important;gap:8px!important;}
     div[data-testid="stVerticalBlock"]:has(> div > div > div > div > span.floating-bar-target) div[data-testid="stHorizontalBlock"] > div[data-testid="column"]{flex:1 1 50%!important;margin-bottom:0!important;}
-    .pg-task-book{font-size:17px!important;}
-    .pg-cp{flex:0 0 78%;}
+    .pg-task-book{font-size:16px!important;}
+    .pg-step-connector{min-width:8px;}
+    .pg-step-label{font-size:9px;}
 }
 #MainMenu,footer,header,.stDeployButton{visibility:hidden;}
 </style>
 """
 st.markdown(CSS, unsafe_allow_html=True)
 
+# ==========================================
+# ヘルパー関数
+# ==========================================
 def hd(eb,ti,su=None):
     st.markdown(f'<p class="pg-eyebrow">{eb}</p><h1 class="pg-title">{ti}</h1>',unsafe_allow_html=True)
     if su: st.markdown(f'<p class="pg-subtitle">{su}</p>',unsafe_allow_html=True)
 def hr(): st.markdown('<hr class="pg-divider">',unsafe_allow_html=True)
 
+# ==========================================
+# ステップインジケーター
+# ==========================================
+STEP_LABELS = ["同意", "作品選択", "Q&A", "タスク", "完了"]
+
+def render_stepper(current_step):
+    """ページ上部に 1〜5 の進捗インジケーターを表示"""
+    html = '<div class="pg-stepper">'
+    for i, label in enumerate(STEP_LABELS):
+        sn = i + 1
+        if sn < current_step:
+            cls, icon = "pg-step-done", "✓"
+        elif sn == current_step:
+            cls, icon = "pg-step-active", str(sn)
+        else:
+            cls, icon = "pg-step-todo", str(sn)
+        lbl_cls = "pg-step-label pg-step-label-active" if sn <= current_step else "pg-step-label"
+        html += f'<div class="pg-step-item"><div class="pg-step-circle {cls}">{icon}</div><div class="{lbl_cls}">{label}</div></div>'
+        if i < len(STEP_LABELS) - 1:
+            lc = "pg-step-connector-done" if sn < current_step else "pg-step-connector-todo"
+            html += f'<div class="pg-step-connector {lc}"></div>'
+    html += '</div>'
+    st.markdown(html, unsafe_allow_html=True)
+
+# ==========================================
+# セッション管理
+# ==========================================
 def reset_session():
     adm=st.session_state.get('is_admin',False)
     adm_mode=st.session_state.get('admin_mode',"実験タスク (被験者用)")
@@ -233,8 +316,8 @@ def load_database():
     return {}
 
 @st.cache_data
-def load_image_b64(path, max_size=480):
-    """画像をbase64エンコード（表示用にリサイズ・キャッシュ）"""
+def load_image_b64(path, max_size=400):
+    """画像をbase64エンコード（小さく表示するためmax_size=400）"""
     if not path or not os.path.exists(path):
         return ""
     try:
@@ -364,6 +447,7 @@ def render_topbar():
 # Step 1: インフォームドコンセント
 # ==========================================
 def render_step1():
+    render_stepper(1)
     hd("Step 1 / 5","実験への参加","以下の説明をよくお読みのうえ、同意いただける場合は基本情報をご入力ください。")
     st.markdown("""
 <div class="pg-consent-card">
@@ -385,7 +469,14 @@ def render_step1():
 </div>
 <div class="pg-consent-section" style="margin-bottom:0">
   <p class="pg-consent-title">問い合わせ先</p>
-  <p class="pg-consent-body" style="font-size:13px;color:#8E8E93">東京電機大学 システムデザイン工学部 デザイン工学科<br>インタラクティブアート&amp;デザイン研究室　担当：熊谷 天</p>
+  <p class="pg-consent-body" style="font-size:13px">
+    東京電機大学 システムデザイン工学部 デザイン工学科<br>
+    インタラクティブアート&amp;デザイン研究室
+  </p>
+  <p class="pg-consent-body" style="font-size:13px;margin-top:8px">
+    研究責任者：山本景子 准教授<br>
+    研究従事者：熊谷 天（<a href="mailto:23ad049@ms.dendai.ac.jp" style="color:#007AFF">23ad049@ms.dendai.ac.jp</a>）
+  </p>
 </div>
 </div>
 """, unsafe_allow_html=True)
@@ -396,15 +487,14 @@ def render_step1():
     major=st.radio("専攻分野",["理数系","文系","芸術・デザイン系","その他"],horizontal=True)
     rf=st.selectbox("読書頻度",["月に1〜2冊","月に3〜5冊","月に6冊以上","全く読まない"],
                     index=None,placeholder="選択してください")
-    # 修正1: placeholder="選択してください" を追加
-    gn=st.multiselect("よく読むジャンル",["純文学","大衆文学","SF","ラノベ","実用書","その他"], placeholder="選択してください")
+    gn=st.multiselect("よく読むジャンル",["純文学","大衆文学","SF","ラノベ","実用書","その他"],
+                      placeholder="選択してください")
     syn=st.slider("言葉の響きに色や形を感じるか（1: 全く感じない — 5: 強く感じる）",1,5,3)
     hr(); _,cb=st.columns([1,1])
     with cb:
         if st.button("次へ進む",key="s1_next",type="primary"):
             if not consent: st.error("実験への参加に同意してください。")
             elif rf is None: st.error("読書頻度を選択してください。")
-            # 修正2: ジャンル(gn)が空(未選択)の場合のエラーを追加
             elif not gn: st.error("よく読むジャンルを選択してください。")
             else:
                 st.session_state.user_data={"age":age,"gender":gender,"major":major,
@@ -415,6 +505,7 @@ def render_step1():
 # Step 2: 既読作品選択（2列グリッド）
 # ==========================================
 def render_step2():
+    render_stepper(2)
     hd("Step 2 / 5","既読作品の選択","内容を知っている作品を選択してください。📖ボタンであらすじ等を確認できます。")
     cs,co,cg=st.columns([2,1.5,1.5])
     with cs: sq=st.text_input("🔍 検索",placeholder="作品名・著者名")
@@ -477,6 +568,7 @@ def render_step2():
 # Step 3: 事前アンケート
 # ==========================================
 def render_step3():
+    render_stepper(3)
     hd("Step 3 / 5","事前アンケート","マッチングタスクを開始する前に、普段の読書体験についてお答えください。")
     st.markdown('<div class="pg-notice">質問はすべて<strong>直感</strong>でお答えください。</div>',unsafe_allow_html=True)
     q1=st.radio("Q1. 表紙のデザインやイラストに惹かれて本を買ったこと（ジャケ買い）はありますか？",["はい","いいえ"],horizontal=True)
@@ -493,13 +585,14 @@ def render_step3():
             st.session_state.step=4; st.rerun()
 
 # ==========================================
-# Step 4: マッチングタスク（横スワイプカルーセル）
+# Step 4: マッチングタスク（2列×3行グリッド、画像小）
 # ==========================================
 def render_step4():
     if st.session_state.current_q_index>=len(st.session_state.task_queue):
         st.session_state.step=5; st.rerun()
 
     idx=st.session_state.current_q_index; tot=len(st.session_state.task_queue)
+    render_stepper(4)
     st.markdown(f'<div class="pg-progress-track"><div class="pg-progress-fill" style="width:{idx/tot*100:.1f}%"></div></div>',unsafe_allow_html=True)
 
     tb=st.session_state.task_queue[idx]; dn=get_display_name(tb)
@@ -514,60 +607,35 @@ def render_step4():
         st.session_state.step4_selected=None
 
     opts=st.session_state.current_options; lbs=["A","B","C","D","E","F"]
-    sel_idx=opts.index(st.session_state.step4_selected) if st.session_state.step4_selected and st.session_state.step4_selected in opts else -1
 
-    # カルーセルパネルHTML（base64画像）
-    panels_html=""
-    for i,(opt,lb) in enumerate(zip(opts,lbs)):
-        ip=get_image_path(opt)
-        b64=load_image_b64(ip) if ip else ""
-        is_sel=(i==sel_idx)
-        bc="#007AFF" if is_sel else "#E5E5EA"
-        bg="rgba(0,122,255,0.04)" if is_sel else "#FFFFFF"
-        lc="#007AFF" if is_sel else "#8E8E93"
-        badge='<span class="pg-sel-badge">✓ 選択中</span>' if is_sel else ""
-        img_html=f'<img src="data:image/png;base64,{b64}" style="width:100%;height:auto;max-height:56vw;object-fit:contain;display:block">' if b64 else f'<div style="height:56vw;display:flex;align-items:center;justify-content:center;color:#C7C7CC;font-size:12px">画像なし</div>'
-        panels_html+=f'<div class="pg-cp" data-idx="{i}"><div class="pg-cc" style="border-color:{bc};background:{bg}">{badge}<span class="pg-cl" style="color:{lc}">{lb}</span>{img_html}</div></div>'
+    # ★ 2列×3行グリッド（max-height:26vwのCSSで全6択が画面内に収まる）
+    for row_start in [0, 3]:
+        cols=st.columns(2)
+        for j in range(2):
+            idx_opt=row_start+j
+            if idx_opt>=len(opts): break
+            with cols[j]:
+                ip=get_image_path(opts[idx_opt])
+                b64=load_image_b64(ip) if ip else ""
+                # ラベル（.pg-task-label でCSSセレクタを機能させる）
+                st.markdown(f'<span class="pg-task-label">{lbs[idx_opt]}</span>',unsafe_allow_html=True)
+                # 画像（base64埋め込み、max-height:26vwはCSSで制御）
+                if b64:
+                    st.markdown(f'<img src="data:image/png;base64,{b64}" style="width:100%;max-height:26vw;object-fit:contain;display:block;border-radius:8px;background:#FFF">',unsafe_allow_html=True)
+                else:
+                    st.markdown('<div style="height:26vw;background:#F2F2F7;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;color:#C7C7CC">画像なし</div>',unsafe_allow_html=True)
+                # 選択ボタン（隣接セレクタCSSハックで色分け）
+                is_sel=(st.session_state.step4_selected==opts[idx_opt])
+                st.markdown(f'<span class="{"pg-btn-sel" if is_sel else "pg-btn-unsel"}"></span>',unsafe_allow_html=True)
+                if st.button("✓" if is_sel else lbs[idx_opt],key=f"btn_{idx}_{idx_opt}",use_container_width=True):
+                    st.session_state.step4_selected=opts[idx_opt]; st.rerun()
 
-    # インジケータードット
-    dots_html='<div class="pg-dots">'+''.join([f'<div class="pg-dot" id="pgdot{idx}_{i}"></div>' for i in range(len(opts))])+'</div>'
-
-    # カルーセルJS（ドット更新 + 選択パネルへ自動スクロール）
-    js=f"""<script>
-(function(){{
-  const wrap=document.querySelector('.pg-cw');
-  if(!wrap)return;
-  const panels=wrap.querySelectorAll('.pg-cp');
-  const dots=[{','.join([f'document.getElementById("pgdot{idx}_{i}")' for i in range(len(opts))])}];
-  const selIdx={sel_idx};
-  function setDot(i){{dots.forEach((d,j)=>{{if(!d)return;d.style.width=j===i?'14px':'6px';d.style.background=j===i?'#007AFF':'#C7C7CC';}});}}
-  // 初期ドット
-  setDot(Math.max(0,selIdx));
-  // 選択済みパネルへスクロール
-  if(selIdx>=0&&panels[selIdx]){{setTimeout(()=>{{panels[selIdx].scrollIntoView({{behavior:'instant',block:'nearest',inline:'start'}});}},80);}}
-  // スクロール中のドット更新
-  const obs=new IntersectionObserver((entries)=>{{entries.forEach(e=>{{if(e.isIntersecting&&e.intersectionRatio>0.5){{setDot(parseInt(e.target.getAttribute('data-idx')));}}}})}},{{root:wrap,threshold:0.5}});
-  panels.forEach(p=>obs.observe(p));
-}})();
-</script>"""
-
-    st.markdown(f'<div class="pg-cw">{panels_html}</div>{dots_html}{js}',unsafe_allow_html=True)
-
-    # A〜Fチップ選択ボタン（6列）
-    cols=st.columns(len(opts))
-    for i,opt in enumerate(opts):
-        with cols[i]:
-            is_sel=(opt==st.session_state.step4_selected)
-            st.markdown(f'<span class="{"pg-btn-sel" if is_sel else "pg-btn-unsel"}"></span>',unsafe_allow_html=True)
-            if st.button(lbs[i],key=f"btn_{idx}_{i}",use_container_width=True):
-                st.session_state.step4_selected=opt; st.rerun()
-
-    # 選択状態の説明テキスト
+    # 選択状態テキスト
     if st.session_state.step4_selected:
         sel_lb=lbs[opts.index(st.session_state.step4_selected)]
-        st.markdown(f'<p style="text-align:center;font-size:13px;color:#007AFF;margin:6px 0 0;font-weight:600">{sel_lb} を選択中 — 確定して次へ進んでください</p>',unsafe_allow_html=True)
+        st.markdown(f'<p style="text-align:center;font-size:13px;color:#007AFF;margin:8px 0 0;font-weight:600">{sel_lb} を選択中</p>',unsafe_allow_html=True)
     else:
-        st.markdown('<p style="text-align:center;font-size:13px;color:#8E8E93;margin:6px 0 0">スワイプして図形を比較し、A〜F から選んでください</p>',unsafe_allow_html=True)
+        st.markdown('<p style="text-align:center;font-size:12px;color:#8E8E93;margin:8px 0 0">A〜F から1つ選んでください</p>',unsafe_allow_html=True)
 
     hr()
     _,cb4=st.columns([1,1])
@@ -592,12 +660,13 @@ def render_step4():
 # ==========================================
 def render_step5():
     st.balloons()
+    render_stepper(5)
     hd("Step 5 / 5","実験完了","すべてのタスクが終了しました。ご協力いただき誠にありがとうございました。")
     st.markdown("""
-    <div class="pg-notice" style="background:#FFFFFF;border:2px solid #E5E5EA;padding:32px;">
+    <div class="pg-consent-card">
         <h3 style="color:#007AFF;margin-top:0;margin-bottom:16px;">Phonoglyph 研究プロジェクト</h3>
-        <p style="font-size:15px;line-height:1.7;">文章の音の響き（音象徴）から直感的な図形を生成し、未知の書籍との新しい出会いを創出するための研究にご参加いただき、深く感謝申し上げます。</p>
-        <p style="font-size:15px;line-height:1.7;">皆様からいただいた直感的な評価データは、本研究のアルゴリズムを検証・発展させるための極めて重要な基礎となります。貴重なお時間を割いていただき、本当にありがとうございました。</p>
+        <p style="font-size:15px;line-height:1.7;color:#3A3A3C;">文章の音の響き（音象徴）から直感的な図形を生成し、未知の書籍との新しい出会いを創出するための研究にご参加いただき、深く感謝申し上げます。</p>
+        <p style="font-size:15px;line-height:1.7;color:#3A3A3C;">皆様からいただいた直感的な評価データは、本研究のアルゴリズムを検証・発展させるための極めて重要な基礎となります。貴重なお時間を割いていただき、本当にありがとうございました。</p>
     </div>
     """,unsafe_allow_html=True)
     hr()
