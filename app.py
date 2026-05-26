@@ -182,15 +182,8 @@ div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"] > div > div
 .stPopover button{padding:8px !important;margin:0 !important;width:100% !important;min-height:44px !important;}
 
 /* =========================================
-   Step 2: フローティングアクションバー
+   Step 2: フローティングアクションバー（スタイルはJSで付与）
    ========================================= */
-div[data-testid="stVerticalBlock"]:has(> div > div > div > div > span.floating-bar-target){
-    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
-    width:calc(100% - 24px);max-width:740px;
-    background:rgba(255,255,255,0.9);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
-    padding:12px 16px;border-radius:20px;box-shadow:0 10px 40px rgba(0,0,0,0.15);
-    z-index:1000;border:1px solid rgba(0,0,0,0.05);
-}
 .bottom-spacer{height:160px;}
 
 /* =========================================
@@ -225,8 +218,6 @@ div[data-baseweb="select"]>div:focus-within{border-color:#007AFF!important;box-s
     div[data-testid="stHorizontalBlock"]:not(:has(.pg-task-label)):not(:has(> div[data-testid="column"] > div > div[data-testid="stPopover"])) > div[data-testid="column"] {
         flex:1 1 100%!important;min-width:0!important;margin-bottom:4px!important;
     }
-    div[data-testid="stVerticalBlock"]:has(> div > div > div > div > span.floating-bar-target) div[data-testid="stHorizontalBlock"]{flex-wrap:nowrap!important;gap:8px!important;}
-    div[data-testid="stVerticalBlock"]:has(> div > div > div > div > span.floating-bar-target) div[data-testid="stHorizontalBlock"] > div[data-testid="column"]{flex:1 1 50%!important;margin-bottom:0!important;}
     .pg-task-book{font-size:16px!important;}
     .pg-step-connector{min-width:8px;}
     .pg-step-label{font-size:9px;}
@@ -539,6 +530,41 @@ def render_step2():
                     st.session_state.task_queue=st.session_state.selected_books.copy()
                     random.shuffle(st.session_state.task_queue)
                     st.session_state.step=3; st.rerun()
+
+    # ★ フローティングバーをJSで確実に固定（CSS:hasのネスト深さ問題を回避）
+    components.html("""
+<script>
+(function(){
+  function fix(){
+    var par=window.parent.document;
+    var el=par.querySelector('.floating-bar-target');
+    if(!el)return false;
+    var block=el.closest('[data-testid="stVerticalBlock"]');
+    if(!block)return false;
+    block.style.position='fixed';
+    block.style.bottom='20px';
+    block.style.left='50%';
+    block.style.transform='translateX(-50%)';
+    block.style.width='calc(100% - 24px)';
+    block.style.maxWidth='740px';
+    block.style.background='rgba(255,255,255,0.92)';
+    block.style.backdropFilter='blur(12px)';
+    block.style.webkitBackdropFilter='blur(12px)';
+    block.style.padding='12px 16px';
+    block.style.borderRadius='20px';
+    block.style.boxShadow='0 10px 40px rgba(0,0,0,0.15)';
+    block.style.zIndex='1000';
+    block.style.border='1px solid rgba(0,0,0,0.05)';
+    // 内側のボタン列を横並び維持
+    var hb=block.querySelector('[data-testid="stHorizontalBlock"]');
+    if(hb){hb.style.flexWrap='nowrap';hb.style.gap='8px';}
+    return true;
+  }
+  var n=0;
+  var t=setInterval(function(){if(fix()||++n>20)clearInterval(t);},150);
+})();
+</script>
+""", height=0)
 
 # ==========================================
 # Step 3: 事前アンケート
