@@ -531,7 +531,7 @@ def render_step2():
                     random.shuffle(st.session_state.task_queue)
                     st.session_state.step=3; st.rerun()
 
-    # ★ フローティングバーをJSで確実に固定（CSS:hasのネスト深さ問題を回避）
+    # ★ JS: フローティングバー固定 + 書籍行の横並び（iOS Safari :has() 問題を回避）
     components.html("""
 <script>
 (function(){
@@ -541,6 +541,8 @@ def render_step2():
     if(!el)return false;
     var block=el.closest('[data-testid="stVerticalBlock"]');
     if(!block)return false;
+
+    /* ── フローティングバー本体 ── */
     block.style.position='fixed';
     block.style.bottom='20px';
     block.style.left='50%';
@@ -555,18 +557,46 @@ def render_step2():
     block.style.boxShadow='0 10px 40px rgba(0,0,0,0.15)';
     block.style.zIndex='1000';
     block.style.border='1px solid rgba(0,0,0,0.05)';
-    // 内側のボタン列を横並び維持（!importantを上書きするためsetPropertyを使用）
+    block.style.setProperty('box-sizing','border-box','important');
+    block.style.setProperty('overflow','hidden','important');
+
+    /* ── 戻る／次へ ボタン行を横並び ── */
     var hb=block.querySelector('[data-testid="stHorizontalBlock"]');
     if(hb){
+      hb.style.setProperty('display','flex','important');
       hb.style.setProperty('flex-wrap','nowrap','important');
       hb.style.setProperty('gap','8px','important');
-      // 各カラムを均等幅に
-      hb.querySelectorAll('[data-testid="column"]').forEach(function(col){
-        col.style.setProperty('flex','1 1 50%','important');
+      hb.style.setProperty('width','100%','important');
+      hb.style.setProperty('box-sizing','border-box','important');
+      var bcols=hb.querySelectorAll(':scope > [data-testid="column"]');
+      bcols.forEach(function(col){
+        col.style.setProperty('flex','1 1 0','important');
         col.style.setProperty('min-width','0','important');
-        col.style.setProperty('margin-bottom','0','important');
+        col.style.setProperty('max-width','50%','important');
+        col.style.setProperty('box-sizing','border-box','important');
+        col.style.setProperty('overflow','hidden','important');
       });
     }
+
+    /* ── 書籍行（チェックボックス + あらすじアイコン）を横並び ──
+       stPopoverを1つだけ含む行 = 内側[4,1]の行と判定              */
+    par.querySelectorAll('[data-testid="stHorizontalBlock"]').forEach(function(row){
+      if(row===hb)return;
+      if(row.querySelectorAll('[data-testid="stPopover"]').length!==1)return;
+      row.style.setProperty('flex-wrap','nowrap','important');
+      row.style.setProperty('align-items','center','important');
+      row.style.setProperty('gap','4px','important');
+      var rcols=row.querySelectorAll(':scope > [data-testid="column"]');
+      if(rcols.length>=2){
+        rcols[0].style.setProperty('flex','1 1 auto','important');
+        rcols[0].style.setProperty('min-width','0','important');
+        rcols[0].style.setProperty('overflow','hidden','important');
+        rcols[rcols.length-1].style.setProperty('flex','0 0 44px','important');
+        rcols[rcols.length-1].style.setProperty('width','44px','important');
+        rcols[rcols.length-1].style.setProperty('min-width','44px','important');
+      }
+    });
+
     return true;
   }
   var n=0;
