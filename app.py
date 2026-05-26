@@ -501,7 +501,7 @@ def render_step2():
                 r=dr[i+j]; rn=r['ローマ字ファイル名']; jp=r['日本語書籍名']; au=r['著者名']
                 dl=f"『{jp}』\n{au}" if au!='不明' else f"『{jp}』"
                 with cols[j]:
-                    cc,cb=st.columns([4,1])
+                    cc,cb,_=st.columns([4,1,1])  # _はスペーサー（右余白をレスポンシブに確保）
                     with cc:
                         ic=rn in st.session_state.selected_books
                         if st.checkbox(dl,value=ic,key=f"chk_{rn}"):
@@ -562,8 +562,8 @@ def render_step2():
     sp(block,'box-sizing','border-box');
 
     /* ── 書籍行（チェックボックス＋あらすじアイコン）を横並び ──
-       stPopoverを1つだけ含む行 = 内側[4,1]の行と判定
-       アイコン列に margin-right でアイコン1個分以上の右余白を確保  */
+       stPopoverを1つだけ含む行 = 内側[4,1,1]の行と判定
+       列幅はPython側の比率[4:1:1]に委ねる（レスポンシブ対応）     */
     par.querySelectorAll('[data-testid="stHorizontalBlock"]').forEach(function(row){
       if(row.querySelectorAll('[data-testid="stPopover"]').length!==1)return;
       sp(row,'flex-wrap','nowrap');
@@ -571,14 +571,11 @@ def render_step2():
       sp(row,'gap','4px');
       var rcols=row.querySelectorAll(':scope > [data-testid="column"]');
       if(rcols.length>=2){
+        /* チェックボックス列: 残り幅をすべて使う */
         sp(rcols[0],'flex','1 1 auto');
         sp(rcols[0],'min-width','0');
         sp(rcols[0],'overflow','hidden');
-        var last=rcols[rcols.length-1];
-        sp(last,'flex','0 0 44px');
-        sp(last,'width','44px');
-        sp(last,'min-width','44px');
-        sp(last,'margin-right','44px'); /* アイコン1個分の右余白 */
+        /* アイコン列・スペーサー列: Streamlitの比率に委ねる（上書き不要） */
       }
     });
 
