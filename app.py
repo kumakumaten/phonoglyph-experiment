@@ -111,7 +111,7 @@ div[data-testid="stCheckbox"]{
 }
 div[data-testid="stCheckbox"]:hover{border-color:#007AFF;box-shadow:0 4px 14px rgba(0,122,255,0.15);transform:translateY(-1px);}
 div[data-testid="stCheckbox"]:has(input:checked){border-color:#007AFF;background:rgba(0,122,255,0.05);}
-div[data-testid="stCheckbox"] label{cursor:pointer;width:100%;}
+div[data-testid="stCheckbox"] label{cursor:pointer;width:100%;display:flex !important;align-items:center !important;gap:10px !important;}
 /* インジケーター本体 */
 [data-testid="stCheckbox"] [role="checkbox"]{
     background:#FFFFFF !important;
@@ -604,15 +604,41 @@ def render_step4():
                  if b64 else
                  f'<div style="width:100%;height:28vw;background:#F2F2F7;border-radius:6px;"></div>')
         cells.append(
-            f'<div style="border:{border};border-radius:10px;background:{bg};'
-            f'padding:6px 4px 4px;text-align:center;box-sizing:border-box;">'
+            f'<div data-pg-img="{lbs[i]}" '
+            f'style="border:{border};border-radius:10px;background:{bg};'
+            f'padding:6px 4px 4px;text-align:center;box-sizing:border-box;cursor:pointer;'
+            f'-webkit-tap-highlight-color:rgba(0,122,255,0.12);active:opacity:0.8;">'
             f'<div style="font-size:11px;font-weight:700;color:{lbl_col};margin-bottom:4px;">{lbs[i]}</div>'
             f'{img_tag}</div>'
         )
+    # 画像タップ→対応ラジオをJS経由でクリック
+    tap_js=(
+        '<script>'
+        '(function(){'
+        'function attach(){'
+        'var cells=document.querySelectorAll("[data-pg-img]");'
+        'if(!cells.length){setTimeout(attach,400);return;}'
+        'cells.forEach(function(c){'
+        'if(c._pgBound)return;c._pgBound=true;'
+        'c.addEventListener("click",function(){'
+        'var lb=this.getAttribute("data-pg-img");'
+        'var ps=document.querySelectorAll(\'[data-testid="stRadio"] label p\');'
+        'for(var i=0;i<ps.length;i++){'
+        'if(ps[i].textContent.trim()===lb){'
+        'ps[i].closest("label").click();break;}'
+        '}'
+        '});'
+        '});'
+        '}'
+        'attach();'
+        '})();'
+        '</script>'
+    )
     grid_html=(
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;'
         'width:100%;box-sizing:border-box;margin-bottom:14px;">'
         +''.join(cells)+'</div>'
+        +tap_js
     )
     st.markdown(grid_html,unsafe_allow_html=True)
 
