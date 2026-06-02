@@ -92,11 +92,19 @@ section[data-testid="stSidebar"] .stSlider>div>div>div{background:#007AFF!import
    ========================================= */
 .stButton>button{border:none;border-radius:22px;font-size:15px;font-weight:600;padding:10px 28px;width:100%;transition:opacity .15s,transform .12s;}
 .stButton>button[kind="primary"],.stButton>button[kind="primary"]:hover,
-.stButton>button[kind="primary"]:focus,.stButton>button[kind="primary"] *
+.stButton>button[kind="primary"]:focus,.stButton>button[kind="primary"] *,
+[data-testid="stBaseButton-primary"]>button,
+[data-testid="stBaseButton-primary"]>button:hover,
+[data-testid="stBaseButton-primary"]>button:focus,
+[data-testid="stBaseButton-primary"]>button *
 {background:#007AFF!important;color:#FFFFFF!important;}
-.stButton>button[kind="primary"]:hover{opacity:.87;transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,122,255,.32);}
+.stButton>button[kind="primary"]:hover,
+[data-testid="stBaseButton-primary"]>button:hover
+{opacity:.87;transform:translateY(-1px);box-shadow:0 4px 16px rgba(0,122,255,.32);}
 .stButton>button[kind="secondary"],.stButton>button:not([kind]),
-.stButton>button[kind="secondary"] *,.stButton>button:not([kind]) *
+.stButton>button[kind="secondary"] *,.stButton>button:not([kind]) *,
+[data-testid="stBaseButton-secondary"]>button,
+[data-testid="stBaseButton-secondary"]>button *
 {background:#E8E8ED!important;color:#1C1C1E!important;}
 .stButton>button:not([kind]):hover{background:#007AFF!important;color:#FFFFFF!important;}
 .stButton>button:active{transform:scale(.98);}
