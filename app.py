@@ -656,7 +656,7 @@ def render_step4():
     st.markdown(f'<div class="pg-progress-track"><div class="pg-progress-fill" style="width:{idx/tot*100:.1f}%"></div></div>',unsafe_allow_html=True)
 
     tb=st.session_state.task_queue[idx]; dn=get_display_name(tb)
-    st.markdown(f'<p class="pg-task-q">{idx+1} / {tot} — この書籍から連想される紋様を選んでください</p><p class="pg-task-book">{dn}</p>',unsafe_allow_html=True)
+    st.markdown(f'<p class="pg-task-q">{idx+1} / {tot} — この書籍から連想される図形を選んでください</p><p class="pg-task-book">{dn}</p>',unsafe_allow_html=True)
 
     if 'step4_selected' not in st.session_state:
         st.session_state.step4_selected=None
