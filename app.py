@@ -201,11 +201,40 @@ div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"] > div > div
 /* =========================================
    その他汎用UI
    ========================================= */
-.stTextInput>div>div>input{border-radius:10px!important;border:1.5px solid #E5E5EA!important;background:#FFFFFF!important;font-size:15px!important;padding:10px 14px!important;color:#1C1C1E!important;}
-.stTextInput>div>div>input:focus{border-color:#007AFF!important;box-shadow:0 0 0 3px rgba(0,122,255,.12)!important;}
-.stNumberInput>div,.stNumberInput div[data-baseweb="input"],.stNumberInput div[data-baseweb="base-input"]{background:#FFFFFF!important;border:1.5px solid #E5E5EA!important;border-radius:10px!important;}
-div[data-baseweb="select"]>div{border-radius:10px!important;border:1.5px solid #E5E5EA!important;background:#FFFFFF!important;}
-div[data-baseweb="select"]>div:focus-within{border-color:#007AFF!important;box-shadow:0 0 0 3px rgba(0,122,255,.12)!important;}
+/* テキスト入力 */
+.stTextInput>div>div>input,
+[data-testid="stTextInput"] input
+{border-radius:10px!important;border:1.5px solid #E5E5EA!important;background:#FFFFFF!important;font-size:15px!important;padding:10px 14px!important;color:#1C1C1E!important;}
+.stTextInput>div>div>input:focus,
+[data-testid="stTextInput"] input:focus
+{border-color:#007AFF!important;box-shadow:0 0 0 3px rgba(0,122,255,.12)!important;}
+/* 数値入力 */
+.stNumberInput>div,.stNumberInput div[data-baseweb="input"],.stNumberInput div[data-baseweb="base-input"],
+[data-testid="stNumberInput"] div[data-baseweb="input"],[data-testid="stNumberInput"] div[data-baseweb="base-input"]
+{background:#FFFFFF!important;border:1.5px solid #E5E5EA!important;border-radius:10px!important;}
+.stNumberInput input,[data-testid="stNumberInput"] input
+{color:#1C1C1E!important;background:#FFFFFF!important;}
+/* セレクトボックス */
+div[data-baseweb="select"]>div,
+[data-testid="stSelectbox"] div[data-baseweb="select"]>div
+{border-radius:10px!important;border:1.5px solid #E5E5EA!important;background:#FFFFFF!important;color:#1C1C1E!important;}
+div[data-baseweb="select"] [data-testid="stSelectboxVirtualDropdown"],
+div[data-baseweb="select"] span,
+div[data-baseweb="select"] div[class*="placeholder"],
+div[data-baseweb="select"] div[class*="singleValue"],
+div[data-baseweb="select"] div[class*="value"]
+{color:#1C1C1E!important;}
+div[data-baseweb="select"]>div:focus-within,
+[data-testid="stSelectbox"] div[data-baseweb="select"]>div:focus-within
+{border-color:#007AFF!important;box-shadow:0 0 0 3px rgba(0,122,255,.12)!important;}
+/* テキストエリア */
+.stTextArea textarea,[data-testid="stTextArea"] textarea
+{color:#1C1C1E!important;background:#FFFFFF!important;border-radius:10px!important;border:1.5px solid #E5E5EA!important;}
+/* スライダー値ラベル */
+[data-testid="stSlider"] [data-testid="stTickBarMin"],
+[data-testid="stSlider"] [data-testid="stTickBarMax"],
+[data-testid="stSlider"] p
+{color:#1C1C1E!important;}
 [data-testid="stPopoverBody"],[data-testid="stPopoverBody"]>div,div[role="dialog"],div[role="dialog"]>div,div[role="tooltip"],.stPopover div[data-baseweb="popover"]
 {background:#FFFFFF!important;border:none!important;border-radius:20px!important;box-shadow:0 12px 40px rgba(0,0,0,0.10),0 2px 8px rgba(0,0,0,0.06)!important;}
 [data-testid="stPopoverBody"]>div>div{padding:12px 16px!important;}
