@@ -767,20 +767,30 @@ def render_step4():
 # ==========================================
 def render_step5():
     st.balloons()
-    render_stepper(5)
-    hd("Step 5 / 5","実験完了","すべてのタスクが終了しました。ご協力いただき誠にありがとうございました。","完了コード[23049]")
+    hd("Step 5 / 5", "実験完了", "すべてのタスクが終了しました。ご協力いただき誠にありがとうございました。")
     st.markdown("""
-    <div class="pg-consent-card">
-        <h3 style="color:#007AFF;margin-top:0;margin-bottom:16px;">Phonoglyph 研究プロジェクト</h3>
-        <p style="font-size:15px;line-height:1.7;color:#3A3A3C;">文章の音の響き（音象徴）から直感的な図形を生成し、未知の書籍との新しい出会いを創出するための研究にご参加いただき、深く感謝申し上げます。</p>
-        <p style="font-size:15px;line-height:1.7;color:#3A3A3C;">皆様からいただいた直感的な評価データは、本研究のアルゴリズムを検証・発展させるための極めて重要な基礎となります。貴重なお時間を割いていただき、本当にありがとうございました。</p>
+    <div class="pg-notice" style="background:#FFFFFF; border:2px solid #E5E5EA; padding:32px;">
+        <h3 style="color:#007AFF; margin-top:0; margin-bottom:16px;">Phonoglyph 研究プロジェクト</h3>
+        <p style="font-size:15px; line-height:1.7;">文章の音の響き（音象徴）から直感的な図形を生成し、未知の書籍との新しい出会いを創出するための研究にご参加いただき、深く感謝申し上げます。</p>
+        <p style="font-size:15px; line-height:1.7;">皆様からいただいた直感的な評価データは、本研究のアルゴリズムを検証・発展させるための極めて重要な基礎となります。貴重なお時間を割いていただき、本当にありがとうございました。</p>
     </div>
-    """,unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
+    
+    # =========================================
+    # 【追加】完了コードの目立つパネル表示
+    # =========================================
+    st.markdown("""
+    <div style="background:#F2F2F7; border:2px dashed #007AFF; border-radius:12px; padding:24px; text-align:center; margin-bottom: 24px;">
+        <p style="font-size:14px; color:#3A3A3C; margin:0 0 8px; font-weight:600;">確認用完了コード</p>
+        <h2 style="color:#007AFF; margin:0; font-size:32px; letter-spacing: 2px;">完了コード：23049</h2>
+    </div>
+    """, unsafe_allow_html=True)
+
     hr()
     qru=f"https://api.qrserver.com/v1/create-qr-code/?size=160x160&data={urllib.parse.quote(DEPLOY_URL)}"
     st.markdown(f'<div class="pg-qr-wrap"><img src="{qru}" width="160" style="border-radius:12px"></div>',unsafe_allow_html=True)
-    st.markdown('<p style="text-align:center;font-size:13px;color:#8E8E93;margin:8px 0 4px">URLをコピーしてシェアできます</p>',unsafe_allow_html=True)
-    st.code(DEPLOY_URL,language=None)
+    st.markdown('<p style="text-align:center;font-size:13px;color:#8E8E93;margin:8px 0 4px">右上のアイコンでURLをコピーしてシェアできます</p>',unsafe_allow_html=True)
+    st.code(DEPLOY_URL, language=None)
     hr()
     _,cr5=st.columns([1,1])
     with cr5:
