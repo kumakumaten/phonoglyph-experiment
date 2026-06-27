@@ -768,7 +768,7 @@ def render_step4():
 def render_step5():
     st.balloons()
     render_stepper(5)
-    hd("Step 5 / 5","実験完了","すべてのタスクが終了しました。ご協力いただき誠にありがとうございました。")
+    hd("Step 5 / 5","実験完了","すべてのタスクが終了しました。ご協力いただき誠にありがとうございました。","完了コード[23049]")
     st.markdown("""
     <div class="pg-consent-card">
         <h3 style="color:#007AFF;margin-top:0;margin-bottom:16px;">Phonoglyph 研究プロジェクト</h3>
