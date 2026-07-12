@@ -177,13 +177,13 @@ div[data-testid="stCheckbox"] label > *{margin-top:0 !important;margin-bottom:0 
 /* =========================================
    Step 2: 書籍チェック行（内側2列）の横並び維持
    ========================================= */
-div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"] > div > div[data-testid="stPopover"]) {
+div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] > div > div[data-testid="stPopover"]) {
     flex-wrap: nowrap !important; align-items: center !important; gap: 4px !important;
 }
-div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"] > div > div[data-testid="stPopover"]) > div[data-testid="column"]:first-child {
+div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] > div > div[data-testid="stPopover"]) > div[data-testid="stColumn"]:first-child {
     min-width: 0 !important; width: auto !important; flex: 0 1 auto !important; max-width: calc(100% - 44px) !important;
 }
-div[data-testid="stHorizontalBlock"]:has(> div[data-testid="column"] > div > div[data-testid="stPopover"]) > div[data-testid="column"]:last-child {
+div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] > div > div[data-testid="stPopover"]) > div[data-testid="stColumn"]:last-child {
     min-width: 0 !important; width: 40px !important; flex: 0 0 40px !important;
     display: flex; justify-content: flex-start;
 }
@@ -249,10 +249,10 @@ div[data-baseweb="select"]>div:focus-within,
 
 @media(max-width:600px){
     .block-container{padding:16px 12px 100px!important;}
-    div[data-testid="stHorizontalBlock"]:not(:has(.pg-task-label)):not(:has(> div[data-testid="column"] > div > div[data-testid="stPopover"])) {
+    div[data-testid="stHorizontalBlock"]:not(:has(.pg-task-label)):not(:has(> div[data-testid="stColumn"] > div > div[data-testid="stPopover"])) {
         flex-wrap:wrap!important;
     }
-    div[data-testid="stHorizontalBlock"]:not(:has(.pg-task-label)):not(:has(> div[data-testid="column"] > div > div[data-testid="stPopover"])) > div[data-testid="column"] {
+    div[data-testid="stHorizontalBlock"]:not(:has(.pg-task-label)):not(:has(> div[data-testid="stColumn"] > div > div[data-testid="stPopover"])) > div[data-testid="stColumn"] {
         flex:1 1 100%!important;min-width:0!important;margin-bottom:4px!important;
     }
     .pg-task-book{font-size:16px!important;}
@@ -264,7 +264,7 @@ div[data-baseweb="select"]>div:focus-within,
 /* Step2 フローティング: モバイルでも「戻る／次へ」を横並び維持 */
 @media(max-width:600px){
   [data-testid="stVerticalBlock"]:has(.floating-bar-target) [data-testid="stHorizontalBlock"]{flex-wrap:nowrap !important;}
-  [data-testid="stVerticalBlock"]:has(.floating-bar-target) [data-testid="stHorizontalBlock"] > [data-testid="column"]{flex:1 1 0 !important;min-width:0 !important;margin-bottom:0 !important;}
+  [data-testid="stVerticalBlock"]:has(.floating-bar-target) [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]{flex:1 1 0 !important;min-width:0 !important;margin-bottom:0 !important;}
 }
 </style>
 """
@@ -612,7 +612,7 @@ def render_step2():
       sp(row,'flex-wrap','nowrap');
       sp(row,'align-items','center');
       sp(row,'gap','4px');
-      var rcols=row.querySelectorAll(':scope > [data-testid="column"]');
+      var rcols=row.querySelectorAll(':scope > [data-testid="stColumn"]');
       if(rcols.length>=2){
         /* チェックボックス列: 残り幅をすべて使う */
         sp(rcols[0],'flex','1 1 auto');
@@ -845,4 +845,5 @@ def main():
     else:
         render_simulator()
 
-if __name__=="__main__": main()
+if __name__ == "__main__":
+    main()
