@@ -776,15 +776,7 @@ def render_step5():
     </div>
     """, unsafe_allow_html=True)
     
-    # =========================================
-    # 【追加】完了コードの目立つパネル表示
-    # =========================================
-    st.markdown("""
-    <div style="background:#F2F2F7; border:2px dashed #007AFF; border-radius:12px; padding:24px; text-align:center; margin-bottom: 24px;">
-        <p style="font-size:14px; color:#3A3A3C; margin:0 0 8px; font-weight:600;">確認用完了コード</p>
-        <h2 style="color:#007AFF; margin:0; font-size:32px; letter-spacing: 2px;">完了コード：23049</h2>
-    </div>
-    """, unsafe_allow_html=True)
+
 
     hr()
     qru=f"https://api.qrserver.com/v1/create-qr-code/?size=160x160&data={urllib.parse.quote(DEPLOY_URL)}"
