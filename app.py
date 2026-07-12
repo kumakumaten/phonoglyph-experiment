@@ -755,9 +755,10 @@ def render_step4():
             u=st.session_state.user_data; JST=timezone(timedelta(hours=9),"JST")
             ts=datetime.now(JST).strftime("%Y/%m/%d %H:%M:%S")
             hn=f"anon_{st.session_state.session_id[-6:]}"
+            opts_str="|".join(st.session_state.current_options)  # 提示6択(表示順A→F)。選択集合ログ=トポロジー近接/選択モデル/位置バイアス解析用
             row_data=[ts,st.session_state.session_id,hn,u.get("age",""),u.get("gender",""),u.get("major",""),
                       u.get("reading_freq",""),u.get("genres",""),u.get("synesthesia_score",""),
-                      u.get("q1",""),u.get("q2",""),u.get("q3",""),0,tb,ch,"正解" if ic else "不正解"]
+                      u.get("q1",""),u.get("q2",""),u.get("q3",""),0,tb,ch,"正解" if ic else "不正解",opts_str]
             threading.Thread(target=async_save_task_result,args=(row_data,),daemon=True).start()
             st.session_state.current_q_index+=1; st.session_state.current_options=[]
             st.session_state.step4_selected=None; st.rerun()
