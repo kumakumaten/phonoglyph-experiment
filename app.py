@@ -181,7 +181,7 @@ div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] > div > d
     flex-wrap: nowrap !important; align-items: center !important; gap: 4px !important;
 }
 div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] > div > div[data-testid="stPopover"]) > div[data-testid="stColumn"]:first-child {
-    min-width: 0 !important; width: auto !important; flex: 0 1 auto !important; max-width: calc(100% - 44px) !important;
+    min-width: 0 !important; width: auto !important; flex: 1 1 auto !important; max-width: calc(100% - 44px) !important;
 }
 div[data-testid="stHorizontalBlock"]:has(> div[data-testid="stColumn"] > div > div[data-testid="stPopover"]) > div[data-testid="stColumn"]:last-child {
     min-width: 0 !important; width: 40px !important; flex: 0 0 40px !important;
@@ -249,10 +249,10 @@ div[data-baseweb="select"]>div:focus-within,
 
 @media(max-width:600px){
     .block-container{padding:16px 12px 100px!important;}
-    div[data-testid="stHorizontalBlock"]:not(:has(.pg-task-label)):not(:has(> div[data-testid="stColumn"] > div > div[data-testid="stPopover"])) {
+    div[data-testid="stHorizontalBlock"]:not(:has(.pg-task-label)):not(:has(> div[data-testid="stColumn"] > div > div[data-testid="stPopover"])):not(:has(.pg-fb)) {
         flex-wrap:wrap!important;
     }
-    div[data-testid="stHorizontalBlock"]:not(:has(.pg-task-label)):not(:has(> div[data-testid="stColumn"] > div > div[data-testid="stPopover"])) > div[data-testid="stColumn"] {
+    div[data-testid="stHorizontalBlock"]:not(:has(.pg-task-label)):not(:has(> div[data-testid="stColumn"] > div > div[data-testid="stPopover"])):not(:has(.pg-fb)) > div[data-testid="stColumn"] {
         flex:1 1 100%!important;min-width:0!important;margin-bottom:4px!important;
     }
     .pg-task-book{font-size:16px!important;}
@@ -565,6 +565,7 @@ def render_step2():
             st.success(f"現在の選択数: {len(st.session_state.selected_books)} 冊")
         cbk,cn=st.columns([1,1])
         with cbk:
+            st.markdown('<span class="pg-fb"></span>',unsafe_allow_html=True)
             if st.button("戻る",key="s2_back"): st.session_state.step=1; st.rerun()
         with cn:
             if st.button("次へ進む",key="s2_next",type="primary"):
