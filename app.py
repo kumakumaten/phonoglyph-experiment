@@ -538,9 +538,9 @@ def render_step2():
     elif sb=="発表年が古い順": df=df.sort_values(by=['発表年','日本語書籍名'],ascending=[True,True])
     dr=df.to_dict('records')
     st.caption(f"該当: {len(dr)} 件")
-    for i in range(0,len(dr),1):
-        cols=st.columns(1)
-        for j in range(1):
+    for i in range(0,len(dr),2):
+        cols=st.columns(2)
+        for j in range(2):
             if i+j<len(dr):
                 r=dr[i+j]; rn=r['ローマ字ファイル名']; jp=r['日本語書籍名']; au=r['著者名']
                 dl=f"『{jp}』\n{au}" if au!='不明' else f"『{jp}』"
