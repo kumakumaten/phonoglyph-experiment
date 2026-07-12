@@ -1,0 +1,15 @@
+[theme]
+# ライトテーマを強制
+base="light"
+
+# メインカラー（ボタンやアクセント）
+primaryColor="#4CAF50"
+
+# 全体の背景色（Google Forms風の薄いグレー）
+backgroundColor="#F0F2F6"
+
+# コンポーネントの背景色（白）
+secondaryBackgroundColor="#FFFFFF"
+
+# 基本のテキストカラー（視認性の高いダークグレー）
+textColor="#333333"
