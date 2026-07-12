@@ -259,6 +259,7 @@ div[data-baseweb="select"]>div:focus-within,
     .pg-step-connector{min-width:8px;}
     .pg-step-label{font-size:9px;}
 }
+[data-testid="stElementContainer"]:has(.pg-fb){display:none !important;}
 #MainMenu,footer,header,.stDeployButton{visibility:hidden;}
 
 /* Step2 フローティング: モバイルでも「戻る／次へ」を横並び維持 */
@@ -537,14 +538,14 @@ def render_step2():
     elif sb=="発表年が古い順": df=df.sort_values(by=['発表年','日本語書籍名'],ascending=[True,True])
     dr=df.to_dict('records')
     st.caption(f"該当: {len(dr)} 件")
-    for i in range(0,len(dr),2):
-        cols=st.columns(2)
-        for j in range(2):
+    for i in range(0,len(dr),1):
+        cols=st.columns(1)
+        for j in range(1):
             if i+j<len(dr):
                 r=dr[i+j]; rn=r['ローマ字ファイル名']; jp=r['日本語書籍名']; au=r['著者名']
                 dl=f"『{jp}』\n{au}" if au!='不明' else f"『{jp}』"
                 with cols[j]:
-                    cc,cb=st.columns([5,1])  # 📖をタイトルの近くへ(右余白スペーサーを廃止)
+                    cc,cb=st.columns([9,1])  # 1列フル幅・📖は同じ行の右端
                     with cc:
                         ic=rn in st.session_state.selected_books
                         if st.checkbox(dl,value=ic,key=f"chk_{rn}"):
