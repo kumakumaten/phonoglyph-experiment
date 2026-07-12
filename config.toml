@@ -2,14 +2,14 @@
 # ライトテーマを強制
 base="light"
 
-# メインカラー（ボタンやアクセント）
-primaryColor="#4CAF50"
+# メインカラー（ボタンやアクセント）— アプリCSSのiOSブルーに統一
+primaryColor="#007AFF"
 
-# 全体の背景色（Google Forms風の薄いグレー）
-backgroundColor="#F0F2F6"
+# 全体の背景色（iOS風の薄いグレー）
+backgroundColor="#F2F2F7"
 
 # コンポーネントの背景色（白）
 secondaryBackgroundColor="#FFFFFF"
 
-# 基本のテキストカラー（視認性の高いダークグレー）
-textColor="#333333"
+# 基本のテキストカラー
+textColor="#1C1C1E"
